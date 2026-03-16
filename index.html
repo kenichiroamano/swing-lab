@@ -1,869 +1,965 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>SWING LAB v6</title>
+<title>SWING LAB v7</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-body { background: #1a1a1a; color: #fff; font-family: system-ui, -apple-system, 'Hiragino Sans', sans-serif; overflow: hidden; height: 100vh; height: 100dvh; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0a0a0a;color:#fff;
+  overflow:hidden;height:100vh;height:100dvh;user-select:none;-webkit-user-select:none}
+#root{height:100%;width:100%}
+
+/* Common */
+.screen{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;padding:20px;text-align:center}
+.title{font-size:28px;font-weight:700;margin-bottom:8px}
+.subtitle{font-size:14px;color:#888;margin-bottom:24px;line-height:1.5}
+.btn{background:#2563eb;color:#fff;border:none;border-radius:12px;padding:16px 40px;
+  font-size:18px;font-weight:600;cursor:pointer;transition:all .2s;min-width:200px}
+.btn:active{transform:scale(0.95);background:#1d4ed8}
+.btn-secondary{background:#333;margin-top:12px}
+.btn-small{padding:10px 24px;font-size:14px;min-width:auto}
+
+/* Welcome */
+.welcome-icon{font-size:64px;margin-bottom:16px}
+.step-list{text-align:left;margin:20px 0;line-height:2}
+.step-list span{color:#60a5fa}
+
+/* Calibration */
+.cal-progress{display:flex;gap:12px;margin:24px 0}
+.cal-dot{width:40px;height:40px;border-radius:50%;background:#222;display:flex;
+  align-items:center;justify-content:center;font-size:18px;font-weight:700;transition:all .3s}
+.cal-dot.done{background:#22c55e}
+.cal-dot.active{background:#2563eb;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+.cal-status{font-size:16px;color:#ccc;margin-top:12px;min-height:24px}
+
+/* Drill */
+.drill-header{display:flex;justify-content:space-between;width:100%;padding:12px 16px;
+  position:absolute;top:0;left:0;z-index:10}
+.drill-header .mode{font-size:13px;color:#60a5fa;font-weight:600}
+.drill-header .streak{font-size:13px;color:#fbbf24}
+.drill-zone{position:relative;width:240px;height:240px;margin:20px 0}
+.drill-ring{width:100%;height:100%;border-radius:50%;border:4px solid #333;
+  display:flex;align-items:center;justify-content:center;transition:border-color .15s}
+.drill-ring.ok{border-color:#22c55e}
+.drill-ring.warn{border-color:#ef4444}
+.drill-ring.perfect{border-color:#fbbf24;box-shadow:0 0 30px rgba(251,191,36,0.3)}
+.drill-angle{font-size:56px;font-weight:700;transition:color .15s}
+.drill-angle.ok{color:#22c55e}
+.drill-angle.warn{color:#ef4444}
+.drill-label{font-size:13px;color:#888;margin-top:4px}
+.drill-coaching{background:#1a1a2e;border-radius:12px;padding:14px 20px;margin:12px 0;
+  font-size:14px;line-height:1.6;min-height:50px;width:100%;max-width:340px;text-align:center}
+.drill-coaching .tip{color:#60a5fa}
+.drill-coaching .perfect-msg{color:#fbbf24;font-weight:700;font-size:18px}
+.drill-stats{display:flex;gap:20px;margin-top:16px}
+.drill-stat{text-align:center}
+.drill-stat .val{font-size:24px;font-weight:700}
+.drill-stat .lbl{font-size:11px;color:#888;margin-top:2px}
+.state-badge{font-size:12px;padding:4px 12px;border-radius:20px;background:#222;color:#aaa;
+  margin-bottom:8px}
+.state-badge.recording{background:#7f1d1d;color:#fca5a5;animation:recBlink 1s infinite}
+@keyframes recBlink{0%,100%{opacity:1}50%{opacity:0.5}}
+
+/* Result */
+.result-card{background:#111;border-radius:16px;padding:24px;width:100%;max-width:340px;
+  margin:16px 0}
+.result-grade{font-size:48px;margin-bottom:8px}
+.result-title{font-size:22px;font-weight:700;margin-bottom:16px}
+.result-items{text-align:left}
+.result-item{display:flex;justify-content:space-between;padding:8px 0;
+  border-bottom:1px solid #222;font-size:14px}
+.result-item .label{color:#aaa}
+.result-item .value{font-weight:600}
+.result-item .value.good{color:#22c55e}
+.result-item .value.bad{color:#ef4444}
+.result-coaching{margin-top:16px;padding:12px;background:#1a1a2e;border-radius:8px;
+  font-size:13px;color:#60a5fa;line-height:1.5}
+.result-streak{margin-top:20px;text-align:center}
+.result-streak .num{font-size:36px;font-weight:700;color:#fbbf24}
+.result-streak .lbl{font-size:12px;color:#888}
+.new-record{color:#fbbf24;font-size:14px;font-weight:700;animation:bounceIn .5s}
+@keyframes bounceIn{0%{transform:scale(0)}50%{transform:scale(1.3)}100%{transform:scale(1)}}
+
+/* Settings */
+.settings-group{width:100%;max-width:340px;margin:12px 0}
+.settings-label{font-size:12px;color:#888;text-align:left;margin-bottom:6px}
+.settings-row{display:flex;gap:8px}
+.settings-btn{flex:1;padding:10px;border:2px solid #333;border-radius:8px;background:none;
+  color:#aaa;font-size:13px;cursor:pointer;transition:all .2s}
+.settings-btn.active{border-color:#2563eb;color:#fff;background:#1e3a5f}
 </style>
 </head>
 <body>
 <div id="root"></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.2/babel.min.js"></script>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
 <script type="text/babel">
 const { useState, useEffect, useRef, useCallback } = React;
 
-/*
- * SWING LAB v6 - Wrist & Face Drill Trainer
- * Single-HTML version for quick testing on iPhone
- */
-
-// ==========================================
+// =====================================================
 // Constants
-// ==========================================
+// =====================================================
+const VERSION = "v7-test";
 
-const STILL_THRESHOLD = 1.5;
-const STILL_DURATION = 1500;
-const MOVE_THRESHOLD = 3.0;
-const STOP_THRESHOLD = 2.0;
-const STOP_DURATION = 500;
-const DEFAULT_K = 0.20;
+const STILL_THRESHOLD = 0.8;
+const STILL_DURATION = 1200; // ms
+const MOVE_THRESHOLD = 15;
+const STOP_THRESHOLD = 3;
+const STOP_DURATION = 600; // ms
 
-const SKILL_LEVELS = {
-  1: { name: "ビギナー", desc: "HC36+", takeawayZones: [8,12,16,22,30], followZones: [10,15,20,28,35], faceSquare: 5, faceWarning: 10, faceTurnIdeal: [-80,-25], faceTurnWarning: [-100,-15], finishHeightMin: 30, wristCockOk: [30,110], wristImpactOk: [-10,10] },
-  2: { name: "初級", desc: "HC20-35", takeawayZones: [5,8,12,18,25], followZones: [7,10,15,22,30], faceSquare: 3, faceWarning: 7, faceTurnIdeal: [-75,-30], faceTurnWarning: [-90,-20], finishHeightMin: 40, wristCockOk: [40,100], wristImpactOk: [-8,8] },
-  3: { name: "中級", desc: "HC12-19", takeawayZones: [3,5,8,12,18], followZones: [4,7,10,15,22], faceSquare: 2, faceWarning: 5, faceTurnIdeal: [-70,-35], faceTurnWarning: [-85,-25], finishHeightMin: 50, wristCockOk: [50,95], wristImpactOk: [-6,6] },
-  4: { name: "上級", desc: "HC5-11", takeawayZones: [2,3.5,5,8,12], followZones: [3,5,7,10,15], faceSquare: 1.5, faceWarning: 3, faceTurnIdeal: [-65,-38], faceTurnWarning: [-80,-30], finishHeightMin: 55, wristCockOk: [55,90], wristImpactOk: [-5,5] },
-  5: { name: "競技", desc: "HC0-4", takeawayZones: [1,2,3,5,8], followZones: [2,3,5,7,10], faceSquare: 1, faceWarning: 2, faceTurnIdeal: [-60,-40], faceTurnWarning: [-75,-35], finishHeightMin: 60, wristCockOk: [60,85], wristImpactOk: [-5,5] },
+// Business zone target: Δbeta +10° ~ +30° from address
+const DRILL_MODES = {
+  business: {
+    name: "ビジネスゾーン",
+    targetMin: 10,
+    targetMax: 30,
+    warnMargin: 8,
+    evalItems: ["wrist"],
+    description: "腰から腰のゆっくりスイング",
+  },
+  half_arms: {
+    name: "ハーフショット（腕）",
+    targetMin: 30,
+    targetMax: 55,
+    warnMargin: 10,
+    evalItems: ["wrist", "face"],
+    description: "腕だけのハーフスイング",
+  },
+  quarter: {
+    name: "スリークォーター",
+    targetMin: 55,
+    targetMax: 75,
+    warnMargin: 12,
+    evalItems: ["wrist", "face", "path"],
+    description: "スリークォーターショット",
+  },
 };
 
-const SPEED_MODES = {
-  drill: { name: "ドリル", icon: "🎯", desc: "ゆっくり → 高精度", color: "#00ccff", speedLabel: "50%以下で" },
-  swing: { name: "スイング", icon: "⚡", desc: "通常速度 → 方向のみ", color: "#ff6600", speedLabel: "自由な速度" },
-  average: { name: "平均", icon: "📊", desc: "5-10回の平均", color: "#00ff88", speedLabel: "繰り返し" },
+// VFA thresholds
+const VFA_SQUARE = 5; // ±5° = square
+const VFA_WARN = 10;
+
+// Coaching tips
+const COACHING = {
+  wrist_open: "左手の甲を地面に向けるイメージで振りましょう",
+  wrist_closed: "手首の力を抜いて、自然にコックしましょう",
+  over_swing: "もう少しコンパクトに。目標の範囲で止めましょう",
+  under_swing: "もう少し大きく振って大丈夫です",
+  face_open: "フェースが開いています。左手首を少し手のひら側に曲げてみましょう",
+  face_closed: "フェースが被っています。グリップの力を少し緩めてみましょう",
+  early_release: "ダウンスイングでグリップエンドをボールに向けたまま下ろしましょう",
+  good: null,
 };
 
-const PRACTICE_TARGETS = {
-  takeaway: { name: "テイクバック", icon: "↗️", desc: "アドレス→トップ", color: "#00ccff" },
-  follow: { name: "フォロースルー", icon: "↙️", desc: "インパクト→フィニッシュ", color: "#ff6600" },
-  full: { name: "総合スイング", icon: "🔄", desc: "フルスイング解析", color: "#00ff88" },
-};
+// =====================================================
+// Audio Engine (Web Audio API)
+// =====================================================
+class AudioEngine {
+  constructor() {
+    this.ctx = null;
+    this.initialized = false;
+  }
 
-function calculateVFA(gamma, beta, calib) {
-  const dG = gamma - calib.gamma0;
-  const dB = beta - calib.beta0;
-  return dG * Math.cos(dB * Math.PI / 180) + (calib.k || DEFAULT_K) * dB;
+  init() {
+    if (this.initialized) return;
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.initialized = true;
+    } catch(e) { console.warn("AudioContext failed:", e); }
+  }
+
+  // Short beep for correct
+  beep(freq = 880, dur = 0.08) {
+    if (!this.ctx) return;
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.connect(g); g.connect(this.ctx.destination);
+    o.frequency.value = freq;
+    o.type = "sine";
+    g.gain.setValueAtTime(0.3, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+    o.start(); o.stop(this.ctx.currentTime + dur);
+  }
+
+  // Buzz for deviation
+  buzz(dur = 0.15) {
+    if (!this.ctx) return;
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.connect(g); g.connect(this.ctx.destination);
+    o.frequency.value = 30; // Low freq = physical vibration through speaker
+    o.type = "square";
+    g.gain.setValueAtTime(0.5, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+    o.start(); o.stop(this.ctx.currentTime + dur);
+  }
+
+  // Perfect swing chime
+  perfect() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    [880, 1108, 1318].forEach((f, i) => {
+      const o = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      o.connect(g); g.connect(this.ctx.destination);
+      o.frequency.value = f;
+      o.type = "sine";
+      g.gain.setValueAtTime(0, t + i * 0.1);
+      g.gain.linearRampToValueAtTime(0.3, t + i * 0.1 + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.1 + 0.4);
+      o.start(t + i * 0.1);
+      o.stop(t + i * 0.1 + 0.4);
+    });
+  }
+
+  // Ready beep
+  ready() {
+    this.beep(660, 0.15);
+    setTimeout(() => this.beep(880, 0.2), 200);
+  }
 }
 
-// ==========================================
-// Main App
-// ==========================================
+const audio = new AudioEngine();
 
-function App() {
-  const [sensor, setSensor] = useState("checking");
-  const [appMode, setAppMode] = useState("home");
-  const [calibStep, setCalibStep] = useState(0);
-  const [calibData, setCalibData] = useState(null);
-  const [savedProfiles, setSavedProfiles] = useState({});
-  const [speedMode, setSpeedMode] = useState("drill");
-  const [practiceTarget, setPracticeTarget] = useState("full");
-  const [skillLevel, setSkillLevel] = useState(3);
-  const [rawData, setRawData] = useState({ alpha: 0, beta: 0, gamma: 0 });
-  const [motionData, setMotionData] = useState({ rotAlpha: 0, rotBeta: 0, rotGamma: 0, accX: 0, accY: 0, accZ: 0 });
-  const [currentVFA, setCurrentVFA] = useState(0);
-  const [currentWrist, setCurrentWrist] = useState(0);
-  const [currentPath, setCurrentPath] = useState(0);
-  const [autoDetectState, setAutoDetectState] = useState("idle");
-  const [swingResult, setSwingResult] = useState(null);
-  const [showDebug, setShowDebug] = useState(false);
-  const [clubType, setClubType] = useState("driver");
-  const [averageSwings, setAverageSwings] = useState([]);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [borderColor, setBorderColor] = useState("transparent");
-  const [statusMessage, setStatusMessage] = useState("");
-  const [showSettings, setShowSettings] = useState(false);
+// =====================================================
+// Swing Analyzer
+// =====================================================
+class SwingAnalyzer {
+  constructor() {
+    this.reset();
+  }
 
-  const historyRef = useRef([]);
-  const startTimeRef = useRef(null);
-  const orientRef = useRef(null);
-  const motionRef = useRef(null);
-  const audioCtxRef = useRef(null);
-  const calibRef = useRef(null);
-  const stillStartRef = useRef(null);
-  const stopStartRef = useRef(null);
-  const prevAccRef = useRef({ x: 0, y: 0, z: 0 });
-  const autoRef = useRef("idle");
-  const peakSpeedRef = useRef(0);
-  const tempCalibRef = useRef({});
-  const rawRef = useRef({ alpha: 0, beta: 0, gamma: 0 });
+  reset() {
+    this.data = [];          // [{t, beta, gamma, alpha, rotX, rotY, rotZ, accX, accY, accZ}]
+    this.baseline = null;    // {beta, gamma, alpha}
+    this.state = "idle";     // idle -> waiting -> recording -> done
+    this.stillStart = 0;
+    this.stopStart = 0;
+    this.prevAcc = null;
+    this.topIndex = -1;
+    this.lastBuzzTime = 0;
+  }
 
-  // Sensor check
-  useEffect(() => {
-    if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
-      setSensor("permission-pending");
-    } else if (typeof DeviceOrientationEvent !== "undefined") {
-      setSensor("ready");
-    } else {
-      setSensor("unsupported");
+  setBaseline(beta, gamma, alpha) {
+    this.baseline = { beta, gamma, alpha };
+  }
+
+  // Calculate jerk (rate of acceleration change)
+  calcJerk(ax, ay, az) {
+    if (!this.prevAcc) {
+      this.prevAcc = { ax, ay, az };
+      return 0;
     }
-    try {
-      const s = localStorage.getItem("swinglab_profiles");
-      if (s) setSavedProfiles(JSON.parse(s));
-      const l = localStorage.getItem("swinglab_skill");
-      if (l) setSkillLevel(parseInt(l));
-    } catch(e){}
-  }, []);
+    const j = Math.sqrt(
+      (ax - this.prevAcc.ax) ** 2 +
+      (ay - this.prevAcc.ay) ** 2 +
+      (az - this.prevAcc.az) ** 2
+    );
+    this.prevAcc = { ax, ay, az };
+    return j;
+  }
 
+  // ZUPT: Zero Velocity Update at stationary points
+  applyZUPT(data, baseline) {
+    if (data.length < 10) return data;
+    // Find address baseline (first 5 samples average)
+    const addrBeta = data.slice(0, 5).reduce((s, d) => s + d.beta, 0) / 5;
+    const addrGamma = data.slice(0, 5).reduce((s, d) => s + d.gamma, 0) / 5;
+
+    // Find finish (last 5 samples average)
+    const finBeta = data.slice(-5).reduce((s, d) => s + d.beta, 0) / 5;
+    const finGamma = data.slice(-5).reduce((s, d) => s + d.gamma, 0) / 5;
+
+    // Linear drift correction
+    const driftBeta = (finBeta - addrBeta); // ideally should return to baseline
+    const driftGamma = (finGamma - addrGamma);
+    const n = data.length;
+
+    return data.map((d, i) => ({
+      ...d,
+      beta: d.beta - (driftBeta * i / n) * 0.5, // partial correction
+      gamma: d.gamma - (driftGamma * i / n) * 0.5,
+    }));
+  }
+
+  // Detect top of swing (angular velocity zero-crossing on Y axis)
+  detectTop(data) {
+    if (data.length < 20) return Math.floor(data.length / 2);
+
+    // Find max Δbeta point as approximate top
+    let maxDelta = -Infinity;
+    let maxIdx = 0;
+    const bl = this.baseline || { beta: data[0].beta };
+
+    for (let i = 5; i < data.length - 5; i++) {
+      const delta = Math.abs(data[i].beta - bl.beta);
+      if (delta > maxDelta) {
+        maxDelta = delta;
+        maxIdx = i;
+      }
+    }
+
+    // Refine using rotation rate zero-crossing near max
+    const searchStart = Math.max(5, maxIdx - 15);
+    const searchEnd = Math.min(data.length - 5, maxIdx + 15);
+
+    for (let i = searchStart + 1; i < searchEnd; i++) {
+      if (data[i-1].rotY > 0 && data[i].rotY <= 0) {
+        return i; // Zero-crossing found
+      }
+    }
+
+    return maxIdx;
+  }
+
+  // Analyze completed swing
+  analyze(mode) {
+    const config = DRILL_MODES[mode];
+    if (!this.baseline || this.data.length < 20) {
+      return { valid: false, reason: "データ不足" };
+    }
+
+    // Apply ZUPT / post-hoc correction
+    const corrected = this.applyZUPT(this.data, this.baseline);
+
+    // Detect top
+    const topIdx = this.detectTop(corrected);
+    this.topIndex = topIdx;
+
+    // Calculate deltas from baseline
+    const deltas = corrected.map(d => ({
+      dBeta: d.beta - this.baseline.beta,
+      dGamma: d.gamma - this.baseline.gamma,
+      t: d.t,
+    }));
+
+    // Top position values
+    const topDelta = deltas[topIdx];
+    const maxBeta = Math.max(...deltas.map(d => Math.abs(d.dBeta)));
+
+    // VFA at top
+    const dBetaTop = topDelta.dBeta;
+    const dGammaTop = topDelta.dGamma;
+    const k = 0.2; // coupling coefficient (default)
+    const vfa = dGammaTop * Math.cos(dBetaTop * Math.PI / 180) + k * dBetaTop;
+
+    // Check if swing is in target range
+    const absDeltaBeta = Math.abs(dBetaTop);
+    const inRange = absDeltaBeta >= config.targetMin && absDeltaBeta <= config.targetMax;
+    const overSwing = absDeltaBeta > config.targetMax + config.warnMargin;
+    const underSwing = absDeltaBeta < config.targetMin - config.warnMargin;
+
+    // Face angle check
+    const faceSquare = Math.abs(vfa) <= VFA_SQUARE;
+    const faceWarn = Math.abs(vfa) > VFA_WARN;
+    const faceOpen = vfa > VFA_SQUARE;
+    const faceClose = vfa < -VFA_SQUARE;
+
+    // Determine coaching tip
+    let coachKey = "good";
+    if (overSwing) coachKey = "over_swing";
+    else if (underSwing) coachKey = "under_swing";
+    else if (faceOpen && config.evalItems.includes("face")) coachKey = "face_open";
+    else if (faceClose && config.evalItems.includes("face")) coachKey = "face_closed";
+
+    // Check early release (if beta drops too fast in first half of downswing)
+    if (topIdx < corrected.length - 10) {
+      const downMid = Math.floor((topIdx + corrected.length) / 2);
+      const midDelta = Math.abs(deltas[downMid]?.dBeta || 0);
+      if (midDelta < absDeltaBeta * 0.3) {
+        coachKey = "early_release";
+      }
+    }
+
+    // Perfect check
+    const isPerfect = inRange && (faceSquare || !config.evalItems.includes("face"));
+
+    // Smoothness score (lower jerk variance = smoother)
+    let smoothness = 100;
+    if (corrected.length > 10) {
+      const jerks = [];
+      for (let i = 1; i < corrected.length; i++) {
+        const j = Math.sqrt(
+          (corrected[i].accX - corrected[i-1].accX) ** 2 +
+          (corrected[i].accY - corrected[i-1].accY) ** 2 +
+          (corrected[i].accZ - corrected[i-1].accZ) ** 2
+        );
+        jerks.push(j);
+      }
+      const avgJerk = jerks.reduce((s, v) => s + v, 0) / jerks.length;
+      smoothness = Math.max(0, Math.min(100, Math.round(100 - avgJerk * 3)));
+    }
+
+    return {
+      valid: true,
+      isPerfect,
+      maxBeta: absDeltaBeta,
+      topBeta: dBetaTop,
+      vfa: Math.round(vfa * 10) / 10,
+      inRange,
+      overSwing,
+      underSwing,
+      faceSquare,
+      faceOpen,
+      faceClose,
+      smoothness,
+      coachKey,
+      coachTip: COACHING[coachKey],
+      dataPoints: corrected.length,
+      durationMs: corrected.length > 0 ? corrected[corrected.length-1].t - corrected[0].t : 0,
+    };
+  }
+}
+
+// =====================================================
+// Main App
+// =====================================================
+function App() {
+  const [screen, setScreen] = useState("welcome"); // welcome, permission, calibrating, drill, result
+  const [drillMode, setDrillMode] = useState("business");
+  const [calCount, setCalCount] = useState(0);
+  const [calData, setCalData] = useState([]); // array of analyzed calibration swings
+  const [swingState, setSwingState] = useState("idle"); // idle, waiting, recording, done
+  const [currentAngle, setCurrentAngle] = useState(0);
+  const [currentVFA, setCurrentVFA] = useState(0);
+  const [isDeviation, setIsDeviation] = useState(false);
+  const [result, setResult] = useState(null);
+  const [streak, setStreak] = useState(0);
+  const [bestStreak, setBestStreak] = useState(0);
+  const [todayCount, setTodayCount] = useState(0);
+  const [todayPerfect, setTodayPerfect] = useState(0);
+  const [showCoaching, setShowCoaching] = useState("");
+  const [calibration, setCalibration] = useState(null); // {baseline, maxBeta, avgSwingPattern}
+  const [sensorDebug, setSensorDebug] = useState("");
+
+  const analyzerRef = useRef(new SwingAnalyzer());
+  const sensorActiveRef = useRef(false);
+  const orientHandlerRef = useRef(null);
+  const motionHandlerRef = useRef(null);
+  const latestOrient = useRef({ beta: 0, gamma: 0, alpha: 0 });
+  const latestMotion = useRef({ rotX: 0, rotY: 0, rotZ: 0, accX: 0, accY: 0, accZ: 0 });
+  const stateRef = useRef("idle");
+  const stillStartRef = useRef(0);
+  const stopStartRef = useRef(0);
+  const baselineRef = useRef(null);
+  const recordingRef = useRef(false);
+  const lastBuzzRef = useRef(0);
+  const calCountRef = useRef(0);
+  const calDataRef = useRef([]);
+  const frameRef = useRef(null);
+
+  // ---- Sensor Setup ----
   const requestPermission = useCallback(async () => {
-    try {
-      if (typeof DeviceOrientationEvent.requestPermission === "function") {
-        const p = await DeviceOrientationEvent.requestPermission();
-        if (p === "granted") {
-          if (typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function") {
-            await DeviceMotionEvent.requestPermission();
-          }
-          setSensor("ready");
-        } else { setSensor("denied"); }
-      } else { setSensor("ready"); }
-    } catch(e) { setSensor("error"); }
+    audio.init();
+
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try {
+        const perm = await DeviceOrientationEvent.requestPermission();
+        if (perm !== 'granted') {
+          alert("センサーの許可が必要です。設定からモーションセンサーを許可してください。");
+          return false;
+        }
+      } catch(e) {
+        alert("センサー許可エラー: " + e.message);
+        return false;
+      }
+    }
+
+    if (typeof DeviceMotionEvent !== 'undefined' &&
+        typeof DeviceMotionEvent.requestPermission === 'function') {
+      try {
+        await DeviceMotionEvent.requestPermission();
+      } catch(e) { /* ignore */ }
+    }
+
+    return true;
   }, []);
 
-  const playBeep = useCallback((freq = 880, dur = 0.15) => {
-    if (!soundEnabled) return;
-    try {
-      if (!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
-      const ctx = audioCtxRef.current;
-      if (ctx.state === "suspended") ctx.resume();
-      const now = ctx.currentTime;
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
-      o.frequency.value = freq;
-      g.gain.setValueAtTime(0.15, now);
-      g.gain.exponentialRampToValueAtTime(0.01, now + dur);
-      o.start(now); o.stop(now + dur);
-    } catch(e){}
-  }, [soundEnabled]);
+  const startSensors = useCallback(() => {
+    if (sensorActiveRef.current) return;
 
-  // Sensor listeners
-  const attachSensors = useCallback(() => {
-    const handleO = (e) => {
-      const a = e.alpha || 0, b = e.beta || 0, g = e.gamma || 0;
-      rawRef.current = { alpha: a, beta: b, gamma: g };
-      setRawData({ alpha: a, beta: b, gamma: g });
-      if (calibRef.current) {
-        const c = calibRef.current;
-        let rA = a - c.alpha0;
-        if (rA > 180) rA -= 360;
-        if (rA < -180) rA += 360;
-        const vfa = calculateVFA(g, b, c);
-        const wrist = b - c.beta0;
-        setCurrentVFA(vfa);
-        setCurrentWrist(wrist);
-        setCurrentPath(rA);
-        if (autoRef.current === "recording") {
-          const ts = Date.now() - (startTimeRef.current || Date.now());
-          historyRef.current.push({ timestamp: ts, alpha: rA, beta: wrist, gamma: g - c.gamma0, vfa, rawAlpha: a, rawBeta: b, rawGamma: g });
+    orientHandlerRef.current = (e) => {
+      latestOrient.current = {
+        beta: e.beta || 0,
+        gamma: e.gamma || 0,
+        alpha: e.alpha || 0,
+      };
+    };
+
+    motionHandlerRef.current = (e) => {
+      const rr = e.rotationRate || {};
+      const a = e.accelerationIncludingGravity || e.acceleration || {};
+      latestMotion.current = {
+        rotX: rr.beta || 0,
+        rotY: rr.gamma || 0,
+        rotZ: rr.alpha || 0,
+        accX: a.x || 0,
+        accY: a.y || 0,
+        accZ: a.z || 0,
+      };
+    };
+
+    window.addEventListener('deviceorientation', orientHandlerRef.current);
+    window.addEventListener('devicemotion', motionHandlerRef.current);
+    sensorActiveRef.current = true;
+  }, []);
+
+  const stopSensors = useCallback(() => {
+    if (orientHandlerRef.current) {
+      window.removeEventListener('deviceorientation', orientHandlerRef.current);
+    }
+    if (motionHandlerRef.current) {
+      window.removeEventListener('devicemotion', motionHandlerRef.current);
+    }
+    sensorActiveRef.current = false;
+  }, []);
+
+  // ---- Processing Loop ----
+  const processFrame = useCallback(() => {
+    const now = Date.now();
+    const o = latestOrient.current;
+    const m = latestMotion.current;
+    const analyzer = analyzerRef.current;
+    const config = DRILL_MODES[drillMode];
+
+    // Calculate jerk
+    const jerk = analyzer.calcJerk(m.accX, m.accY, m.accZ);
+
+    // Debug
+    setSensorDebug(`β:${o.beta?.toFixed(0)} γ:${o.gamma?.toFixed(0)} J:${jerk?.toFixed(1)} S:${stateRef.current}`);
+
+    if (stateRef.current === "waiting") {
+      // Detect stillness
+      if (jerk < STILL_THRESHOLD) {
+        if (!stillStartRef.current) stillStartRef.current = now;
+        if (now - stillStartRef.current > STILL_DURATION) {
+          // Address detected - set baseline
+          baselineRef.current = { beta: o.beta, gamma: o.gamma, alpha: o.alpha };
+          analyzer.setBaseline(o.beta, o.gamma, o.alpha);
+          audio.ready();
+          stateRef.current = "ready";
+          setSwingState("ready");
+          stillStartRef.current = 0;
+        }
+      } else {
+        stillStartRef.current = 0;
+      }
+    }
+    else if (stateRef.current === "ready") {
+      // Detect movement start
+      if (jerk > MOVE_THRESHOLD) {
+        stateRef.current = "recording";
+        recordingRef.current = true;
+        setSwingState("recording");
+        analyzer.data = [];
+        stopStartRef.current = 0;
+      }
+    }
+    else if (stateRef.current === "recording") {
+      // Record data
+      analyzer.data.push({
+        t: now,
+        beta: o.beta, gamma: o.gamma, alpha: o.alpha,
+        rotX: m.rotX, rotY: m.rotY, rotZ: m.rotZ,
+        accX: m.accX, accY: m.accY, accZ: m.accZ,
+      });
+
+      // Real-time feedback
+      if (baselineRef.current) {
+        const dBeta = Math.abs(o.beta - baselineRef.current.beta);
+        setCurrentAngle(Math.round(dBeta));
+
+        // VFA calculation
+        const dGamma = o.gamma - baselineRef.current.gamma;
+        const dB = o.beta - baselineRef.current.beta;
+        const vfa = dGamma * Math.cos(dB * Math.PI / 180) + 0.2 * dB;
+        setCurrentVFA(Math.round(vfa));
+
+        // Check if in expected corridor
+        // During backswing, angle should be increasing toward target
+        const isInCorridor = dBeta <= config.targetMax + config.warnMargin;
+        const isDeviating = dBeta > config.targetMax + config.warnMargin ||
+                           (config.evalItems.includes("face") && Math.abs(vfa) > VFA_WARN);
+
+        setIsDeviation(isDeviating);
+
+        // Buzz on deviation (throttled)
+        if (isDeviating && now - lastBuzzRef.current > 300) {
+          audio.buzz();
+          lastBuzzRef.current = now;
         }
       }
-    };
 
-    const handleM = (e) => {
-      const rot = e.rotationRate || {};
-      const acc = e.accelerationIncludingGravity || e.acceleration || {};
-      const rA = rot.alpha||0, rB = rot.beta||0, rG = rot.gamma||0;
-      const aX = acc.x||0, aY = acc.y||0, aZ = acc.z||0;
-      setMotionData({ rotAlpha:rA, rotBeta:rB, rotGamma:rG, accX:aX, accY:aY, accZ:aZ });
-
-      const rotSpeed = Math.sqrt(rA**2 + rB**2 + rG**2);
-      if (autoRef.current === "recording" && rotSpeed > peakSpeedRef.current) peakSpeedRef.current = rotSpeed;
-
-      const prev = prevAccRef.current;
-      const jerk = Math.sqrt((aX-prev.x)**2 + (aY-prev.y)**2 + (aZ-prev.z)**2);
-      prevAccRef.current = { x: aX, y: aY, z: aZ };
-
-      const now = Date.now();
-      const st = autoRef.current;
-
-      if (st === "waitingStill") {
-        if (jerk < STILL_THRESHOLD) {
-          if (!stillStartRef.current) stillStartRef.current = now;
-          if (now - stillStartRef.current >= STILL_DURATION) {
-            autoRef.current = "ready";
-            setAutoDetectState("ready");
-            stillStartRef.current = null;
-            if (calibRef.current) {
-              const rd = rawRef.current;
-              calibRef.current = { ...calibRef.current, alpha0: rd.alpha, beta0: rd.beta, gamma0: rd.gamma };
-            }
-            playBeep(880, 0.15);
-            setStatusMessage("✅ アドレス検出！動くと記録開始");
-          }
-        } else { stillStartRef.current = null; }
+      // Detect end of swing (stillness)
+      if (jerk < STOP_THRESHOLD) {
+        if (!stopStartRef.current) stopStartRef.current = now;
+        if (now - stopStartRef.current > STOP_DURATION) {
+          // Swing complete
+          stateRef.current = "done";
+          recordingRef.current = false;
+          finishSwing();
+          return;
+        }
+      } else {
+        stopStartRef.current = 0;
       }
 
-      if (st === "ready" && jerk > MOVE_THRESHOLD) {
-        autoRef.current = "recording";
-        setAutoDetectState("recording");
-        historyRef.current = [];
-        startTimeRef.current = Date.now();
-        peakSpeedRef.current = 0;
-        stopStartRef.current = null;
-        setStatusMessage("● 記録中...");
+      // Safety: max recording 5 seconds
+      if (analyzer.data.length > 0 && now - analyzer.data[0].t > 5000) {
+        stateRef.current = "done";
+        recordingRef.current = false;
+        finishSwing();
+        return;
       }
+    }
 
-      if (st === "recording") {
-        if (jerk < STOP_THRESHOLD) {
-          if (!stopStartRef.current) stopStartRef.current = now;
-          if (now - stopStartRef.current >= STOP_DURATION) {
-            autoRef.current = "stopped";
-            setAutoDetectState("stopped");
-            stopStartRef.current = null;
-            playBeep(440, 0.2);
-            const data = [...historyRef.current];
-            if (data.length >= 10) {
-              const res = analyzeSwingV6(data, practiceTarget, skillLevel, peakSpeedRef.current, speedMode);
-              setSwingResult(res);
-              if (speedMode === "average") setAverageSwings(p => [...p, res]);
-              setAppMode("result");
-            } else {
-              setStatusMessage("⚠️ データ不足。もう一度");
-              autoRef.current = "waitingStill";
-              setAutoDetectState("waitingStill");
-            }
-          }
-        } else { stopStartRef.current = null; }
+    if (stateRef.current !== "idle" && stateRef.current !== "done") {
+      frameRef.current = requestAnimationFrame(processFrame);
+    }
+  }, [drillMode]);
+
+  const finishSwing = useCallback(() => {
+    const analyzer = analyzerRef.current;
+    const mode = drillMode;
+
+    // During calibration phase
+    if (screen === "calibrating" || calCountRef.current < 3) {
+      const r = analyzer.analyze(mode);
+      if (r.valid) {
+        const newCalData = [...calDataRef.current, r];
+        calDataRef.current = newCalData;
+        setCalData(newCalData);
+        calCountRef.current += 1;
+        setCalCount(calCountRef.current);
+
+        if (calCountRef.current >= 3) {
+          // Calibration complete - compute thresholds
+          const avgMaxBeta = newCalData.reduce((s, d) => s + d.maxBeta, 0) / newCalData.length;
+          const cal = {
+            baseline: baselineRef.current,
+            maxBeta: avgMaxBeta,
+            timestamp: Date.now(),
+          };
+          setCalibration(cal);
+          audio.perfect();
+          setTimeout(() => {
+            setScreen("drill");
+            setSwingState("idle");
+          }, 1500);
+          return;
+        }
       }
-    };
+      // Prepare for next calibration swing
+      audio.beep(660, 0.1);
+      analyzer.reset();
+      stateRef.current = "waiting";
+      setSwingState("waiting");
+      frameRef.current = requestAnimationFrame(processFrame);
+      return;
+    }
 
-    if (orientRef.current) window.removeEventListener("deviceorientation", orientRef.current);
-    if (motionRef.current) window.removeEventListener("devicemotion", motionRef.current);
-    orientRef.current = handleO;
-    motionRef.current = handleM;
-    window.addEventListener("deviceorientation", handleO);
-    window.addEventListener("devicemotion", handleM);
-  }, [practiceTarget, skillLevel, speedMode, playBeep]);
+    // Normal drill analysis
+    const r = analyzer.analyze(mode);
+    if (r.valid) {
+      if (r.isPerfect) {
+        audio.perfect();
+        setStreak(prev => {
+          const next = prev + 1;
+          setBestStreak(best => Math.max(best, next));
+          return next;
+        });
+        setTodayPerfect(prev => prev + 1);
+      } else {
+        audio.beep(330, 0.2); // low tone for not perfect
+        setStreak(0);
+      }
+      setTodayCount(prev => prev + 1);
+      setResult(r);
+      setScreen("result");
+    } else {
+      // Invalid swing - try again
+      audio.buzz(0.3);
+      setShowCoaching("うまく検出できませんでした。もう少しゆっくり振ってみてください");
+      analyzer.reset();
+      stateRef.current = "waiting";
+      setSwingState("waiting");
+      frameRef.current = requestAnimationFrame(processFrame);
+    }
+  }, [drillMode, screen, processFrame]);
 
+  // ---- Actions ----
+  const handleStart = useCallback(async () => {
+    const ok = await requestPermission();
+    if (!ok) return;
+    startSensors();
+    setScreen("calibrating");
+    setCalCount(0);
+    calCountRef.current = 0;
+    calDataRef.current = [];
+    setCalData([]);
+    analyzerRef.current.reset();
+    stateRef.current = "waiting";
+    setSwingState("waiting");
+    stillStartRef.current = 0;
+    frameRef.current = requestAnimationFrame(processFrame);
+  }, [requestPermission, startSensors, processFrame]);
+
+  const handleDrill = useCallback(() => {
+    analyzerRef.current.reset();
+    stateRef.current = "waiting";
+    setSwingState("waiting");
+    setResult(null);
+    setShowCoaching("");
+    setIsDeviation(false);
+    setCurrentAngle(0);
+    setCurrentVFA(0);
+    stillStartRef.current = 0;
+    stopStartRef.current = 0;
+    setScreen("drill");
+    frameRef.current = requestAnimationFrame(processFrame);
+  }, [processFrame]);
+
+  const handleRetry = useCallback(() => {
+    handleDrill();
+  }, [handleDrill]);
+
+  // Cleanup
   useEffect(() => {
-    if (sensor === "ready") attachSensors();
     return () => {
-      if (orientRef.current) window.removeEventListener("deviceorientation", orientRef.current);
-      if (motionRef.current) window.removeEventListener("devicemotion", motionRef.current);
+      stopSensors();
+      if (frameRef.current) cancelAnimationFrame(frameRef.current);
     };
-  }, [sensor, attachSensors]);
+  }, [stopSensors]);
 
-  // Calibration
-  const recordCalibStep = useCallback(() => {
-    const { alpha, beta, gamma } = rawRef.current;
-    if (calibStep === 1) {
-      tempCalibRef.current = { alpha0: alpha, beta0: beta, gamma0: gamma };
-      playBeep(660, 0.1);
-      setCalibStep(2);
-    } else if (calibStep === 2) {
-      const dG = gamma - tempCalibRef.current.gamma0;
-      const dB = beta - tempCalibRef.current.beta0;
-      tempCalibRef.current.gammaOpen = dG;
-      tempCalibRef.current.betaOpen = dB;
-      tempCalibRef.current.openRange = Math.abs(dG);
-      playBeep(770, 0.1);
-      setCalibStep(3);
-    } else if (calibStep === 3) {
-      const dG = gamma - tempCalibRef.current.gamma0;
-      tempCalibRef.current.closeRange = Math.abs(dG);
-      let k = DEFAULT_K;
-      if (Math.abs(tempCalibRef.current.betaOpen) > 2) {
-        k = Math.abs(tempCalibRef.current.gammaOpen / tempCalibRef.current.betaOpen);
-        k = Math.max(0.05, Math.min(0.50, k));
-      }
-      tempCalibRef.current.k = k;
-      const final = { ...tempCalibRef.current };
-      calibRef.current = final;
-      setCalibData(final);
-      const np = { ...savedProfiles, [clubType]: final };
-      setSavedProfiles(np);
-      try { localStorage.setItem("swinglab_profiles", JSON.stringify(np)); } catch(e){}
-      playBeep(880, 0.2);
-      setCalibStep(4);
-      setTimeout(() => setAppMode("speedSelect"), 1200);
-    }
-  }, [calibStep, clubType, savedProfiles, playBeep]);
+  // ---- Screens ----
 
-  const loadProfile = useCallback((t) => {
-    if (savedProfiles[t]) { calibRef.current = savedProfiles[t]; setCalibData(savedProfiles[t]); setClubType(t); return true; }
-    return false;
-  }, [savedProfiles]);
-
-  const startAutoDetect = useCallback(() => {
-    autoRef.current = "waitingStill";
-    setAutoDetectState("waitingStill");
-    stillStartRef.current = null;
-    stopStartRef.current = null;
-    setStatusMessage("📱 構えて静止してください...");
-    setAppMode("live");
-  }, []);
-
-  const startManual = useCallback(() => {
-    historyRef.current = [];
-    startTimeRef.current = Date.now();
-    peakSpeedRef.current = 0;
-    autoRef.current = "recording";
-    setAutoDetectState("recording");
-    setStatusMessage("● 記録中...");
-  }, []);
-
-  const stopManual = useCallback(() => {
-    autoRef.current = "stopped";
-    setAutoDetectState("stopped");
-    const data = [...historyRef.current];
-    if (data.length >= 10) {
-      const res = analyzeSwingV6(data, practiceTarget, skillLevel, peakSpeedRef.current, speedMode);
-      setSwingResult(res);
-      if (speedMode === "average") setAverageSwings(p => [...p, res]);
-      setAppMode("result");
-    } else { setStatusMessage("⚠️ データ不足"); }
-  }, [practiceTarget, skillLevel, speedMode]);
-
-  // ==========================================
-  // RENDER
-  // ==========================================
-
-  const S = styles;
-  const T = { WebkitTapHighlightColor: "transparent", touchAction: "manipulation", userSelect: "none", WebkitUserSelect: "none", cursor: "pointer" };
-
-  if (sensor === "checking") return <div style={{...S.base,...S.cc}}><div style={S.title}>センサー確認中...</div></div>;
-  if (sensor === "unsupported") return <div style={{...S.base,...S.cc}}><div style={S.title}>非対応デバイス</div><div style={S.sub}>ジャイロスコープ対応スマートフォンが必要です</div></div>;
-
-  if (sensor === "permission-pending") {
+  // Welcome Screen
+  if (screen === "welcome") {
     return (
-      <div style={{...S.base,...S.cc}}>
-        <div style={{...S.title, fontSize: 28}}>SWING LAB</div>
-        <div style={{...S.sub, marginBottom: 8, fontSize: 13}}>手首とフェース管理のドリルトレーナー</div>
-        <div style={{...S.sub, marginBottom: 28, fontSize: 11}}>v6 — VFA計算・3ポジションキャリブ・手首6ミス検出</div>
-        <div role="button" onClick={() => {
-          if (!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
-          requestPermission();
-        }} style={{...S.btn,...T, pointerEvents:"auto"}}>
-          センサーを許可して開始
-        </div>
-      </div>
-    );
-  }
+      <div className="screen">
+        <div className="welcome-icon">🏌️</div>
+        <div className="title">SWING LAB</div>
+        <div className="subtitle">{VERSION} — 自宅5分のスイングドリル</div>
 
-  if (sensor === "denied" || sensor === "error") return <div style={{...S.base,...S.cc}}><div style={S.title}>パーミッション拒否</div><div style={S.sub}>設定からモーションセンサーへのアクセスを許可してください</div></div>;
-
-  // HOME
-  if (appMode === "home") {
-    const hasP = savedProfiles[clubType];
-    return (
-      <div style={S.base}>
-        <div style={S.hdr}>
-          <div style={S.hdrT}>SWING LAB v6</div>
-          <div role="button" onClick={() => setShowSettings(!showSettings)} style={{...T, fontSize: 22, padding: 10, pointerEvents:"auto"}}>⚙️</div>
-        </div>
-        {showSettings && <SettingsPanel {...{skillLevel, setSkillLevel: v => { setSkillLevel(v); try{localStorage.setItem("swinglab_skill",v.toString())}catch(e){} }, soundEnabled, setSoundEnabled, T}} />}
-        <div style={S.cc}>
-          <div style={{...S.title, fontSize: 20, marginBottom: 4}}>🏌️ 手首 & フェース ドリルトレーナー</div>
-          <div style={{...S.sub, marginBottom: 24}}>スマホをグリップに見立てて握り<br/>スイングの形を体に覚えさせましょう</div>
-          <div style={{display:"flex",gap:8,marginBottom:20}}>
-            {["driver","iron","wedge"].map(c => (
-              <div key={c} role="button" onClick={() => { setClubType(c); loadProfile(c); }}
-                style={{...T, padding:"7px 14px", borderRadius:18, backgroundColor: clubType===c?"#0066ff":"#333", color:"#fff", fontSize:12, fontWeight:"bold", pointerEvents:"auto"}}>
-                {c==="driver"?"ドライバー":c==="iron"?"アイアン":"ウェッジ"}{savedProfiles[c]?" ✓":""}
-              </div>
-            ))}
+        <div style={{margin:"16px 0",padding:"16px",background:"#111",borderRadius:12,
+          maxWidth:320,textAlign:"left",fontSize:13,lineHeight:1.8,color:"#ccc"}}>
+          <div style={{marginBottom:8,color:"#fff",fontWeight:600}}>使い方</div>
+          <span style={{color:"#60a5fa"}}>1.</span> スマホをクラブのように縦に握る<br/>
+          <span style={{color:"#60a5fa"}}>2.</span> 画面を自分に向けて構える<br/>
+          <span style={{color:"#60a5fa"}}>3.</span> ゆっくりスイングするだけ<br/>
+          <div style={{marginTop:8,fontSize:11,color:"#888"}}>
+            ※ 最初の3回で自動キャリブレーションします
           </div>
-          {hasP ? (
-            <div style={{width:"100%",maxWidth:340}}>
-              <div role="button" onClick={() => { loadProfile(clubType); setAppMode("speedSelect"); }} style={{...S.btn,...T, width:"100%",textAlign:"center",pointerEvents:"auto",marginBottom:10}}>
-                練習を開始
-              </div>
-              <div role="button" onClick={() => { setCalibStep(1); tempCalibRef.current={}; setAppMode("calibration"); }}
-                style={{...S.btn2,...T, width:"100%",textAlign:"center",pointerEvents:"auto",fontSize:13}}>
-                キャリブレーションやり直し
-              </div>
-              <div style={{marginTop:14,padding:10,backgroundColor:"#1a2a3a",borderRadius:8,fontSize:11,color:"#88aacc"}}>
-                k係数: {(savedProfiles[clubType]?.k || DEFAULT_K).toFixed(3)} / 開き: {(savedProfiles[clubType]?.openRange||0).toFixed(1)}° / 閉じ: {(savedProfiles[clubType]?.closeRange||0).toFixed(1)}°
-              </div>
-            </div>
-          ) : (
-            <div role="button" onClick={() => { setCalibStep(1); tempCalibRef.current={}; setAppMode("calibration"); }}
-              style={{...S.btn,...T, pointerEvents:"auto"}}>
-              初回キャリブレーション開始
-            </div>
-          )}
         </div>
-      </div>
-    );
-  }
 
-  // CALIBRATION
-  if (appMode === "calibration") {
-    const steps = [null,
-      { t: "Step 1/3: アドレスポジション", i: "普段通りにアドレスの構えをして\nスマホをクラブのように握ってください", s: "準備ができたら「記録」を押す" },
-      { t: "Step 2/3: フェースを開く", i: "構えたまま、フェースを開いてください\n（右に回す感覚）", s: "開いた状態で「記録」を押す" },
-      { t: "Step 3/3: フェースを閉じる", i: "構えに戻してから\nフェースを閉じてください", s: "閉じた状態で「記録」を押す" },
-      { t: "✅ キャリブレーション完了！", i: "あなたの構えの特徴を記録しました", s: "練習を開始します..." },
-    ];
-    const st = steps[calibStep];
-    return (
-      <div style={S.base}>
-        <div style={S.hdr}>
-          <div role="button" onClick={() => setAppMode("home")} style={{...T,padding:"8px 12px",pointerEvents:"auto",fontSize:14}}>← 戻る</div>
-          <div style={{...S.hdrT,fontSize:16}}>キャリブレーション</div>
-          <div style={{width:50}}/>
-        </div>
-        <div style={S.cc}>
-          <div style={{display:"flex",gap:10,marginBottom:24}}>
-            {[1,2,3].map(s => <div key={s} style={{width:10,height:10,borderRadius:5,backgroundColor:calibStep>=s?(calibStep>s?"#00ff88":"#00ccff"):"#333",transition:"all 0.3s"}}/>)}
-          </div>
-          <div style={{fontSize:17,fontWeight:"bold",color:calibStep===4?"#00ff88":"#00ccff",marginBottom:14}}>{st.t}</div>
-          <div style={{fontSize:14,color:"#ddd",lineHeight:1.8,whiteSpace:"pre-line",marginBottom:10,textAlign:"center"}}>{st.i}</div>
-          <div style={{fontSize:12,color:"#888",marginBottom:24}}>{st.s}</div>
-          {calibStep < 4 && (
-            <div style={{display:"flex",gap:10,marginBottom:24}}>
-              <MM label="β(手首)" val={rawData.beta.toFixed(1)} />
-              <MM label="γ(フェース)" val={rawData.gamma.toFixed(1)} />
-              <MM label="α(方向)" val={rawData.alpha.toFixed(1)} />
-            </div>
-          )}
-          {calibStep < 4 && <div role="button" onClick={recordCalibStep} style={{...S.btn,...T,pointerEvents:"auto",minWidth:180}}>📸 記録</div>}
-          {calibStep === 4 && calibData && (
-            <div style={{padding:14,backgroundColor:"#1a3a2a",borderRadius:10,maxWidth:280,width:"100%"}}>
-              <div style={{fontSize:12,color:"#88cc88",marginBottom:6}}>結果</div>
-              <div style={{fontSize:11,color:"#aaa"}}>k係数: <span style={{color:"#00ff88"}}>{calibData.k?.toFixed(3)}</span></div>
-              <div style={{fontSize:11,color:"#aaa"}}>開き: {calibData.openRange?.toFixed(1)}° / 閉じ: {calibData.closeRange?.toFixed(1)}°</div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // SPEED SELECT
-  if (appMode === "speedSelect") {
-    return (
-      <div style={S.base}>
-        <div style={S.hdr}>
-          <div role="button" onClick={() => setAppMode("home")} style={{...T,padding:"8px 12px",pointerEvents:"auto",fontSize:14}}>← 戻る</div>
-          <div style={{...S.hdrT,fontSize:16}}>速度モード選択</div>
-          <div style={{width:50}}/>
-        </div>
-        <div style={S.cc}>
-          <div style={{...S.sub,marginBottom:20}}>振る速度に応じた精度で分析</div>
-          <div style={{display:"flex",flexDirection:"column",gap:12,width:"100%",maxWidth:340}}>
-            {Object.entries(SPEED_MODES).map(([k,m]) => (
-              <div key={k} role="button" onClick={() => { setSpeedMode(k); if(k==="average")setAverageSwings([]); setAppMode("targetSelect"); }}
-                style={{...T,padding:16,backgroundColor:"#242424",borderRadius:10,border:`2px solid ${m.color}40`,display:"flex",alignItems:"center",gap:12,pointerEvents:"auto"}}>
-                <div style={{fontSize:28}}>{m.icon}</div>
-                <div>
-                  <div style={{fontSize:15,fontWeight:"bold",color:m.color}}>{m.name}</div>
-                  <div style={{fontSize:11,color:"#aaa",marginTop:2}}>{m.desc}</div>
-                </div>
-              </div>
+        <div className="settings-group">
+          <div className="settings-label">ドリルモード</div>
+          <div className="settings-row">
+            {Object.entries(DRILL_MODES).map(([key, mode]) => (
+              <button key={key}
+                className={`settings-btn ${drillMode === key ? 'active' : ''}`}
+                onClick={() => setDrillMode(key)}>
+                {mode.name}
+              </button>
             ))}
           </div>
         </div>
+
+        <button className="btn" onClick={handleStart}>
+          はじめる
+        </button>
       </div>
     );
   }
 
-  // TARGET SELECT
-  if (appMode === "targetSelect") {
-    const sm = SPEED_MODES[speedMode];
+  // Calibration Screen
+  if (screen === "calibrating") {
     return (
-      <div style={S.base}>
-        <div style={S.hdr}>
-          <div role="button" onClick={() => setAppMode("speedSelect")} style={{...T,padding:"8px 12px",pointerEvents:"auto",fontSize:14}}>← 戻る</div>
-          <div style={{...S.hdrT,fontSize:16}}><span style={{color:sm.color}}>{sm.icon}</span> 練習対象</div>
-          <div style={{width:50}}/>
+      <div className="screen">
+        <div className="title" style={{fontSize:22}}>キャリブレーション</div>
+        <div className="subtitle">ゆっくり3回振ってください</div>
+
+        <div className="cal-progress">
+          {[1, 2, 3].map(n => (
+            <div key={n} className={`cal-dot ${calCount >= n ? 'done' : calCount === n-1 ? 'active' : ''}`}>
+              {calCount >= n ? "✓" : n}
+            </div>
+          ))}
         </div>
-        <div style={S.cc}>
-          <div style={{...S.sub,marginBottom:20}}>何を練習しますか？</div>
-          <div style={{display:"flex",flexDirection:"column",gap:12,width:"100%",maxWidth:340}}>
-            {Object.entries(PRACTICE_TARGETS).map(([k,p]) => (
-              <div key={k} role="button" onClick={() => { setPracticeTarget(k); startAutoDetect(); }}
-                style={{...T,padding:16,backgroundColor:"#242424",borderRadius:10,border:`2px solid ${p.color}40`,display:"flex",alignItems:"center",gap:12,pointerEvents:"auto"}}>
-                <div style={{fontSize:28}}>{p.icon}</div>
-                <div>
-                  <div style={{fontSize:15,fontWeight:"bold",color:p.color}}>{p.name}</div>
-                  <div style={{fontSize:11,color:"#aaa",marginTop:2}}>{p.desc}</div>
-                </div>
+
+        <div style={{fontSize:64,margin:"20px 0"}}>
+          {swingState === "waiting" ? "🧘" :
+           swingState === "ready" ? "⛳" :
+           swingState === "recording" ? "🏌️" : "✅"}
+        </div>
+
+        <div className="cal-status">
+          {swingState === "waiting" ? "構えて静止してください..." :
+           swingState === "ready" ? "準備OK！振ってください" :
+           swingState === "recording" ? "記録中..." :
+           calCount >= 3 ? "キャリブレーション完了！" : ""}
+        </div>
+
+        {calCount >= 3 && (
+          <div style={{color:"#22c55e",fontSize:16,fontWeight:600,marginTop:16}}>
+            あなたのスイングに合わせて設定しました！
+          </div>
+        )}
+
+        <div style={{position:"absolute",bottom:16,fontSize:10,color:"#444"}}>{sensorDebug}</div>
+      </div>
+    );
+  }
+
+  // Drill Screen
+  if (screen === "drill") {
+    const config = DRILL_MODES[drillMode];
+    const ringClass = swingState === "recording" ? (isDeviation ? "warn" : "ok") : "";
+    const angleClass = swingState === "recording" ? (isDeviation ? "warn" : "ok") : "";
+
+    return (
+      <div className="screen">
+        <div className="drill-header">
+          <span className="mode">{config.name}</span>
+          <span className="streak">
+            {streak > 0 ? `🔥 ${streak}連続` : `今日 ${todayCount}回`}
+          </span>
+        </div>
+
+        <div className={`state-badge ${swingState === "recording" ? "recording" : ""}`}>
+          {swingState === "waiting" ? "構えて静止..." :
+           swingState === "ready" ? "✅ 振ってください！" :
+           swingState === "recording" ? "● 記録中" : "待機中"}
+        </div>
+
+        <div className="drill-zone">
+          <div className={`drill-ring ${ringClass}`}>
+            <div>
+              <div className={`drill-angle ${angleClass}`}>
+                {swingState === "recording" ? `${currentAngle}°` : "—"}
               </div>
-            ))}
+              <div className="drill-label">
+                {swingState === "recording" ?
+                  `目標: ${config.targetMin}°〜${config.targetMax}°` :
+                  config.description}
+              </div>
+            </div>
           </div>
         </div>
+
+        {showCoaching && (
+          <div className="drill-coaching">
+            <div className="tip">{showCoaching}</div>
+          </div>
+        )}
+
+        <div className="drill-stats">
+          <div className="drill-stat">
+            <div className="val">{todayCount}</div>
+            <div className="lbl">今日の回数</div>
+          </div>
+          <div className="drill-stat">
+            <div className="val">{todayPerfect}</div>
+            <div className="lbl">パーフェクト</div>
+          </div>
+          <div className="drill-stat">
+            <div className="val">{bestStreak}</div>
+            <div className="lbl">最高連続</div>
+          </div>
+        </div>
+
+        <button className="btn btn-secondary btn-small"
+          onClick={() => {
+            stateRef.current = "idle";
+            if (frameRef.current) cancelAnimationFrame(frameRef.current);
+            setScreen("welcome");
+          }}
+          style={{marginTop:20}}>
+          モード変更
+        </button>
+
+        <div style={{position:"absolute",bottom:16,fontSize:10,color:"#444"}}>{sensorDebug}</div>
       </div>
     );
   }
 
-  // LIVE
-  if (appMode === "live") {
-    const sm = SPEED_MODES[speedMode];
-    const pt = PRACTICE_TARGETS[practiceTarget];
-    const isRec = autoDetectState === "recording";
+  // Result Screen
+  if (screen === "result" && result) {
+    const config = DRILL_MODES[drillMode];
+    const grade = result.isPerfect ? "🎯" : result.inRange ? "👍" : "💪";
+    const title = result.isPerfect ? "パーフェクト！" :
+                  result.inRange ? "いい感じ！" : "もう少し！";
+    const isNewRecord = streak > 0 && streak >= bestStreak;
+
     return (
-      <div style={{...S.base, border: `4px solid ${borderColor}`, boxSizing:"border-box", transition:"border-color 0.15s"}}>
-        <div style={S.hdr}>
-          <div role="button" onClick={() => { autoRef.current="idle"; setAutoDetectState("idle"); setAppMode("targetSelect"); }}
-            style={{...T,padding:"8px 10px",pointerEvents:"auto",fontSize:13}}>← 戻る</div>
-          <div style={{...S.hdrT,fontSize:13}}>
-            <span style={{color:sm.color}}>{sm.icon}</span> <span style={{color:pt.color}}>{pt.icon} {pt.name}</span>
+      <div className="screen">
+        <div className="result-card">
+          <div className="result-grade">{grade}</div>
+          <div className="result-title" style={{color: result.isPerfect ? "#fbbf24" : "#fff"}}>
+            {title}
           </div>
-          <div role="button" onClick={() => setShowDebug(!showDebug)} style={{...T,padding:8,fontSize:16,pointerEvents:"auto"}}>🔧</div>
-        </div>
-        <div style={{padding:14,flex:1}}>
-          <div style={{textAlign:"center",padding:12,borderRadius:8,marginBottom:14,backgroundColor:isRec?"#ff000020":autoDetectState==="ready"?"#00ff8820":"#00ccff15"}}>
-            <div style={{fontSize:14,fontWeight:"bold",color:isRec?"#ff6666":autoDetectState==="ready"?"#00ff88":"#00ccff"}}>{statusMessage}</div>
-            {isRec && <div style={{fontSize:11,color:"#aaa",marginTop:3}}>pts:{historyRef.current.length} | peak:{peakSpeedRef.current.toFixed(0)}°/s</div>}
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
-            <MC label="VFA" val={currentVFA.toFixed(1)} c={Math.abs(currentVFA)>SKILL_LEVELS[skillLevel].faceWarning?"#ef4444":"#00ccff"} />
-            <MC label="手首Δβ" val={currentWrist.toFixed(1)} c={Math.abs(currentWrist)>100?"#ef4444":"#00ff88"} />
-            <MC label="パスΔα" val={currentPath.toFixed(1)} c={Math.abs(currentPath)>SKILL_LEVELS[skillLevel].takeawayZones[3]?"#ef4444":"#facc15"} />
-          </div>
-          <div style={{textAlign:"center",fontSize:10,color:"#555",marginBottom:10}}>
-            {sm.name} — {speedMode==="drill"?"高精度":speedMode==="swing"?"方向のみ":`${averageSwings.length}回記録済み`}
-          </div>
-          <div style={{display:"flex",gap:8,justifyContent:"center"}}>
-            {!isRec ? (<>
-              <div role="button" onClick={() => { autoRef.current="waitingStill"; setAutoDetectState("waitingStill"); stillStartRef.current=null; setStatusMessage("📱 構えて静止..."); }}
-                style={{...S.btn,...T,pointerEvents:"auto",flex:1,textAlign:"center",fontSize:13,padding:"12px 8px"}}>🔄 自動</div>
-              <div role="button" onClick={startManual}
-                style={{...S.btn2,...T,pointerEvents:"auto",flex:1,textAlign:"center",fontSize:13,padding:"12px 8px"}}>▶ 手動</div>
-            </>) : (
-              <div role="button" onClick={stopManual}
-                style={{...S.btn2,...T,pointerEvents:"auto",borderColor:"#ff4444",flex:1,textAlign:"center",fontSize:13,padding:"12px 8px"}}>■ 停止&解析</div>
+
+          <div className="result-items">
+            <div className="result-item">
+              <span className="label">振り幅</span>
+              <span className={`value ${result.inRange ? 'good' : 'bad'}`}>
+                {result.maxBeta.toFixed(0)}°
+                ({config.targetMin}〜{config.targetMax}°)
+              </span>
+            </div>
+            {config.evalItems.includes("face") && (
+              <div className="result-item">
+                <span className="label">フェース角</span>
+                <span className={`value ${result.faceSquare ? 'good' : 'bad'}`}>
+                  {result.vfa > 0 ? "+" : ""}{result.vfa}°
+                  {result.faceSquare ? " スクエア" : result.faceOpen ? " オープン" : " クローズ"}
+                </span>
+              </div>
             )}
+            <div className="result-item">
+              <span className="label">スムーズさ</span>
+              <span className={`value ${result.smoothness >= 70 ? 'good' : 'bad'}`}>
+                {result.smoothness}%
+              </span>
+            </div>
           </div>
-          <div style={{marginTop:16,padding:12,backgroundColor:"#1a2a3a",borderRadius:8,fontSize:11,color:"#88aacc"}}>
-            <div style={{fontWeight:"bold",marginBottom:4}}>{pt.name}のポイント</div>
-            {practiceTarget==="takeaway" && <div>構えて1.5秒静止→「ピッ」→ゆっくりテイクバック→停止で自動終了</div>}
-            {practiceTarget==="follow" && <div>インパクト付近で静止→「ピッ」→フィニッシュまで振り抜く</div>}
-            {practiceTarget==="full" && <div>アドレスで静止→「ピッ」→フルスイング→フィニッシュで自動終了</div>}
-          </div>
-          {showDebug && (
-            <div style={{marginTop:10,padding:10,backgroundColor:"#0d0d0d",borderRadius:6,fontSize:10,color:"#555",fontFamily:"monospace"}}>
-              <div>raw α:{rawData.alpha.toFixed(1)} β:{rawData.beta.toFixed(1)} γ:{rawData.gamma.toFixed(1)}</div>
-              <div>rot α:{motionData.rotAlpha.toFixed(0)} β:{motionData.rotBeta.toFixed(0)} γ:{motionData.rotGamma.toFixed(0)}</div>
-              <div>state:{autoDetectState} pts:{historyRef.current.length} peak:{peakSpeedRef.current.toFixed(0)}</div>
-              <div>k:{calibRef.current?.k?.toFixed(3)} β0:{calibRef.current?.beta0?.toFixed(1)} γ0:{calibRef.current?.gamma0?.toFixed(1)}</div>
+
+          {result.coachTip && (
+            <div className="result-coaching">
+              💡 {result.coachTip}
             </div>
           )}
         </div>
+
+        <div className="result-streak">
+          <div className="num">{streak}</div>
+          <div className="lbl">連続パーフェクト</div>
+          {isNewRecord && <div className="new-record">🏆 NEW RECORD!</div>}
+        </div>
+
+        <button className="btn" onClick={handleRetry}>
+          もう一度
+        </button>
+        <button className="btn btn-secondary btn-small"
+          onClick={() => setScreen("welcome")}>
+          モード変更
+        </button>
       </div>
     );
   }
 
-  // RESULT
-  if (appMode === "result" && swingResult) {
-    const sm = SPEED_MODES[speedMode];
-    const pt = PRACTICE_TARGETS[practiceTarget];
-    const isDir = speedMode === "swing";
-    const R = swingResult;
-    const rc = r => r==="A"?"#00ff88":r==="B"?"#00ccff":r==="C"?"#facc15":"#ef4444";
-    const rb = r => r==="A"?"#00ff8818":r==="B"?"#00ccff18":r==="C"?"#facc1518":"#ef444418";
-
-    return (
-      <div style={{...S.base, overflow:"auto"}}>
-        <div style={S.hdr}>
-          <div style={S.hdrT}>解析結果</div>
-        </div>
-        <div style={{padding:14,overflowY:"auto",flex:1,paddingBottom:60}}>
-          <div style={{textAlign:"center",marginBottom:6}}>
-            <span style={{padding:"3px 10px",borderRadius:10,fontSize:10,fontWeight:"bold",backgroundColor:`${sm.color}20`,color:sm.color}}>
-              {sm.icon} {sm.name}{isDir && " — 参考値"}
-            </span>
-          </div>
-          <div style={{textAlign:"center",padding:20,borderRadius:10,marginBottom:16,backgroundColor:rb(R.overallRating)}}>
-            <div style={{fontSize:44,fontWeight:"bold",color:rc(R.overallRating)}}>{R.overallRating}</div>
-            <div style={{fontSize:12,color:"#aaa",marginTop:4}}>{pt.name} — Lv.{skillLevel} {SKILL_LEVELS[skillLevel].name}</div>
-            {R.peakSpeed > 0 && <div style={{fontSize:10,color:"#666",marginTop:3}}>ピーク: {R.peakSpeed.toFixed(0)}°/s {R.peakSpeed<250?"(高精度)":R.peakSpeed<500?"(良好)":"(参考値)"}</div>}
-          </div>
-
-          {R.wrist && <RS title="手首分析 (β)" icon="🤲" color="#ff88ff" items={[
-            {l:"トップでのコック量",v:`Δβ ${R.wrist.topCock.toFixed(1)}°`,c:R.wrist.cockColor},
-            {l:"コック判定",v:R.wrist.cockLabel,c:R.wrist.cockColor},
-            ...(R.wrist.impactBeta!==undefined?[{l:"インパクト手首",v:`Δβ ${R.wrist.impactBeta.toFixed(1)}°`,c:R.wrist.impactColor}]:[]),
-          ]} />}
-
-          {R.vfa && <RS title="仮想フェース角 (VFA)" icon="🎯" color="#00ccff" items={[
-            {l:"トップVFA",v:`${isDir?"≈":""}${R.vfa.topVFA.toFixed(1)}°`,c:R.vfa.topColor},
-            {l:"フェース判定",v:R.vfa.topLabel,c:R.vfa.topColor},
-            ...(R.vfa.impactVFA!==undefined?[{l:"インパクトVFA",v:`${R.vfa.impactVFA.toFixed(1)}°`,c:R.vfa.impactColor}]:[]),
-          ]} />}
-
-          {R.takeaway && <RS title="テイクバック軌道" icon="↗️" color="#00ccff" items={[
-            {l:"パス判定",v:R.takeaway.pathLabel,c:R.takeaway.pathColor},
-            {l:"最大偏差",v:`${isDir?"≈":""}${R.takeaway.maxPathDev.toFixed(1)}°`},
-            {l:"時間",v:`${R.takeaway.duration}ms`},
-          ]} />}
-
-          {R.follow && <RS title="フォロースルー" icon="↙️" color="#ff6600" items={[
-            {l:"パス判定",v:R.follow.pathLabel,c:R.follow.pathColor},
-            {l:"フェースターン",v:`${R.follow.faceTurnover.toFixed(1)}°`},
-            {l:"ターン判定",v:R.follow.turnoverLabel,c:R.follow.turnoverColor},
-            {l:"フィニッシュ",v:R.follow.finishLabel,c:R.follow.finishColor},
-          ]} />}
-
-          {R.tempo && <RS title="テンポ" icon="⏱️" color="#00ff88" items={[
-            {l:"比率",v:R.tempo.ratio},{l:"トータル",v:`${R.tempo.totalMs}ms`},{l:"球筋予測",v:R.tempo.ballFlight},
-          ]} />}
-
-          {R.faults.length > 0 && (
-            <div style={{marginTop:14,marginBottom:14}}>
-              <div style={{fontSize:13,fontWeight:"bold",color:"#ef4444",marginBottom:6}}>⚠️ ミス検出 ({R.faults.length})</div>
-              {R.faults.map((f,i) => (
-                <div key={i} style={{padding:10,backgroundColor:"#3a1a1a",borderRadius:6,marginBottom:6,borderLeft:"3px solid #ef4444"}}>
-                  <div style={{fontSize:12,fontWeight:"bold",color:"#ff8888"}}>{f.name}</div>
-                  <div style={{fontSize:11,color:"#cc8888",marginTop:3}}>{f.description}</div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {R.advice.length > 0 && (
-            <div style={{marginTop:14,marginBottom:14}}>
-              <div style={{fontSize:13,fontWeight:"bold",color:"#00ccff",marginBottom:6}}>💡 アドバイス</div>
-              {R.advice.map((a,i) => (
-                <div key={i} style={{padding:10,backgroundColor:"#1a2a3a",borderRadius:6,marginBottom:6,borderLeft:"3px solid #00ccff",fontSize:12,color:"#88ccee"}}>{a}</div>
-              ))}
-            </div>
-          )}
-
-          <div style={{display:"flex",gap:8,marginTop:18,flexWrap:"wrap"}}>
-            <div role="button" onClick={startAutoDetect} style={{...S.btn,...T,flex:1,textAlign:"center",pointerEvents:"auto",minWidth:100,fontSize:14,padding:12}}>もう一度</div>
-            <div role="button" onClick={() => setAppMode("targetSelect")} style={{...S.btn2,...T,flex:1,textAlign:"center",pointerEvents:"auto",minWidth:100,fontSize:13,padding:12}}>対象変更</div>
-            <div role="button" onClick={() => setAppMode("home")} style={{...S.btn2,...T,flex:1,textAlign:"center",pointerEvents:"auto",minWidth:100,fontSize:13,padding:12}}>ホーム</div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return null;
+  return <div className="screen"><div className="title">Loading...</div></div>;
 }
 
-// ==========================================
-// Analysis Engine
-// ==========================================
-
-function analyzeSwingV6(data, target, level, peakSpeed, speedMode) {
-  const skill = SKILL_LEVELS[level];
-  const R = { overallRating:"C", wrist:null, vfa:null, takeaway:null, follow:null, tempo:null, faults:[], advice:[], peakSpeed };
-  if (data.length < 10) return R;
-
-  const totalDur = data[data.length-1].timestamp - data[0].timestamp;
-  let peakIdx=0, peakVal=-Infinity;
-  for (let i=0;i<data.length;i++) { if(data[i].beta>peakVal){peakVal=data[i].beta;peakIdx=i;} }
-
-  let tData=null, fData=null;
-  if (target==="takeaway") tData=data;
-  else if (target==="follow") fData=data;
-  else { const sp=Math.max(5,Math.min(peakIdx,data.length-5)); tData=data.slice(0,sp+1); fData=data.slice(sp); }
-
-  // Wrist
-  const betas = data.map(d=>d.beta);
-  const topCock = Math.max(...betas);
-  const [cMin,cMax] = skill.wristCockOk;
-  let cL,cC;
-  if (topCock>=cMin && topCock<=cMax) { cL="✅ 適正コック"; cC="#00ff88"; }
-  else if (topCock<cMin) { cL="⚠️ コック不足"; cC="#facc15"; if(topCock<40) R.faults.push({name:"コック不足",description:`Δβ=${topCock.toFixed(0)}°。プロ60-85°(HackMotion)。`}); }
-  else { cL="⚠️ オーバーコック"; cC="#facc15"; if(topCock>110) R.faults.push({name:"オーバーコック",description:`Δβ=${topCock.toFixed(0)}°は過剰。`}); }
-
-  let impB, impC;
-  if (target==="full" && fData && fData.length>5) {
-    impB = fData[0].beta;
-    const [iMin,iMax] = skill.wristImpactOk;
-    if (impB>=iMin && impB<=iMax) impC="#00ff88";
-    else if (impB<-10) { impC="#ef4444"; R.faults.push({name:"フリッピング",description:`インパクトΔβ=${impB.toFixed(0)}°。HC10-25の56%がフリッピング傾向(HackMotion)。`}); }
-    else impC="#facc15";
-  }
-
-  // Early release
-  if (target==="full" && tData && fData) {
-    const dd = fData.slice(0, Math.floor(fData.length*0.4));
-    if (dd.length>3 && dd[dd.length-1].beta<30 && topCock>50) {
-      R.faults.push({name:"アーリーリリース",description:`ダウン前半でコック解消(Δβ=${dd[dd.length-1].beta.toFixed(0)}°)。ラグ保持を。`});
-    }
-  }
-
-  // Lag
-  if (target==="full" && fData && fData.length>10) {
-    const h=Math.floor(fData.length*0.5);
-    const f1=fData.slice(0,h), f2=fData.slice(h);
-    if (f1.length>2 && f2.length>2) {
-      const d1=f1[0].beta-f1[f1.length-1].beta, d2=f2[0].beta-f2[f2.length-1].beta;
-      if (d1>0 && d2>0 && d1/(d1+d2)>0.6) R.faults.push({name:"ラグ不足",description:"ダウンスイングでβが均等減少。後半に急リリースが理想。"});
-    }
-  }
-
-  // Chicken wing
-  if (fData && fData.length>20) {
-    const fb=fData.map(d=>d.beta);
-    const mi=Math.floor(fb.length*0.4);
-    const es=Math.abs(fb[mi]-fb[0])/mi, ls=Math.abs(fb[fb.length-1]-fb[mi])/(fb.length-mi);
-    if (es>0.5 && ls/es<0.15) R.faults.push({name:"チキンウィング",description:"フォロー中に急停止。リード肘が曲がっている可能性(HackMotion)。"});
-  }
-
-  R.wrist = { topCock, cockLabel:cL, cockColor:cC, ...(impB!==undefined?{impactBeta:impB,impactColor:impC}:{}) };
-
-  // VFA
-  const vfas = data.map(d=>d.vfa);
-  if (vfas.length>0 && vfas[0]!==undefined) {
-    const topV = tData ? (vfas[peakIdx]||vfas[vfas.length-1]) : vfas[0];
-    let tL,tC;
-    if (Math.abs(topV)<=skill.faceSquare){tL="✅ スクエア";tC="#00ff88";}
-    else if (Math.abs(topV)<=skill.faceWarning){tL=topV>0?"⚠️ やや開き":"⚠️ ややかぶり";tC="#facc15";}
-    else {tL=topV>0?"❌ 開きすぎ":"❌ かぶりすぎ";tC="#ef4444";}
-    let iV,iC;
-    if (target==="full" && fData && fData.length>0) {
-      iV=fData[0].vfa;
-      if(Math.abs(iV)<=skill.faceSquare)iC="#00ff88";
-      else if(Math.abs(iV)<=skill.faceWarning)iC="#facc15";
-      else iC="#ef4444";
-    }
-    R.vfa = { topVFA:topV, topLabel:tL, topColor:tC, ...(iV!==undefined?{impactVFA:iV,impactColor:iC}:{}) };
-  }
-
-  // Takeaway path
-  if (tData && tData.length>=5) {
-    const al=tData.map(d=>d.alpha);
-    const mx=Math.max(...al.map(a=>Math.abs(a)));
-    const avg=al.reduce((a,b)=>a+b,0)/al.length;
-    const dur=tData[tData.length-1].timestamp-tData[0].timestamp;
-    let pL,pC;
-    if(mx<=skill.takeawayZones[0]){pL="✅ オンプレーン";pC="#00ff88";}
-    else if(mx<=skill.takeawayZones[2]){pL=avg>0?"⚠️ ややイン":"⚠️ ややアウト";pC="#facc15";}
-    else{pL=avg>0?"❌ イン引きすぎ":"❌ アウト引きすぎ";pC="#ef4444";}
-    R.takeaway = { maxPathDev:mx, pathLabel:pL, pathColor:pC, duration:dur };
-  }
-
-  // Follow path
-  if (fData && fData.length>=5) {
-    const al=fData.map(d=>d.alpha), gm=fData.map(d=>d.gamma), fb=fData.map(d=>d.beta);
-    const dur=fData[fData.length-1].timestamp-fData[0].timestamp;
-    const mx=Math.max(...al.map(a=>Math.abs(a)));
-    const avg=al.reduce((a,b)=>a+b,0)/al.length;
-    let pL,pC;
-    if(mx<=skill.followZones[0]){pL="✅ ストレート";pC="#00ff88";}
-    else if(mx<=skill.followZones[2]){pL=avg>0?"⚠️ ブロック気味":"⚠️ 左巻き";pC="#facc15";}
-    else{pL=avg>0?"❌ ブロック":"❌ 引っかけ";pC="#ef4444";}
-    const ft=gm[gm.length-1]-gm[0];
-    const [iMin,iMax]=skill.faceTurnIdeal,[wMin,wMax]=skill.faceTurnWarning;
-    let tL,tC;
-    if(ft>=iMin&&ft<=iMax){tL="✅ 適正ターン";tC="#00ff88";}
-    else if(ft>=wMin&&ft<=wMax){tL=ft>iMax?"⚠️ ターン不足":"⚠️ ターン過多";tC="#facc15";}
-    else{
-      if(ft>wMax){tL="❌ フェース開き(スライス)";tC="#ef4444";R.faults.push({name:"ターン不足",description:`回旋${Math.abs(ft).toFixed(0)}°。プロ75-95°(HackMotion)。`});}
-      else{tL="❌ フェース閉じすぎ(フック)";tC="#ef4444";R.faults.push({name:"オーバーローテーション",description:"フェース閉じすぎ。上半身の回りすぎ。"});}
-    }
-    const mxB=Math.max(...fb.map(b=>Math.abs(b)));
-    let fL,fC;
-    if(mxB>=skill.finishHeightMin){fL="✅ 高フィニッシュ";fC="#00ff88";}
-    else if(mxB>=skill.finishHeightMin*0.6){fL="⚠️ やや低い";fC="#facc15";}
-    else{fL="❌ フィニッシュ低い";fC="#ef4444";R.faults.push({name:"フィニッシュ不足",description:"振り切れていません(GOLFTEC)。"});}
-    if(avg>skill.followZones[1]&&ft>iMax)R.faults.push({name:"ブロック",description:"右に抜け+フェース開き。体のターン不足。"});
-    R.follow = { maxPathDev:mx, faceTurnover:ft, pathLabel:pL, pathColor:pC, turnoverLabel:tL, turnoverColor:tC, finishLabel:fL, finishColor:fC, duration:dur };
-  }
-
-  // Tempo
-  if (target==="full" && tData && fData) {
-    const bD=tData[tData.length-1].timestamp-tData[0].timestamp;
-    const dD=fData[fData.length-1].timestamp-fData[0].timestamp;
-    const ratio=bD>0&&dD>0?(bD/dD).toFixed(1):"N/A";
-    const tv=R.vfa?R.vfa.topVFA:0, ff=R.follow?R.follow.faceTurnover:0;
-    let bf="ストレート";
-    if(tv>3&&ff>-30)bf="スライス/フェード";
-    else if(tv<-3&&ff<-70)bf="フック/ドロー";
-    else if(tv>2)bf="やや右";
-    else if(tv<-2)bf="やや左";
-    R.tempo = { ratio:`${ratio}:1`, totalMs:totalDur, ballFlight:bf };
-  }
-
-  // Advice
-  if(R.wrist&&R.wrist.cockColor==="#facc15"&&topCock<cMin)R.advice.push(`コック量少なめ(${topCock.toFixed(0)}°)。プロ60-85°。`);
-  if(R.vfa&&R.vfa.topColor==="#ef4444")R.advice.push(`トップでフェースが${R.vfa.topVFA>0?"開いて":"かぶって"}います(VFA=${R.vfa.topVFA.toFixed(1)}°)。手首角度の維持を。`);
-  if(R.takeaway&&R.takeaway.pathColor==="#ef4444")R.advice.push("テイクバック軌道を修正。シャフト平行時にターゲットラインと平行が理想。");
-  if(R.follow&&R.follow.turnoverColor==="#ef4444"&&R.follow.faceTurnover>-30)R.advice.push("スピネーション不足。インパクト後に左手甲が地面を向くイメージで。");
-
-  // Rating
-  let sc=0,ct=0;
-  if(R.wrist){if(R.wrist.cockColor==="#00ff88")sc+=2;else if(R.wrist.cockColor==="#facc15")sc+=1;ct++;}
-  if(R.vfa){if(R.vfa.topColor==="#00ff88")sc+=2;else if(R.vfa.topColor==="#facc15")sc+=1;ct++;}
-  if(R.takeaway){if(R.takeaway.pathColor==="#00ff88")sc+=2;else if(R.takeaway.pathColor==="#facc15")sc+=1;ct++;}
-  if(R.follow){
-    if(R.follow.pathColor==="#00ff88")sc+=2;else if(R.follow.pathColor==="#facc15")sc+=1;
-    if(R.follow.turnoverColor==="#00ff88")sc+=2;else if(R.follow.turnoverColor==="#facc15")sc+=1;
-    if(R.follow.finishColor==="#00ff88")sc+=2;else if(R.follow.finishColor==="#facc15")sc+=1;
-    ct+=3;
-  }
-  sc -= R.faults.length*0.5;
-  const avg=ct>0?sc/ct:0;
-  if(avg>=1.7)R.overallRating="A";else if(avg>=1.1)R.overallRating="B";else if(avg>=0.5)R.overallRating="C";else R.overallRating="D";
-  return R;
-}
-
-// Sub-components
-function MM({label,val}) {
-  return <div style={{backgroundColor:"#242424",padding:"8px 12px",borderRadius:6,textAlign:"center",minWidth:70}}>
-    <div style={{fontSize:9,color:"#888",marginBottom:3}}>{label}</div>
-    <div style={{fontSize:16,fontWeight:"bold",color:"#00ccff"}}>{val}°</div>
-  </div>;
-}
-
-function MC({label,val,c}) {
-  return <div style={{backgroundColor:"#242424",padding:10,borderRadius:6,border:"1px solid #333",textAlign:"center"}}>
-    <div style={{fontSize:10,color:"#aaa",marginBottom:3}}>{label}</div>
-    <div style={{fontSize:18,fontWeight:"bold",color:c||"#00ccff"}}>{val}°</div>
-  </div>;
-}
-
-function RS({title,icon,color,items}) {
-  return <div style={{marginBottom:14}}>
-    <div style={{fontSize:13,fontWeight:"bold",color,marginBottom:6}}>{icon} {title}</div>
-    {items.map((it,i) => <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 10px",backgroundColor:"#242424",borderRadius:4,marginBottom:3,borderLeft:`3px solid ${it.c||color}`}}>
-      <div style={{fontSize:12,color:"#aaa"}}>{it.l}</div>
-      <div style={{fontSize:14,fontWeight:"bold",color:it.c||"#00ccff"}}>{it.v}</div>
-    </div>)}
-  </div>;
-}
-
-function SettingsPanel({skillLevel,setSkillLevel,soundEnabled,setSoundEnabled,T}) {
-  return <div style={{padding:14,backgroundColor:"#111",borderBottom:"1px solid #333"}}>
-    <div style={{fontSize:13,fontWeight:"bold",color:"#00ccff",marginBottom:8}}>スキルレベル</div>
-    <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-      {[1,2,3,4,5].map(l => <div key={l} role="button" onClick={() => setSkillLevel(l)} style={{...T,padding:"6px 10px",borderRadius:6,textAlign:"center",backgroundColor:skillLevel===l?"#0066ff":"#242424",border:skillLevel===l?"2px solid #0088ff":"2px solid #333",color:"#fff",fontSize:11,pointerEvents:"auto",minWidth:48}}>
-        <div style={{fontWeight:"bold"}}>Lv.{l}</div><div style={{fontSize:9,marginTop:1}}>{SKILL_LEVELS[l].name}</div>
-      </div>)}
-    </div>
-    <div style={{display:"flex",gap:12,marginTop:10,alignItems:"center"}}>
-      <span style={{fontSize:12,color:"#aaa"}}>音声</span>
-      <div role="button" onClick={() => setSoundEnabled(!soundEnabled)} style={{...T,padding:"3px 10px",borderRadius:4,fontSize:11,fontWeight:"bold",backgroundColor:soundEnabled?"#0066ff":"#333",color:soundEnabled?"#fff":"#666",pointerEvents:"auto"}}>
-        {soundEnabled?"ON":"OFF"}
-      </div>
-    </div>
-  </div>;
-}
-
-// Styles
-const styles = {
-  base: { width:"100%",height:"100vh",height:"100dvh",display:"flex",flexDirection:"column",backgroundColor:"#1a1a1a",color:"#fff",fontFamily:"system-ui,-apple-system,'Hiragino Sans',sans-serif",fontSize:16,overflow:"hidden",WebkitTouchCallout:"none" },
-  hdr: { display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 14px",borderBottom:"1px solid #333",backgroundColor:"#0d0d0d",flexShrink:0 },
-  hdrT: { fontSize:17,fontWeight:"bold",letterSpacing:2 },
-  cc: { flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:18,textAlign:"center",overflow:"auto" },
-  title: { fontSize:24,fontWeight:"bold",marginBottom:8,background:"linear-gradient(135deg,#00ccff,#0066ff)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text" },
-  sub: { fontSize:13,color:"#aaa",lineHeight:1.6 },
-  btn: { padding:"13px 24px",backgroundColor:"#0066ff",color:"#fff",border:"none",borderRadius:8,fontSize:14,fontWeight:"bold",cursor:"pointer",WebkitTapHighlightColor:"transparent",touchAction:"manipulation",WebkitUserSelect:"none",userSelect:"none" },
-  btn2: { padding:"13px 24px",backgroundColor:"#333",color:"#fff",border:"2px solid #555",borderRadius:8,fontSize:14,fontWeight:"bold",cursor:"pointer",WebkitTapHighlightColor:"transparent",touchAction:"manipulation",WebkitUserSelect:"none",userSelect:"none" },
-};
-
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 </body>
 </html>
