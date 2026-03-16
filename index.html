@@ -1,1262 +1,1744 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<title>Golflev v7.4</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0a0a0a;color:#fff;
-  overflow:hidden;height:100vh;height:100dvh;user-select:none;-webkit-user-select:none}
-#root{height:100%;width:100%}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Golflev v8.0 - Golf Swing Trainer</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-/* Common */
-.screen{display:flex;flex-direction:column;align-items:center;justify-content:center;
-  height:100%;padding:20px;text-align:center;overflow-y:auto}
-.title{font-size:28px;font-weight:700;margin-bottom:8px}
-.subtitle{font-size:14px;color:#888;margin-bottom:24px;line-height:1.5}
-.btn{background:#2563eb;color:#fff;border:none;border-radius:12px;padding:16px 40px;
-  font-size:18px;font-weight:600;cursor:pointer;transition:all .2s;min-width:200px}
-.btn:active{transform:scale(0.95);background:#1d4ed8}
-.btn-secondary{background:#333;margin-top:12px}
-.btn-small{padding:10px 24px;font-size:14px;min-width:auto}
-.btn-green{background:#16a34a}
-.btn-green:active{background:#15803d}
+        :root {
+            --color-bg: #FFFAF5;
+            --color-primary: #FF6B35;
+            --color-primary-dark: #E55A24;
+            --color-primary-light: #FF8F5E;
+            --color-success: #22C55E;
+            --color-success-light: #86EFAC;
+            --color-text: #2D3142;
+            --color-text-secondary: #6B7280;
+            --color-card: #FFFFFF;
+            --color-accent: #4ECDC4;
+            --color-danger: #EF4444;
+            --color-border: #E5E7EB;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.08);
+        }
 
-/* Welcome */
-.welcome-icon{font-size:64px;margin-bottom:16px}
-.step-list{text-align:left;margin:20px 0;line-height:2}
-.step-list span{color:#60a5fa}
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            overflow: hidden;
+            -webkit-user-select: none;
+            user-select: none;
+        }
 
-/* Grip Guide */
-.grip-guide{background:#111;border-radius:16px;padding:24px;width:100%;max-width:340px;margin:12px 0}
-.grip-visual{display:flex;justify-content:center;align-items:center;gap:20px;margin:16px 0}
-.phone-mock-v{width:56px;height:100px;border:3px solid #60a5fa;border-radius:12px;
-  display:flex;align-items:center;justify-content:center;font-size:9px;color:#60a5fa;
-  position:relative;text-align:center;line-height:1.3}
-.phone-mock-v .cam-dot{position:absolute;top:8px;left:50%;transform:translateX(-50%);
-  width:8px;height:8px;border-radius:50%;border:2px solid #60a5fa}
-.hand-icon{font-size:48px}
-.grip-step{display:flex;align-items:flex-start;gap:12px;margin:10px 0;text-align:left;font-size:13px;line-height:1.6;color:#ccc}
-.grip-num{background:#2563eb;color:#fff;min-width:24px;height:24px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
-.grip-arrow{display:flex;align-items:center;gap:4px;color:#fbbf24;font-size:11px;font-weight:700;margin-top:8px}
-.grip-arrow .arrow{font-size:20px}
+        #root {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
 
-/* Calibration */
-.cal-progress{display:flex;gap:12px;margin:24px 0}
-.cal-dot{width:40px;height:40px;border-radius:50%;background:#222;display:flex;
-  align-items:center;justify-content:center;font-size:18px;font-weight:700;transition:all .3s}
-.cal-dot.done{background:#22c55e}
-.cal-dot.active{background:#2563eb;animation:pulse 1s infinite}
-@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
-.cal-status{font-size:16px;color:#ccc;margin-top:12px;min-height:24px}
+        .container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: env(safe-area-inset-bottom, 0);
+            padding-top: env(safe-area-inset-top, 0);
+        }
 
-/* Stillness progress bar */
-.still-bar-wrap{width:200px;height:6px;background:#222;border-radius:3px;margin:12px 0;overflow:hidden}
-.still-bar{height:100%;background:#2563eb;border-radius:3px;transition:width 0.1s linear}
+        .container::-webkit-scrollbar {
+            display: none;
+        }
 
-/* Ready flash */
-.ready-flash{animation:readyPulse 0.6s ease-in-out infinite alternate}
-@keyframes readyPulse{0%{opacity:0.6;transform:scale(0.95)}100%{opacity:1;transform:scale(1.05)}}
+        /* TYPOGRAPHY */
+        h1 { font-size: 2.5rem; font-weight: 700; letter-spacing: -0.02em; }
+        h2 { font-size: 1.875rem; font-weight: 700; letter-spacing: -0.01em; margin: 1.5rem 0 1rem; }
+        h3 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; }
+        .subtitle { font-size: 1rem; color: var(--color-text-secondary); font-weight: 500; letter-spacing: 0.02em; }
+        .text-sm { font-size: 0.875rem; color: var(--color-text-secondary); }
+        .text-tiny { font-size: 0.75rem; color: var(--color-text-secondary); }
 
-/* Drill */
-.drill-header{display:flex;justify-content:space-between;width:100%;padding:12px 16px;
-  position:absolute;top:0;left:0;z-index:10}
-.drill-header .mode{font-size:13px;color:#60a5fa;font-weight:600}
-.drill-header .streak{font-size:13px;color:#fbbf24}
-.drill-zone{position:relative;width:220px;height:220px;margin:16px 0}
-.drill-ring{width:100%;height:100%;border-radius:50%;border:4px solid #333;
-  display:flex;align-items:center;justify-content:center;transition:border-color .15s}
-.drill-ring.ok{border-color:#22c55e}
-.drill-ring.warn{border-color:#ef4444}
-.drill-ring.perfect{border-color:#fbbf24;box-shadow:0 0 30px rgba(251,191,36,0.3)}
-.drill-ring.ready-ring{border-color:#2563eb;box-shadow:0 0 20px rgba(37,99,235,0.4);animation:ringPulse 1s infinite}
-@keyframes ringPulse{0%,100%{box-shadow:0 0 20px rgba(37,99,235,0.2)}50%{box-shadow:0 0 40px rgba(37,99,235,0.6)}}
-.drill-angle{font-size:52px;font-weight:700;transition:color .15s}
-.drill-angle.ok{color:#22c55e}
-.drill-angle.warn{color:#ef4444}
-.drill-label{font-size:13px;color:#888;margin-top:4px}
-.drill-coaching{background:#1a1a2e;border-radius:12px;padding:14px 20px;margin:12px 0;
-  font-size:14px;line-height:1.6;min-height:50px;width:100%;max-width:340px;text-align:center}
-.drill-coaching .tip{color:#60a5fa}
-.drill-coaching .perfect-msg{color:#fbbf24;font-weight:700;font-size:18px}
-.drill-stats{display:flex;gap:20px;margin-top:12px}
-.drill-stat{text-align:center}
-.drill-stat .val{font-size:24px;font-weight:700}
-.drill-stat .lbl{font-size:11px;color:#888;margin-top:2px}
-.state-badge{font-size:14px;padding:6px 16px;border-radius:20px;background:#222;color:#aaa;
-  margin-bottom:8px;transition:all .3s}
-.state-badge.ready-badge{background:#1e3a5f;color:#60a5fa;font-weight:700;font-size:16px;
-  animation:readyBadge 0.8s ease-in-out infinite alternate}
-@keyframes readyBadge{0%{background:#1e3a5f}100%{background:#2563eb;color:#fff}}
-.state-badge.recording{background:#7f1d1d;color:#fca5a5;animation:recBlink 1s infinite}
-@keyframes recBlink{0%,100%{opacity:1}50%{opacity:0.5}}
+        /* BUTTONS */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.875rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: 0.02em;
+            text-decoration: none;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-/* Result */
-.result-card{background:#111;border-radius:16px;padding:20px;width:100%;max-width:340px;
-  margin:12px 0}
-.result-grade{font-size:44px;margin-bottom:4px}
-.result-title{font-size:20px;font-weight:700;margin-bottom:12px}
-.result-items{text-align:left}
-.result-item{display:flex;justify-content:space-between;padding:7px 0;
-  border-bottom:1px solid #222;font-size:13px}
-.result-item .label{color:#aaa}
-.result-item .value{font-weight:600}
-.result-item .value.good{color:#22c55e}
-.result-item .value.bad{color:#ef4444}
-.result-item .value.neutral{color:#fbbf24}
-.result-section{font-size:11px;color:#60a5fa;font-weight:700;padding:8px 0 4px;
-  border-bottom:1px solid #1a1a3e;text-transform:uppercase;letter-spacing:1px}
-.result-coaching{margin-top:12px;padding:10px;background:#1a1a2e;border-radius:8px;
-  font-size:13px;color:#60a5fa;line-height:1.5}
-.result-streak{margin-top:16px;text-align:center}
-.result-streak .num{font-size:32px;font-weight:700;color:#fbbf24}
-.result-streak .lbl{font-size:12px;color:#888}
-.new-record{color:#fbbf24;font-size:14px;font-weight:700;animation:bounceIn .5s}
-@keyframes bounceIn{0%{transform:scale(0)}50%{transform:scale(1.3)}100%{transform:scale(1)}}
+        .btn:active {
+            transform: scale(0.98);
+        }
 
-/* Settings */
-.settings-group{width:100%;max-width:340px;margin:12px 0}
-.settings-label{font-size:12px;color:#888;text-align:left;margin-bottom:6px}
-.settings-row{display:flex;gap:8px}
-.settings-btn{flex:1;padding:10px;border:2px solid #333;border-radius:8px;background:none;
-  color:#aaa;font-size:13px;cursor:pointer;transition:all .2s}
-.settings-btn.active{border-color:#2563eb;color:#fff;background:#1e3a5f}
+        .btn-primary {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+            color: white;
+            box-shadow: 0 4px 16px rgba(255, 107, 53, 0.3);
+        }
 
-/* Debug panel */
-.debug-panel{position:absolute;bottom:8px;left:8px;right:8px;font-size:10px;color:#555;
-  background:rgba(0,0,0,0.8);padding:6px 10px;border-radius:6px;font-family:monospace;line-height:1.5}
+        .btn-primary:hover {
+            box-shadow: 0 6px 24px rgba(255, 107, 53, 0.4);
+        }
 
-/* Logo */
-.logo-text{font-family:'Courier New',monospace;font-weight:900;font-size:36px;
-  background:linear-gradient(135deg,#22c55e,#60a5fa);-webkit-background-clip:text;
-  -webkit-text-fill-color:transparent;letter-spacing:-1px}
-.logo-sub{font-size:11px;color:#555;letter-spacing:3px;margin-top:-2px}
-</style>
+        .btn-secondary {
+            background: var(--color-card);
+            color: var(--color-primary);
+            border: 2px solid var(--color-primary);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 107, 53, 0.05);
+        }
+
+        .btn-success {
+            background: var(--color-success);
+            color: white;
+            box-shadow: 0 4px 16px rgba(34, 197, 94, 0.3);
+        }
+
+        .btn-danger {
+            background: var(--color-danger);
+            color: white;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--color-text-secondary);
+            border: none;
+        }
+
+        .btn-sm {
+            padding: 0.625rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        .btn-lg {
+            padding: 1.25rem 2rem;
+            font-size: 1.125rem;
+        }
+
+        .btn-block {
+            display: flex;
+            width: 100%;
+        }
+
+        /* CARDS */
+        .card {
+            background: var(--color-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .card-clickable {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* LAYOUT */
+        .header {
+            padding: 2rem 1.5rem 1.5rem;
+            text-align: center;
+            background: var(--color-bg);
+        }
+
+        .content {
+            flex: 1;
+            padding: 0 1.5rem 1.5rem;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .footer {
+            padding: 1rem 1.5rem;
+            display: flex;
+            gap: 1rem;
+            background: var(--color-bg);
+            border-top: 1px solid var(--color-border);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .grid-2-tall {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .grid-2-tall .card {
+            min-height: 280px;
+        }
+
+        .stack-v {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .stack-h {
+            display: flex;
+            flex-direction: row;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        /* LOGO */
+        .logo {
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        /* BADGE */
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: rgba(255, 107, 53, 0.1);
+            color: var(--color-primary);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            margin-top: 0.5rem;
+        }
+
+        /* CARD TITLE AREA */
+        .card-title-area {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+        }
+
+        .card-progress {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            background: rgba(255, 107, 53, 0.1);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        /* ANIMATIONS */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes confetti {
+            0% {
+                transform: translate(var(--tx), var(--ty)) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(calc(var(--tx) + 100px), calc(var(--ty) + 100px)) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @keyframes successPulse {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .screen {
+            animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .drill-card {
+            animation: slideInLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* GAUGE/CIRCLE */
+        .metric-circle {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(78, 205, 196, 0.1));
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 2rem auto;
+            border: 3px solid var(--color-primary);
+            position: relative;
+            font-weight: 700;
+        }
+
+        .metric-circle.success {
+            border-color: var(--color-success);
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(78, 205, 196, 0.1));
+            animation: successPulse 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .metric-circle.fail {
+            border-color: var(--color-danger);
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(255, 107, 53, 0.1));
+        }
+
+        .metric-value {
+            font-size: 3rem;
+            color: var(--color-primary);
+        }
+
+        .metric-circle.success .metric-value {
+            color: var(--color-success);
+        }
+
+        .metric-circle.fail .metric-value {
+            color: var(--color-danger);
+        }
+
+        .metric-label {
+            font-size: 0.875rem;
+            color: var(--color-text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        .metric-unit {
+            font-size: 1rem;
+            color: var(--color-text-secondary);
+        }
+
+        /* STATE INDICATORS */
+        .state-badge {
+            padding: 0.75rem 1.25rem;
+            border-radius: 50px;
+            font-weight: 600;
+            text-align: center;
+            margin: 1rem 0;
+            letter-spacing: 0.02em;
+        }
+
+        .state-ready {
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--color-success);
+        }
+
+        .state-recording {
+            background: rgba(255, 107, 53, 0.1);
+            color: var(--color-primary);
+            animation: pulse 1s infinite;
+        }
+
+        .state-waiting {
+            background: rgba(107, 114, 128, 0.1);
+            color: var(--color-text-secondary);
+        }
+
+        /* BACK BUTTON */
+        .back-btn {
+            padding: 0;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            background: rgba(255, 107, 53, 0.1);
+            color: var(--color-primary);
+            margin-bottom: 1rem;
+        }
+
+        /* DIFFICULTY CARD */
+        .difficulty-card {
+            padding: 1.25rem;
+            border: 2px solid var(--color-border);
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .difficulty-card:active {
+            border-color: var(--color-primary);
+            background: rgba(255, 107, 53, 0.05);
+        }
+
+        .difficulty-card.selected {
+            border-color: var(--color-primary);
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(78, 205, 196, 0.05));
+        }
+
+        .difficulty-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .difficulty-spec {
+            font-size: 0.875rem;
+            color: var(--color-text-secondary);
+        }
+
+        /* SUCCESS/FAIL MESSAGE */
+        .result-message {
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin: 1.5rem 0;
+            letter-spacing: 0.02em;
+        }
+
+        .result-success {
+            color: var(--color-success);
+        }
+
+        .result-fail {
+            color: var(--color-danger);
+        }
+
+        .result-tip {
+            padding: 1rem;
+            background: rgba(78, 205, 196, 0.1);
+            border-radius: 12px;
+            color: var(--color-text);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin: 1rem 0;
+        }
+
+        /* METRIC EXPLANATION */
+        .metric-explanation {
+            padding: 1rem;
+            background: var(--color-bg);
+            border-radius: 12px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: var(--color-text-secondary);
+            margin: 1rem 0;
+        }
+
+        /* COUNTER */
+        .success-counter {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--color-success);
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-top: 1rem;
+        }
+
+        /* RANGE INFO */
+        .range-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .range-box {
+            padding: 1rem;
+            background: var(--color-bg);
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .range-label {
+            font-size: 0.75rem;
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .range-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        .range-value.success {
+            color: var(--color-success);
+        }
+
+        .range-value.danger {
+            color: var(--color-danger);
+        }
+
+        /* EXPANDABLE SECTION */
+        .expandable-section {
+            margin: 1rem 0;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .expandable-header {
+            padding: 1rem;
+            background: var(--color-bg);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            user-select: none;
+        }
+
+        .expandable-header:active {
+            background: rgba(255, 107, 53, 0.05);
+        }
+
+        .expandable-icon {
+            display: inline-block;
+            transition: transform 0.3s;
+            font-size: 1.25rem;
+        }
+
+        .expandable-icon.open {
+            transform: rotate(180deg);
+        }
+
+        .expandable-content {
+            padding: 1rem;
+            background: var(--color-card);
+            border-top: 1px solid var(--color-border);
+            font-size: 0.95rem;
+            color: var(--color-text-secondary);
+        }
+
+        /* CALIBRATION STEP */
+        .calibration-step {
+            padding: 1.5rem;
+            background: var(--color-card);
+            border-radius: 12px;
+            text-align: center;
+            margin: 1.5rem 0;
+        }
+
+        .step-number {
+            display: inline-flex;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+            color: white;
+            font-weight: 700;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .step-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .step-desc {
+            font-size: 0.95rem;
+            color: var(--color-text-secondary);
+        }
+
+        /* GRIP GUIDE */
+        .grip-guide {
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.05), rgba(78, 205, 196, 0.05));
+            border-radius: 12px;
+            border: 2px solid var(--color-primary);
+            text-align: center;
+            margin: 1.5rem 0;
+        }
+
+        .grip-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .grip-text {
+            font-size: 1rem;
+            color: var(--color-text);
+            line-height: 1.6;
+        }
+
+        /* HOME CARD SECTION */
+        .mode-card {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .mode-card-icon {
+            font-size: 2.5rem;
+        }
+
+        .mode-card-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+        }
+
+        .mode-card-desc {
+            font-size: 0.875rem;
+            color: var(--color-text-secondary);
+        }
+
+        /* CONFETTI PARTICLE */
+        .confetti-particle {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* SAFE AREA */
+        @supports (padding: max(0px)) {
+            .container {
+                padding-left: max(1.5rem, env(safe-area-inset-left));
+                padding-right: max(1.5rem, env(safe-area-inset-right));
+            }
+
+            .header, .content, .footer {
+                padding-left: max(1.5rem, env(safe-area-inset-left));
+                padding-right: max(1.5rem, env(safe-area-inset-right));
+            }
+        }
+
+        /* DRILL CATEGORY GRID */
+        .drill-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .drill-category-title {
+            grid-column: 1 / -1;
+            font-size: 1.125rem;
+            font-weight: 700;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--color-text);
+        }
+
+        .drill-category-title:first-child {
+            margin-top: 0;
+        }
+    </style>
 </head>
 <body>
-<div id="root"></div>
-
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-<script type="text/babel">
-const { useState, useEffect, useRef, useCallback } = React;
-
-// =====================================================
-// Constants
-// =====================================================
-const VERSION = "v7.4";
-
-// --- Sensitivity tuned for iPhone ---
-const STILL_THRESHOLD = 2.5;
-const STILL_DURATION = 800;
-const MOVE_THRESHOLD = 3;
-const STOP_THRESHOLD = 4;
-const STOP_DURATION = 500;
-
-// Drill modes
-const DRILL_MODES = {
-  business: {
-    name: "ビジネスゾーン",
-    targetMin: 10,
-    targetMax: 30,
-    warnMargin: 8,
-    evalItems: ["wrist"],
-    description: "腰から腰のゆっくりスイング",
-  },
-  half_arms: {
-    name: "ハーフショット",
-    targetMin: 30,
-    targetMax: 55,
-    warnMargin: 10,
-    evalItems: ["wrist", "face", "tempo"],
-    description: "腕だけのハーフスイング",
-  },
-  quarter: {
-    name: "スリークォーター",
-    targetMin: 55,
-    targetMax: 75,
-    warnMargin: 12,
-    evalItems: ["wrist", "face", "path", "tempo"],
-    description: "スリークォーターショット",
-  },
-};
-
-// VFA thresholds
-const VFA_SQUARE = 5;
-const VFA_WARN = 10;
-
-// Ideal tempo ratio (backswing:downswing) ≈ 3:1
-const IDEAL_TEMPO_RATIO = 3.0;
-const TEMPO_TOLERANCE = 0.8; // ±0.8 from ideal is acceptable
-
-// Coaching tips
-const COACHING = {
-  wrist_open: "左手の甲を地面に向けるイメージで振りましょう",
-  wrist_closed: "手首の力を抜いて、自然にコックしましょう",
-  over_swing: "もう少しコンパクトに。目標の範囲で止めましょう",
-  under_swing: "もう少し大きく振って大丈夫です",
-  face_open: "フェースが開いています。左手首を少し手のひら側に曲げてみましょう",
-  face_closed: "フェースが被っています。グリップの力を少し緩めてみましょう",
-  early_release: "ダウンスイングでグリップエンドをボールに向けたまま下ろしましょう",
-  tempo_fast: "ダウンスイングが速すぎます。「イチ・ニ・サン」のリズムを意識しましょう",
-  tempo_slow: "もう少しメリハリをつけて。切り返しでテンポアップしましょう",
-  no_cock: "テイクバックで手首のコックが足りません。右手親指方向にコックしましょう",
-  early_cock: "早い段階でコックが完了しています。もう少しワンピースで始動しましょう",
-  takeaway_inside: "テイクバックがインサイドに入りすぎです。真っすぐ引きましょう",
-  takeaway_outside: "テイクバックがアウトサイドに出ています。右腰方向に引きましょう",
-  head_up: "ダウンスイングで体が早く起き上がっています。ボールを見続けましょう",
-  good: null,
-};
-
-// =====================================================
-// Audio Engine (Web Audio API)
-// =====================================================
-class AudioEngine {
-  constructor() {
-    this.ctx = null;
-    this.initialized = false;
-  }
-
-  init() {
-    if (this.initialized) return;
-    try {
-      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-      if (this.ctx.state === 'suspended') this.ctx.resume();
-      this.initialized = true;
-    } catch(e) { console.warn("AudioContext failed:", e); }
-  }
-
-  _ensureActive() {
-    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
-  }
-
-  beep(freq = 880, dur = 0.08) {
-    if (!this.ctx) return;
-    this._ensureActive();
-    const o = this.ctx.createOscillator();
-    const g = this.ctx.createGain();
-    o.connect(g); g.connect(this.ctx.destination);
-    o.frequency.value = freq; o.type = "sine";
-    g.gain.setValueAtTime(0.4, this.ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
-    o.start(); o.stop(this.ctx.currentTime + dur);
-  }
-
-  buzz(dur = 0.2) {
-    if (!this.ctx) return;
-    this._ensureActive();
-    const o = this.ctx.createOscillator();
-    const g = this.ctx.createGain();
-    o.connect(g); g.connect(this.ctx.destination);
-    o.frequency.value = 50; o.type = "square";
-    g.gain.setValueAtTime(0.6, this.ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
-    o.start(); o.stop(this.ctx.currentTime + dur);
-  }
-
-  perfect() {
-    if (!this.ctx) return;
-    this._ensureActive();
-    const t = this.ctx.currentTime;
-    [880, 1108, 1318].forEach((f, i) => {
-      const o = this.ctx.createOscillator();
-      const g = this.ctx.createGain();
-      o.connect(g); g.connect(this.ctx.destination);
-      o.frequency.value = f; o.type = "sine";
-      g.gain.setValueAtTime(0, t + i * 0.1);
-      g.gain.linearRampToValueAtTime(0.4, t + i * 0.1 + 0.05);
-      g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.1 + 0.5);
-      o.start(t + i * 0.1); o.stop(t + i * 0.1 + 0.5);
-    });
-  }
-
-  ready() {
-    if (!this.ctx) return;
-    this._ensureActive();
-    const t = this.ctx.currentTime;
-    [660, 880].forEach((f, i) => {
-      const o = this.ctx.createOscillator();
-      const g = this.ctx.createGain();
-      o.connect(g); g.connect(this.ctx.destination);
-      o.frequency.value = f; o.type = "sine";
-      g.gain.setValueAtTime(0.5, t + i * 0.15);
-      g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.15 + 0.2);
-      o.start(t + i * 0.15); o.stop(t + i * 0.15 + 0.2);
-    });
-    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-  }
-
-  tick() {
-    if (!this.ctx) return;
-    this._ensureActive();
-    const o = this.ctx.createOscillator();
-    const g = this.ctx.createGain();
-    o.connect(g); g.connect(this.ctx.destination);
-    o.frequency.value = 1200; o.type = "sine";
-    g.gain.setValueAtTime(0.15, this.ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.03);
-    o.start(); o.stop(this.ctx.currentTime + 0.03);
-  }
-}
-
-const audio = new AudioEngine();
-
-// =====================================================
-// Swing Analyzer (Enhanced for v7.4)
-// =====================================================
-class SwingAnalyzer {
-  constructor() {
-    this.reset();
-  }
-
-  reset() {
-    this.data = [];
-    this.baseline = null;
-    this.state = "idle";
-    this.stillStart = 0;
-    this.stopStart = 0;
-    this.prevAcc = null;
-    this.topIndex = -1;
-    this.lastBuzzTime = 0;
-  }
-
-  setBaseline(beta, gamma, alpha) {
-    this.baseline = { beta, gamma, alpha };
-  }
-
-  calcJerk(ax, ay, az) {
-    if (!this.prevAcc) {
-      this.prevAcc = { ax, ay, az };
-      return 0;
-    }
-    const j = Math.sqrt(
-      (ax - this.prevAcc.ax) ** 2 +
-      (ay - this.prevAcc.ay) ** 2 +
-      (az - this.prevAcc.az) ** 2
-    );
-    this.prevAcc = { ax, ay, az };
-    return j;
-  }
-
-  applyZUPT(data, baseline) {
-    if (data.length < 10) return data;
-    const addrBeta = data.slice(0, 5).reduce((s, d) => s + d.beta, 0) / 5;
-    const addrGamma = data.slice(0, 5).reduce((s, d) => s + d.gamma, 0) / 5;
-    const finBeta = data.slice(-5).reduce((s, d) => s + d.beta, 0) / 5;
-    const finGamma = data.slice(-5).reduce((s, d) => s + d.gamma, 0) / 5;
-    const driftBeta = (finBeta - addrBeta);
-    const driftGamma = (finGamma - addrGamma);
-    const n = data.length;
-    return data.map((d, i) => ({
-      ...d,
-      beta: d.beta - (driftBeta * i / n) * 0.5,
-      gamma: d.gamma - (driftGamma * i / n) * 0.5,
-    }));
-  }
-
-  detectTop(data) {
-    if (data.length < 20) return Math.floor(data.length / 2);
-    let maxDelta = -Infinity;
-    let maxIdx = 0;
-    const bl = this.baseline || { beta: data[0].beta };
-    for (let i = 5; i < data.length - 5; i++) {
-      const delta = Math.abs(data[i].beta - bl.beta);
-      if (delta > maxDelta) {
-        maxDelta = delta;
-        maxIdx = i;
-      }
-    }
-    const searchStart = Math.max(5, maxIdx - 15);
-    const searchEnd = Math.min(data.length - 5, maxIdx + 15);
-    for (let i = searchStart + 1; i < searchEnd; i++) {
-      if (data[i-1].rotY > 0 && data[i].rotY <= 0) {
-        return i;
-      }
-    }
-    return maxIdx;
-  }
-
-  // ---- NEW: Tempo ratio analysis ----
-  analyzeTempo(data, topIdx) {
-    if (data.length < 10 || topIdx < 3 || topIdx >= data.length - 3) {
-      return { ratio: 0, backMs: 0, downMs: 0, rating: "unknown" };
-    }
-    const backMs = data[topIdx].t - data[0].t;
-    const downMs = data[data.length - 1].t - data[topIdx].t;
-    if (downMs < 10) return { ratio: 0, backMs, downMs, rating: "unknown" };
-    const ratio = backMs / downMs;
-    let rating = "good";
-    if (ratio < IDEAL_TEMPO_RATIO - TEMPO_TOLERANCE) rating = "fast_down";
-    else if (ratio > IDEAL_TEMPO_RATIO + TEMPO_TOLERANCE) rating = "slow_down";
-    return { ratio: Math.round(ratio * 10) / 10, backMs, downMs, rating };
-  }
-
-  // ---- NEW: Cocking analysis ----
-  analyzeCocking(data, topIdx) {
-    if (data.length < 10 || !this.baseline) {
-      return { cockAngle: 0, cockTiming: 0, rating: "unknown" };
-    }
-    // Look at beta change rate in first third of backswing
-    const thirdIdx = Math.floor(topIdx / 3);
-    if (thirdIdx < 2) return { cockAngle: 0, cockTiming: 0, rating: "unknown" };
-
-    // Cocking = how much additional wrist angle gained in early backswing
-    const earlyBeta = Math.abs(data[thirdIdx].beta - this.baseline.beta);
-    const topBeta = Math.abs(data[topIdx].beta - this.baseline.beta);
-    const cockRatio = topBeta > 0 ? earlyBeta / topBeta : 0;
-
-    // Also measure the gamma change (wrist cock angle perpendicular to swing plane)
-    let maxCockAngle = 0;
-    for (let i = 0; i <= topIdx; i++) {
-      const dBeta = Math.abs(data[i].beta - this.baseline.beta);
-      if (dBeta > maxCockAngle) maxCockAngle = dBeta;
-    }
-
-    let rating = "good";
-    if (cockRatio > 0.7) rating = "early"; // cocked too early
-    else if (cockRatio < 0.15 && topBeta > 20) rating = "none"; // no wrist cock
-
-    return {
-      cockAngle: Math.round(maxCockAngle),
-      cockTiming: Math.round(cockRatio * 100),
-      rating,
-    };
-  }
-
-  // ---- NEW: Takeaway direction analysis ----
-  analyzeTakeaway(data, topIdx) {
-    if (data.length < 10 || !this.baseline) {
-      return { direction: 0, rating: "unknown" };
-    }
-    // Gamma change in first quarter of backswing = takeaway direction
-    const quarterIdx = Math.max(2, Math.floor(topIdx / 4));
-    const dGamma = data[quarterIdx].gamma - this.baseline.gamma;
-
-    let rating = "straight";
-    if (dGamma > 8) rating = "outside"; // too much gamma = outside takeaway
-    else if (dGamma < -8) rating = "inside"; // negative gamma = inside takeaway
-
-    return {
-      direction: Math.round(dGamma),
-      rating,
-    };
-  }
-
-  // ---- NEW: Follow-through analysis ----
-  analyzeFollowThrough(data, topIdx) {
-    if (data.length < 10 || !this.baseline) {
-      return { angle: 0, symmetry: 0, rating: "unknown" };
-    }
-    // Compare finish position angle to backswing top angle
-    const topBeta = Math.abs(data[topIdx].beta - this.baseline.beta);
-    const last5 = data.slice(-5);
-    const finishBeta = last5.reduce((s, d) => s + Math.abs(d.beta - this.baseline.beta), 0) / 5;
-    const symmetry = topBeta > 0 ? Math.round((finishBeta / topBeta) * 100) : 0;
-
-    let rating = "good";
-    if (symmetry < 50) rating = "short"; // decelerated, didn't follow through
-    else if (symmetry > 150) rating = "over"; // over-rotation
-
-    return {
-      angle: Math.round(finishBeta),
-      symmetry: Math.min(symmetry, 200),
-      rating,
-    };
-  }
-
-  // ---- NEW: Head-up detection ----
-  analyzeHeadUp(data, topIdx) {
-    if (data.length < 20 || topIdx >= data.length - 5) {
-      return { detected: false, severity: 0 };
-    }
-    // Head-up causes early body rotation in downswing
-    // Detect by sudden acceleration change in the first half of downswing
-    const downStart = topIdx;
-    const downMid = Math.floor((topIdx + data.length) / 2);
-    const downEnd = data.length - 1;
-
-    // Check for abnormal vertical acceleration spike in early downswing
-    let maxAccChange = 0;
-    for (let i = downStart + 1; i < downMid && i < downEnd; i++) {
-      const accChange = Math.abs(data[i].accZ - data[i-1].accZ);
-      if (accChange > maxAccChange) maxAccChange = accChange;
-    }
-
-    // Also check if gamma changed suddenly (body rotation before impact)
-    let maxGammaRate = 0;
-    for (let i = downStart + 1; i < downMid; i++) {
-      const dt = data[i].t - data[i-1].t;
-      if (dt > 0) {
-        const gammaRate = Math.abs(data[i].gamma - data[i-1].gamma) / (dt / 1000);
-        if (gammaRate > maxGammaRate) maxGammaRate = gammaRate;
-      }
-    }
-
-    const detected = maxAccChange > 15 || maxGammaRate > 300;
-    const severity = Math.min(100, Math.round((maxAccChange / 20) * 50 + (maxGammaRate / 400) * 50));
-
-    return { detected, severity };
-  }
-
-  analyze(mode) {
-    const config = DRILL_MODES[mode];
-    if (!this.baseline || this.data.length < 10) {
-      return { valid: false, reason: "データ不足" };
-    }
-
-    const corrected = this.applyZUPT(this.data, this.baseline);
-    const topIdx = this.detectTop(corrected);
-    this.topIndex = topIdx;
-
-    const deltas = corrected.map(d => ({
-      dBeta: d.beta - this.baseline.beta,
-      dGamma: d.gamma - this.baseline.gamma,
-      t: d.t,
-    }));
-
-    const topDelta = deltas[topIdx];
-    const maxBeta = Math.max(...deltas.map(d => Math.abs(d.dBeta)));
-
-    const dBetaTop = topDelta.dBeta;
-    const dGammaTop = topDelta.dGamma;
-    const k = 0.2;
-    const vfa = dGammaTop * Math.cos(dBetaTop * Math.PI / 180) + k * dBetaTop;
-
-    const absDeltaBeta = Math.abs(dBetaTop);
-    const inRange = absDeltaBeta >= config.targetMin && absDeltaBeta <= config.targetMax;
-    const overSwing = absDeltaBeta > config.targetMax + config.warnMargin;
-    const underSwing = absDeltaBeta < config.targetMin - config.warnMargin;
-
-    const faceSquare = Math.abs(vfa) <= VFA_SQUARE;
-    const faceWarn = Math.abs(vfa) > VFA_WARN;
-    const faceOpen = vfa > VFA_SQUARE;
-    const faceClose = vfa < -VFA_SQUARE;
-
-    // ---- NEW: Enhanced analysis ----
-    const tempo = this.analyzeTempo(corrected, topIdx);
-    const cocking = this.analyzeCocking(corrected, topIdx);
-    const takeaway = this.analyzeTakeaway(corrected, topIdx);
-    const followThrough = this.analyzeFollowThrough(corrected, topIdx);
-    const headUp = this.analyzeHeadUp(corrected, topIdx);
-
-    // ---- Coaching selection (priority-based) ----
-    let coachKey = "good";
-    if (headUp.detected) coachKey = "head_up";
-    else if (overSwing) coachKey = "over_swing";
-    else if (underSwing) coachKey = "under_swing";
-    else if (faceOpen && config.evalItems.includes("face")) coachKey = "face_open";
-    else if (faceClose && config.evalItems.includes("face")) coachKey = "face_closed";
-    else if (config.evalItems.includes("tempo") && tempo.rating === "fast_down") coachKey = "tempo_fast";
-    else if (config.evalItems.includes("tempo") && tempo.rating === "slow_down") coachKey = "tempo_slow";
-    else if (cocking.rating === "none" && absDeltaBeta > 25) coachKey = "no_cock";
-    else if (cocking.rating === "early") coachKey = "early_cock";
-    else if (takeaway.rating === "inside") coachKey = "takeaway_inside";
-    else if (takeaway.rating === "outside") coachKey = "takeaway_outside";
-
-    // Early release check
-    if (coachKey === "good" && topIdx < corrected.length - 10) {
-      const downMid = Math.floor((topIdx + corrected.length) / 2);
-      const midDelta = Math.abs(deltas[downMid]?.dBeta || 0);
-      if (midDelta < absDeltaBeta * 0.3) {
-        coachKey = "early_release";
-      }
-    }
-
-    const isPerfect = inRange && (faceSquare || !config.evalItems.includes("face")) &&
-                      (!config.evalItems.includes("tempo") || tempo.rating === "good") &&
-                      !headUp.detected;
-
-    let smoothness = 100;
-    if (corrected.length > 10) {
-      const jerks = [];
-      for (let i = 1; i < corrected.length; i++) {
-        const j = Math.sqrt(
-          (corrected[i].accX - corrected[i-1].accX) ** 2 +
-          (corrected[i].accY - corrected[i-1].accY) ** 2 +
-          (corrected[i].accZ - corrected[i-1].accZ) ** 2
-        );
-        jerks.push(j);
-      }
-      const avgJerk = jerks.reduce((s, v) => s + v, 0) / jerks.length;
-      smoothness = Math.max(0, Math.min(100, Math.round(100 - avgJerk * 3)));
-    }
-
-    return {
-      valid: true, isPerfect, maxBeta: absDeltaBeta, topBeta: dBetaTop,
-      vfa: Math.round(vfa * 10) / 10, inRange, overSwing, underSwing,
-      faceSquare, faceOpen, faceClose, smoothness, coachKey,
-      coachTip: COACHING[coachKey], dataPoints: corrected.length,
-      durationMs: corrected.length > 0 ? corrected[corrected.length-1].t - corrected[0].t : 0,
-      // NEW metrics
-      tempo, cocking, takeaway, followThrough, headUp,
-    };
-  }
-}
-
-// =====================================================
-// Main App
-// =====================================================
-function App() {
-  const [screen, setScreen] = useState("welcome");
-  const [drillMode, setDrillMode] = useState("business");
-  const [calCount, setCalCount] = useState(0);
-  const [calData, setCalData] = useState([]);
-  const [swingState, setSwingState] = useState("idle");
-  const [currentAngle, setCurrentAngle] = useState(0);
-  const [currentVFA, setCurrentVFA] = useState(0);
-  const [isDeviation, setIsDeviation] = useState(false);
-  const [result, setResult] = useState(null);
-  const [streak, setStreak] = useState(0);
-  const [bestStreak, setBestStreak] = useState(0);
-  const [todayCount, setTodayCount] = useState(0);
-  const [todayPerfect, setTodayPerfect] = useState(0);
-  const [showCoaching, setShowCoaching] = useState("");
-  const [calibration, setCalibration] = useState(null);
-  const [sensorDebug, setSensorDebug] = useState("");
-  const [stillProgress, setStillProgress] = useState(0);
-
-  const analyzerRef = useRef(new SwingAnalyzer());
-  const sensorActiveRef = useRef(false);
-  const orientHandlerRef = useRef(null);
-  const motionHandlerRef = useRef(null);
-  const latestOrient = useRef({ beta: 0, gamma: 0, alpha: 0 });
-  const latestMotion = useRef({ rotX: 0, rotY: 0, rotZ: 0, accX: 0, accY: 0, accZ: 0 });
-  const stateRef = useRef("idle");
-  const stillStartRef = useRef(0);
-  const stopStartRef = useRef(0);
-  const baselineRef = useRef(null);
-  const recordingRef = useRef(false);
-  const lastBuzzRef = useRef(0);
-  const lastTickRef = useRef(0);
-  const calCountRef = useRef(0);
-  const calDataRef = useRef([]);
-  const frameRef = useRef(null);
-  const screenRef = useRef("welcome");
-  const drillModeRef = useRef("business");
-  const startDrillRef = useRef(null);
-
-  useEffect(() => { screenRef.current = screen; }, [screen]);
-  useEffect(() => { drillModeRef.current = drillMode; }, [drillMode]);
-
-  // ---- Sensor Setup ----
-  const requestPermission = useCallback(async () => {
-    audio.init();
-    if (typeof DeviceOrientationEvent !== 'undefined' &&
-        typeof DeviceOrientationEvent.requestPermission === 'function') {
-      try {
-        const perm = await DeviceOrientationEvent.requestPermission();
-        if (perm !== 'granted') {
-          alert("センサーの許可が必要です。設定からモーションセンサーを許可してください。");
-          return false;
-        }
-      } catch(e) {
-        alert("センサー許可エラー: " + e.message);
-        return false;
-      }
-    }
-    if (typeof DeviceMotionEvent !== 'undefined' &&
-        typeof DeviceMotionEvent.requestPermission === 'function') {
-      try { await DeviceMotionEvent.requestPermission(); } catch(e) {}
-    }
-    return true;
-  }, []);
-
-  const startSensors = useCallback(() => {
-    if (sensorActiveRef.current) return;
-    orientHandlerRef.current = (e) => {
-      latestOrient.current = {
-        beta: e.beta || 0,
-        gamma: e.gamma || 0,
-        alpha: e.alpha || 0,
-      };
-    };
-    motionHandlerRef.current = (e) => {
-      const rr = e.rotationRate || {};
-      const a = e.accelerationIncludingGravity || e.acceleration || {};
-      latestMotion.current = {
-        rotX: rr.beta || 0, rotY: rr.gamma || 0, rotZ: rr.alpha || 0,
-        accX: a.x || 0, accY: a.y || 0, accZ: a.z || 0,
-      };
-    };
-    window.addEventListener('deviceorientation', orientHandlerRef.current);
-    window.addEventListener('devicemotion', motionHandlerRef.current);
-    sensorActiveRef.current = true;
-  }, []);
-
-  const stopSensors = useCallback(() => {
-    if (orientHandlerRef.current) window.removeEventListener('deviceorientation', orientHandlerRef.current);
-    if (motionHandlerRef.current) window.removeEventListener('devicemotion', motionHandlerRef.current);
-    sensorActiveRef.current = false;
-  }, []);
-
-  // ---- Processing Loop ----
-  const finishSwing = useCallback((analyzerArg) => {
-    const analyzer = analyzerArg || analyzerRef.current;
-    const mode = drillModeRef.current;
-
-    if (screenRef.current === "calibrating" || calCountRef.current < 3) {
-      const r = analyzer.analyze(mode);
-      if (r.valid) {
-        const newCalData = [...calDataRef.current, r];
-        calDataRef.current = newCalData;
-        setCalData(newCalData);
-        calCountRef.current += 1;
-        setCalCount(calCountRef.current);
-        if (calCountRef.current >= 3) {
-          const avgMaxBeta = newCalData.reduce((s, d) => s + d.maxBeta, 0) / newCalData.length;
-          const cal = { baseline: baselineRef.current, maxBeta: avgMaxBeta, timestamp: Date.now() };
-          setCalibration(cal);
-          audio.perfect();
-          if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]);
-          setTimeout(() => { startDrillRef.current(); }, 1500);
-          return;
-        }
-      }
-      audio.beep(660, 0.1);
-      analyzer.reset();
-      stateRef.current = "waiting";
-      setSwingState("waiting");
-      setStillProgress(0);
-      return;
-    }
-
-    const r = analyzer.analyze(mode);
-    if (r.valid) {
-      if (r.isPerfect) {
-        audio.perfect();
-        if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
-        setStreak(prev => {
-          const next = prev + 1;
-          setBestStreak(best => Math.max(best, next));
-          return next;
-        });
-        setTodayPerfect(prev => prev + 1);
-      } else {
-        audio.beep(330, 0.2);
-        setStreak(0);
-      }
-      setTodayCount(prev => prev + 1);
-      setResult(r);
-      setScreen("result");
-    } else {
-      audio.buzz(0.3);
-      setShowCoaching("うまく検出できませんでした。もう少しゆっくり振ってみてください");
-      analyzer.reset();
-      stateRef.current = "waiting";
-      setSwingState("waiting");
-      setStillProgress(0);
-    }
-  }, []);
-
-  const processFrame = useCallback(() => {
-    const now = Date.now();
-    const o = latestOrient.current;
-    const m = latestMotion.current;
-    const analyzer = analyzerRef.current;
-    const mode = drillModeRef.current;
-    const config = DRILL_MODES[mode];
-    const jerk = analyzer.calcJerk(m.accX, m.accY, m.accZ);
-    const rotMag = Math.sqrt(m.rotX**2 + m.rotY**2 + m.rotZ**2);
-
-    setSensorDebug(`β:${o.beta?.toFixed(0)} γ:${o.gamma?.toFixed(0)} J:${jerk?.toFixed(1)} R:${rotMag?.toFixed(0)} S:${stateRef.current}`);
-
-    if (stateRef.current === "waiting") {
-      if (jerk < STILL_THRESHOLD && rotMag < 30) {
-        if (!stillStartRef.current) stillStartRef.current = now;
-        const elapsed = now - stillStartRef.current;
-        const progress = Math.min(100, (elapsed / STILL_DURATION) * 100);
-        setStillProgress(progress);
-        const tickInterval = STILL_DURATION / 4;
-        if (elapsed > 0 && now - lastTickRef.current > tickInterval) {
-          audio.tick();
-          lastTickRef.current = now;
-        }
-        if (elapsed > STILL_DURATION) {
-          baselineRef.current = { beta: o.beta, gamma: o.gamma, alpha: o.alpha };
-          analyzer.setBaseline(o.beta, o.gamma, o.alpha);
-          audio.ready();
-          stateRef.current = "ready";
-          setSwingState("ready");
-          setStillProgress(100);
-          stillStartRef.current = 0;
-        }
-      } else {
-        stillStartRef.current = 0;
-        lastTickRef.current = 0;
-        setStillProgress(0);
-      }
-    }
-    else if (stateRef.current === "ready") {
-      const isMoving = jerk > MOVE_THRESHOLD || rotMag > 50;
-      if (isMoving) {
-        stateRef.current = "recording";
-        recordingRef.current = true;
-        setSwingState("recording");
-        analyzer.data = [];
-        stopStartRef.current = 0;
-        analyzer.data.push({
-          t: now, beta: o.beta, gamma: o.gamma, alpha: o.alpha,
-          rotX: m.rotX, rotY: m.rotY, rotZ: m.rotZ,
-          accX: m.accX, accY: m.accY, accZ: m.accZ,
-        });
-      }
-    }
-    else if (stateRef.current === "recording") {
-      analyzer.data.push({
-        t: now, beta: o.beta, gamma: o.gamma, alpha: o.alpha,
-        rotX: m.rotX, rotY: m.rotY, rotZ: m.rotZ,
-        accX: m.accX, accY: m.accY, accZ: m.accZ,
-      });
-
-      if (baselineRef.current) {
-        const dBeta = Math.abs(o.beta - baselineRef.current.beta);
-        setCurrentAngle(Math.round(dBeta));
-        const dGamma = o.gamma - baselineRef.current.gamma;
-        const dB = o.beta - baselineRef.current.beta;
-        const vfa = dGamma * Math.cos(dB * Math.PI / 180) + 0.2 * dB;
-        setCurrentVFA(Math.round(vfa));
-        const isDeviating = dBeta > config.targetMax + config.warnMargin ||
-                           (config.evalItems.includes("face") && Math.abs(vfa) > VFA_WARN);
-        setIsDeviation(isDeviating);
-        if (isDeviating && now - lastBuzzRef.current > 300) {
-          audio.buzz();
-          if (navigator.vibrate) navigator.vibrate(100);
-          lastBuzzRef.current = now;
-        }
-      }
-
-      if (jerk < STOP_THRESHOLD && rotMag < 20) {
-        if (!stopStartRef.current) stopStartRef.current = now;
-        if (now - stopStartRef.current > STOP_DURATION) {
-          stateRef.current = "done";
-          recordingRef.current = false;
-          finishSwing(analyzer);
-        }
-      } else {
-        stopStartRef.current = 0;
-      }
-
-      if (stateRef.current === "recording" && analyzer.data.length > 0 && now - analyzer.data[0].t > 5000) {
-        stateRef.current = "done";
-        recordingRef.current = false;
-        finishSwing(analyzer);
-      }
-    }
-
-    if (stateRef.current !== "idle" && stateRef.current !== "done") {
-      frameRef.current = requestAnimationFrame(processFrame);
-    }
-  }, [finishSwing]);
-
-  // ---- Actions ----
-  const handleStart = useCallback(async () => {
-    const ok = await requestPermission();
-    if (!ok) return;
-    startSensors();
-    setScreen("grip_guide");
-  }, [requestPermission, startSensors]);
-
-  const handleStartCalibration = useCallback(() => {
-    setScreen("calibrating");
-    setCalCount(0);
-    calCountRef.current = 0;
-    calDataRef.current = [];
-    setCalData([]);
-    analyzerRef.current.reset();
-    stateRef.current = "waiting";
-    setSwingState("waiting");
-    setStillProgress(0);
-    stillStartRef.current = 0;
-    lastTickRef.current = 0;
-    frameRef.current = requestAnimationFrame(processFrame);
-  }, [processFrame]);
-
-  const handleDrill = useCallback(() => {
-    analyzerRef.current.reset();
-    stateRef.current = "waiting";
-    setSwingState("waiting");
-    setResult(null);
-    setShowCoaching("");
-    setIsDeviation(false);
-    setCurrentAngle(0);
-    setCurrentVFA(0);
-    setStillProgress(0);
-    stillStartRef.current = 0;
-    stopStartRef.current = 0;
-    lastTickRef.current = 0;
-    setScreen("drill");
-    frameRef.current = requestAnimationFrame(processFrame);
-  }, [processFrame]);
-
-  useEffect(() => { startDrillRef.current = handleDrill; }, [handleDrill]);
-
-  const handleRetry = useCallback(() => { handleDrill(); }, [handleDrill]);
-
-  useEffect(() => {
-    return () => {
-      stopSensors();
-      if (frameRef.current) cancelAnimationFrame(frameRef.current);
-    };
-  }, [stopSensors]);
-
-  // ---- Screens ----
-
-  // Welcome Screen
-  if (screen === "welcome") {
-    return (
-      <div className="screen">
-        <div className="welcome-icon">🏌️</div>
-        <div className="logo-text">Golflev</div>
-        <div className="logo-sub">SWING TRAINER</div>
-        <div className="subtitle" style={{marginTop:12}}>{VERSION} — スマホで精密スイング練習</div>
-
-        <div className="settings-group">
-          <div className="settings-label">ドリルモード</div>
-          <div className="settings-row">
-            {Object.entries(DRILL_MODES).map(([key, mode]) => (
-              <button key={key}
-                className={`settings-btn ${drillMode === key ? 'active' : ''}`}
-                onClick={() => setDrillMode(key)}>
-                {mode.name}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <button className="btn" onClick={handleStart} style={{marginTop:20}}>
-          はじめる
-        </button>
-      </div>
-    );
-  }
-
-  // Grip Guide Screen (v7.4: vertical phone, camera LEFT)
-  if (screen === "grip_guide") {
-    return (
-      <div className="screen">
-        <div className="logo-text" style={{fontSize:22}}>Golflev</div>
-        <div className="subtitle">スマホの構え方</div>
-
-        <div className="grip-guide">
-          <div className="grip-visual">
-            <div className="hand-icon">✊</div>
-            <div style={{fontSize:28}}>+</div>
-            <div style={{position:"relative"}}>
-              <div className="phone-mock-v">
-                <div className="cam-dot"></div>
-                <span style={{marginTop:16}}>画面は<br/>自分側</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="grip-arrow">
-            <span className="arrow">←</span>
-            <span>カメラ側 = ターゲット方向（左）</span>
-          </div>
-
-          <div style={{margin:"12px 0",padding:"10px",background:"#1a1a2e",borderRadius:8,fontSize:12,color:"#fbbf24",lineHeight:1.6}}>
-            右打ちの場合：カメラが左（ターゲット方向）を向くように持ちます。<br/>
-            スマホを縦に持ち、クラブのグリップのように握ります。
-          </div>
-
-          <div className="grip-step">
-            <div className="grip-num">1</div>
-            <div><strong>縦に握る</strong><br/>スマホを縦のまま、クラブのグリップのように片手または両手で握ります</div>
-          </div>
-          <div className="grip-step">
-            <div className="grip-num">2</div>
-            <div><strong>カメラを左に向ける</strong><br/>カメラ（上部背面）がターゲット方向（左）を向くように構えます</div>
-          </div>
-          <div className="grip-step">
-            <div className="grip-num">3</div>
-            <div><strong>アドレスの姿勢</strong><br/>両手を体の前に下ろして、ゴルフの構えをします</div>
-          </div>
-          <div className="grip-step">
-            <div className="grip-num">4</div>
-            <div><strong>静止→ビープ音→スイング</strong><br/>「ピポッ」と鳴ったらスイングOK</div>
-          </div>
-        </div>
-
-        <button className="btn btn-green" onClick={handleStartCalibration} style={{marginTop:12}}>
-          キャリブレーション開始
-        </button>
-      </div>
-    );
-  }
-
-  // Calibration Screen
-  if (screen === "calibrating") {
-    return (
-      <div className="screen">
-        <div className="logo-text" style={{fontSize:20}}>Golflev</div>
-        <div className="subtitle">ゆっくり3回振ってください</div>
-
-        <div className="cal-progress">
-          {[1, 2, 3].map(n => (
-            <div key={n} className={`cal-dot ${calCount >= n ? 'done' : calCount === n-1 ? 'active' : ''}`}>
-              {calCount >= n ? "✓" : n}
-            </div>
-          ))}
-        </div>
-
-        <div style={{fontSize:64,margin:"16px 0"}} className={swingState === "ready" ? "ready-flash" : ""}>
-          {swingState === "waiting" ? "🧘" :
-           swingState === "ready" ? "⛳" :
-           swingState === "recording" ? "🏌️" : "✅"}
-        </div>
-
-        {swingState === "waiting" && (
-          <div className="still-bar-wrap">
-            <div className="still-bar" style={{width: `${stillProgress}%`}} />
-          </div>
-        )}
-
-        <div className="cal-status" style={swingState === "ready" ? {color:"#60a5fa",fontWeight:700,fontSize:20} : {}}>
-          {swingState === "waiting" ? "構えて静止してください..." :
-           swingState === "ready" ? "🔔 振ってください！" :
-           swingState === "recording" ? "記録中..." :
-           calCount >= 3 ? "キャリブレーション完了！" : ""}
-        </div>
-
-        {calCount >= 3 && (
-          <div style={{color:"#22c55e",fontSize:16,fontWeight:600,marginTop:16}}>
-            あなたのスイングに合わせて設定しました！
-          </div>
-        )}
-
-        <div className="debug-panel">{sensorDebug}</div>
-      </div>
-    );
-  }
-
-  // Drill Screen
-  if (screen === "drill") {
-    const config = DRILL_MODES[drillMode];
-    const ringClass = swingState === "recording" ? (isDeviation ? "warn" : "ok") :
-                      swingState === "ready" ? "ready-ring" : "";
-    const angleClass = swingState === "recording" ? (isDeviation ? "warn" : "ok") : "";
-
-    return (
-      <div className="screen">
-        <div className="drill-header">
-          <span className="mode">{config.name}</span>
-          <span className="streak">
-            {streak > 0 ? `🔥 ${streak}連続` : `今日 ${todayCount}回`}
-          </span>
-        </div>
-
-        <div className={`state-badge ${swingState === "ready" ? "ready-badge" : swingState === "recording" ? "recording" : ""}`}>
-          {swingState === "waiting" ? "構えて静止..." :
-           swingState === "ready" ? "🔔 振ってください！" :
-           swingState === "recording" ? "● 記録中" : "待機中"}
-        </div>
-
-        {swingState === "waiting" && (
-          <div className="still-bar-wrap">
-            <div className="still-bar" style={{width: `${stillProgress}%`}} />
-          </div>
-        )}
-
-        <div className="drill-zone">
-          <div className={`drill-ring ${ringClass}`}>
-            <div>
-              <div className={`drill-angle ${angleClass}`}>
-                {swingState === "recording" ? `${currentAngle}°` :
-                 swingState === "ready" ? "GO!" : "—"}
-              </div>
-              <div className="drill-label">
-                {swingState === "recording" ?
-                  `目標: ${config.targetMin}°〜${config.targetMax}°` :
-                  swingState === "ready" ? "スイングしてください" :
-                  config.description}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {showCoaching && (
-          <div className="drill-coaching">
-            <div className="tip">{showCoaching}</div>
-          </div>
-        )}
-
-        <div className="drill-stats">
-          <div className="drill-stat">
-            <div className="val">{todayCount}</div>
-            <div className="lbl">今日の回数</div>
-          </div>
-          <div className="drill-stat">
-            <div className="val">{todayPerfect}</div>
-            <div className="lbl">パーフェクト</div>
-          </div>
-          <div className="drill-stat">
-            <div className="val">{bestStreak}</div>
-            <div className="lbl">最高連続</div>
-          </div>
-        </div>
-
-        <button className="btn btn-secondary btn-small"
-          onClick={() => {
-            stateRef.current = "idle";
-            if (frameRef.current) cancelAnimationFrame(frameRef.current);
-            setScreen("welcome");
-          }}
-          style={{marginTop:16}}>
-          モード変更
-        </button>
-
-        <div className="debug-panel">{sensorDebug}</div>
-      </div>
-    );
-  }
-
-  // Result Screen (Enhanced with new metrics)
-  if (screen === "result" && result) {
-    const config = DRILL_MODES[drillMode];
-    const grade = result.isPerfect ? "🎯" : result.inRange ? "👍" : "💪";
-    const title = result.isPerfect ? "パーフェクト！" :
-                  result.inRange ? "いい感じ！" : "もう少し！";
-    const isNewRecord = streak > 0 && streak >= bestStreak;
-
-    const tempoColor = result.tempo.rating === "good" ? "good" :
-                       result.tempo.rating === "unknown" ? "" : "bad";
-    const cockColor = result.cocking.rating === "good" ? "good" :
-                      result.cocking.rating === "unknown" ? "" : "neutral";
-    const takeawayColor = result.takeaway.rating === "straight" ? "good" :
-                          result.takeaway.rating === "unknown" ? "" : "bad";
-    const followColor = result.followThrough.rating === "good" ? "good" :
-                        result.followThrough.rating === "unknown" ? "" : "neutral";
-
-    const takeawayLabel = result.takeaway.rating === "inside" ? "インサイド" :
-                          result.takeaway.rating === "outside" ? "アウトサイド" : "ストレート";
-    const followLabel = result.followThrough.rating === "short" ? "振り抜き不足" :
-                        result.followThrough.rating === "over" ? "振りすぎ" : "OK";
-
-    return (
-      <div className="screen">
-        <div className="result-card">
-          <div className="result-grade">{grade}</div>
-          <div className="result-title" style={{color: result.isPerfect ? "#fbbf24" : "#fff"}}>
-            {title}
-          </div>
-
-          <div className="result-items">
-            {/* Basic metrics */}
-            <div className="result-section">基本データ</div>
-            <div className="result-item">
-              <span className="label">振り幅</span>
-              <span className={`value ${result.inRange ? 'good' : 'bad'}`}>
-                {result.maxBeta.toFixed(0)}°
-                <span style={{fontSize:11,color:"#666"}}> ({config.targetMin}〜{config.targetMax}°)</span>
-              </span>
-            </div>
-            {config.evalItems.includes("face") && (
-              <div className="result-item">
-                <span className="label">フェース角</span>
-                <span className={`value ${result.faceSquare ? 'good' : 'bad'}`}>
-                  {result.vfa > 0 ? "+" : ""}{result.vfa}°
-                  {result.faceSquare ? " スクエア" : result.faceOpen ? " オープン" : " クローズ"}
-                </span>
-              </div>
-            )}
-            <div className="result-item">
-              <span className="label">スムーズさ</span>
-              <span className={`value ${result.smoothness >= 70 ? 'good' : 'bad'}`}>
-                {result.smoothness}%
-              </span>
-            </div>
-
-            {/* Tempo & Rhythm */}
-            <div className="result-section">テンポ・リズム</div>
-            <div className="result-item">
-              <span className="label">テンポ比率</span>
-              <span className={`value ${tempoColor}`}>
-                {result.tempo.ratio > 0 ? `${result.tempo.ratio}:1` : "—"}
-                <span style={{fontSize:11,color:"#666"}}> (理想 3:1)</span>
-              </span>
-            </div>
-            <div className="result-item">
-              <span className="label">バック / ダウン</span>
-              <span className="value" style={{color:"#888",fontSize:12}}>
-                {result.tempo.backMs > 0 ? `${(result.tempo.backMs/1000).toFixed(2)}s / ${(result.tempo.downMs/1000).toFixed(2)}s` : "—"}
-              </span>
-            </div>
-
-            {/* Swing mechanics */}
-            <div className="result-section">スイング解析</div>
-            <div className="result-item">
-              <span className="label">コック角度</span>
-              <span className={`value ${cockColor}`}>
-                {result.cocking.cockAngle > 0 ? `${result.cocking.cockAngle}°` : "—"}
-                <span style={{fontSize:11,color:"#666"}}>
-                  {result.cocking.cockTiming > 0 ? ` (早さ${result.cocking.cockTiming}%)` : ""}
-                </span>
-              </span>
-            </div>
-            <div className="result-item">
-              <span className="label">テイクバック</span>
-              <span className={`value ${takeawayColor}`}>
-                {result.takeaway.direction !== undefined ? `${result.takeaway.direction > 0 ? "+" : ""}${result.takeaway.direction}° ${takeawayLabel}` : "—"}
-              </span>
-            </div>
-            <div className="result-item">
-              <span className="label">フォロースルー</span>
-              <span className={`value ${followColor}`}>
-                {result.followThrough.symmetry > 0 ? `${result.followThrough.symmetry}% ${followLabel}` : "—"}
-              </span>
-            </div>
-
-            {/* Alerts */}
-            {result.headUp.detected && (
-              <div className="result-item" style={{background:"#2d1515",borderRadius:6,padding:"8px 10px",marginTop:4}}>
-                <span className="label" style={{color:"#fca5a5"}}>⚠️ ヘッドアップ検出</span>
-                <span className="value bad">
-                  重度 {result.headUp.severity}%
-                </span>
-              </div>
-            )}
-
-            <div className="result-item" style={{borderBottom:"none"}}>
-              <span className="label">データ</span>
-              <span className="value" style={{color:"#555",fontSize:11}}>
-                {result.dataPoints}点 / {(result.durationMs/1000).toFixed(1)}秒
-              </span>
-            </div>
-          </div>
-
-          {result.coachTip && (
-            <div className="result-coaching">
-              💡 {result.coachTip}
-            </div>
-          )}
-        </div>
-
-        <div className="result-streak">
-          <div className="num">{streak}</div>
-          <div className="lbl">連続パーフェクト</div>
-          {isNewRecord && <div className="new-record">🏆 NEW RECORD!</div>}
-        </div>
-
-        <button className="btn" onClick={handleRetry}>
-          もう一度
-        </button>
-        <button className="btn btn-secondary btn-small"
-          onClick={() => setScreen("welcome")}>
-          モード変更
-        </button>
-      </div>
-    );
-  }
-
-  return <div className="screen"><div className="logo-text">Golflev</div></div>;
-}
-
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-</script>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        // iOS SENSOR PERMISSION
+        const requestSensorPermission = async () => {
+            if (typeof DeviceOrientationEvent !== 'undefined' &&
+                typeof DeviceOrientationEvent.requestPermission === 'function') {
+                try {
+                    const perm = await DeviceOrientationEvent.requestPermission();
+                    if (perm !== 'granted') {
+                        alert("センサーの許可が必要です。設定からモーションセンサーを許可してください。");
+                        return false;
+                    }
+                } catch(e) {
+                    alert("センサー許可エラー: " + e.message);
+                    return false;
+                }
+            }
+            if (typeof DeviceMotionEvent !== 'undefined' &&
+                typeof DeviceMotionEvent.requestPermission === 'function') {
+                try { await DeviceMotionEvent.requestPermission(); } catch(e) {}
+            }
+            return true;
+        };
+
+        // AUDIO UTILS
+        let _audioCtx = null;
+        const getAudioCtx = () => {
+            if (!_audioCtx) {
+                _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (_audioCtx.state === 'suspended') _audioCtx.resume();
+            return _audioCtx;
+        };
+        const AudioUtils = {
+            beep: (freq = 800, duration = 150) => {
+                try {
+                    const ctx = getAudioCtx();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.frequency.value = freq;
+                    osc.type = 'sine';
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration / 1000);
+                    osc.start(ctx.currentTime);
+                    osc.stop(ctx.currentTime + duration / 1000);
+                } catch (e) {}
+            },
+            success: () => {
+                AudioUtils.beep(1000, 200);
+                setTimeout(() => AudioUtils.beep(1200, 200), 150);
+            },
+            fail: () => { AudioUtils.beep(400, 300); },
+            click: () => { AudioUtils.beep(600, 100); },
+            ready: () => {
+                AudioUtils.beep(660, 120);
+                setTimeout(() => AudioUtils.beep(880, 150), 150);
+                if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+            },
+            perfect: () => {
+                try {
+                    const ctx = getAudioCtx();
+                    const t = ctx.currentTime;
+                    [880, 1108, 1318].forEach((f, i) => {
+                        const o = ctx.createOscillator();
+                        const g = ctx.createGain();
+                        o.connect(g); g.connect(ctx.destination);
+                        o.frequency.value = f; o.type = "sine";
+                        g.gain.setValueAtTime(0, t + i * 0.1);
+                        g.gain.linearRampToValueAtTime(0.4, t + i * 0.1 + 0.05);
+                        g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.1 + 0.5);
+                        o.start(t + i * 0.1); o.stop(t + i * 0.1 + 0.5);
+                    });
+                } catch(e) {}
+            }
+        };
+
+        // SENSOR UTILS (v7.4 proven logic)
+        const _prevAcc = { x: 0, y: 0, z: 0 };
+        const calcJerk = (ax, ay, az) => {
+            const j = Math.sqrt(
+                (ax - _prevAcc.x) ** 2 + (ay - _prevAcc.y) ** 2 + (az - _prevAcc.z) ** 2
+            );
+            _prevAcc.x = ax; _prevAcc.y = ay; _prevAcc.z = az;
+            return j;
+        };
+
+        const SensorUtils = {
+            detectStillness: (history, threshold = 2.5, duration = 800) => {
+                const now = Date.now();
+                const recentData = history.filter(d => now - d.time < duration);
+                if (recentData.length < 5) return false;
+                const avgJerk = recentData.reduce((sum, d) => sum + (d.jerk || 0), 0) / recentData.length;
+                const avgRot = recentData.reduce((sum, d) => sum + (d.rotMag || 0), 0) / recentData.length;
+                return avgJerk < threshold && avgRot < 30;
+            },
+
+            detectMovement: (history, jerkThreshold = 3, rotThreshold = 50) => {
+                if (history.length === 0) return false;
+                const latest = history[history.length - 1];
+                return (latest.jerk > jerkThreshold) || (latest.rotMag > rotThreshold);
+            },
+
+            detectStop: (history, jerkThreshold = 4, rotThreshold = 20, duration = 500) => {
+                const now = Date.now();
+                const recentData = history.filter(d => now - d.time < duration);
+                if (recentData.length < 3) return false;
+                return recentData.every(d =>
+                    (d.jerk <= jerkThreshold) && (d.rotMag <= rotThreshold)
+                );
+            },
+
+            calculateMetrics: (allData, baseline) => {
+                if (!allData || allData.length < 10) return null;
+                const bl = baseline || { beta: allData[0].beta, gamma: allData[0].gamma };
+
+                // Find top of backswing (max beta delta from baseline)
+                let maxDelta = -Infinity, topIdx = 0;
+                for (let i = 5; i < allData.length - 5; i++) {
+                    const delta = Math.abs(allData[i].beta - bl.beta);
+                    if (delta > maxDelta) { maxDelta = delta; topIdx = i; }
+                }
+
+                const betaDelta = maxDelta;
+                const backswingTime = allData[topIdx].time - allData[0].time;
+                const downswingTime = allData[allData.length - 1].time - allData[topIdx].time;
+                const tempo = downswingTime > 10 ? backswingTime / downswingTime : 0;
+
+                const avgJerk = allData.reduce((sum, d) => sum + (d.jerk || 0), 0) / allData.length;
+                const smoothness = Math.max(0, Math.min(100, Math.round(100 - avgJerk * 3)));
+
+                // VFA at top (relative to baseline)
+                const dGamma = allData[topIdx].gamma - bl.gamma;
+                const dBeta = allData[topIdx].beta - bl.beta;
+                const vfa = dGamma * Math.cos(dBeta * Math.PI / 180) + 0.2 * dBeta;
+
+                return {
+                    betaDelta: Math.round(betaDelta * 10) / 10,
+                    tempo: Math.round(tempo * 10) / 10,
+                    smoothness,
+                    vfa: Math.round(vfa * 10) / 10,
+                    backswingTime,
+                    downswingTime,
+                    topIdx,
+                    dataPoints: allData.length,
+                    durationMs: allData[allData.length - 1].time - allData[0].time
+                };
+            }
+        };
+
+        // CONFETTI EFFECT
+        const Confetti = ({ count = 50 }) => {
+            useEffect(() => {
+                for (let i = 0; i < count; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'confetti-particle';
+                    particle.innerHTML = ['🎉', '⭐', '✨', '🌟'][Math.floor(Math.random() * 4)];
+                    particle.style.fontSize = (Math.random() * 1.5 + 1) + 'rem';
+                    particle.style.left = Math.random() * window.innerWidth + 'px';
+                    particle.style.top = '-20px';
+                    particle.style.setProperty('--tx', (Math.random() - 0.5) * 200 + 'px');
+                    particle.style.setProperty('--ty', window.innerHeight + 'px');
+                    particle.style.animation = `confetti ${1.5 + Math.random() * 0.5}s ease-out forwards`;
+                    document.body.appendChild(particle);
+                    setTimeout(() => particle.remove(), 2000);
+                }
+            }, [count]);
+            return null;
+        };
+
+        // HOME SCREEN
+        const HomeScreen = ({ onSelectMode }) => {
+            return (
+                <div className="screen">
+                    <div className="header">
+                        <div className="logo">Golflev</div>
+                        <p className="subtitle">v8.0 — Smart Swing Trainer</p>
+                    </div>
+                    <div className="content">
+                        <div className="grid-2-tall">
+                            <div className="card card-clickable" onClick={() => { AudioUtils.click(); onSelectMode('drill'); }}>
+                                <div className="card-title-area">
+                                    <div className="card-icon">🎯</div>
+                                </div>
+                                <div className="mode-card">
+                                    <div className="mode-card-title">ドリルモード</div>
+                                    <div className="mode-card-desc">1つずつマスター</div>
+                                </div>
+                            </div>
+                            <div className="card card-clickable" onClick={() => { AudioUtils.click(); onSelectMode('free'); }}>
+                                <div className="card-title-area">
+                                    <div className="card-icon">📊</div>
+                                </div>
+                                <div className="mode-card">
+                                    <div className="mode-card-title">フリー計測</div>
+                                    <div className="mode-card-desc">全データを分析</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // DRILL CATEGORY SELECTION
+        const DrillCategoryScreen = ({ onSelectDrill, onBack }) => {
+            const drills = [
+                { id: 'width', name: 'ふり幅', icon: '📐', jp: 'Swing Width' },
+                { id: 'smoothness', name: 'スムーズさ', icon: '🌊', jp: 'Smoothness' },
+                { id: 'tempo', name: 'テンポ', icon: '🎵', jp: 'Tempo' },
+                { id: 'face', name: 'フェース管理', icon: '🎯', jp: 'Face Control' }
+            ];
+
+            return (
+                <div className="screen">
+                    <div className="header">
+                        <button className="btn btn-ghost back-btn" onClick={onBack}>←</button>
+                        <h2>ドリルを選択</h2>
+                    </div>
+                    <div className="content">
+                        <div className="drill-grid">
+                            <div className="drill-category-title">ビジネスゾーン（腰〜腰）</div>
+                            {drills.map(drill => (
+                                <div
+                                    key={`bz-${drill.id}`}
+                                    className="card card-clickable drill-card"
+                                    onClick={() => { AudioUtils.click(); onSelectDrill('business', drill.id); }}
+                                >
+                                    <div className="card-title-area">
+                                        <div className="card-icon">{drill.icon}</div>
+                                        <div className="card-progress">
+                                            <span>✓ 0</span>
+                                        </div>
+                                    </div>
+                                    <h3>{drill.name}</h3>
+                                    <p className="text-sm">{drill.jp}</p>
+                                </div>
+                            ))}
+
+                            <div className="drill-category-title">ハーフスイング（肩〜肩）</div>
+                            {drills.map(drill => (
+                                <div
+                                    key={`hs-${drill.id}`}
+                                    className="card card-clickable drill-card"
+                                    onClick={() => { AudioUtils.click(); onSelectDrill('half', drill.id); }}
+                                >
+                                    <div className="card-title-area">
+                                        <div className="card-icon">{drill.icon}</div>
+                                        <div className="card-progress">
+                                            <span>✓ 0</span>
+                                        </div>
+                                    </div>
+                                    <h3>{drill.name}</h3>
+                                    <p className="text-sm">{drill.jp}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // DIFFICULTY SELECTION
+        const DifficultyScreen = ({ zone, drillId, onSelectDifficulty, onBack }) => {
+            const difficultyData = {
+                width: {
+                    business: {
+                        easy: { name: 'やさしい', spec: '15° 〜 45°' },
+                        normal: { name: 'ふつう', spec: '18° 〜 38°' },
+                        hard: { name: 'きびしい', spec: '20° 〜 35°' }
+                    },
+                    half: {
+                        easy: { name: 'やさしい', spec: '35° 〜 75°' },
+                        normal: { name: 'ふつう', spec: '40° 〜 65°' },
+                        hard: { name: 'きびしい', spec: '45° 〜 60°' }
+                    }
+                },
+                smoothness: {
+                    business: {
+                        easy: { name: 'やさしい', spec: '≥50%' },
+                        normal: { name: 'ふつう', spec: '≥65%' },
+                        hard: { name: 'きびしい', spec: '≥80%' }
+                    },
+                    half: {
+                        easy: { name: 'やさしい', spec: '≥50%' },
+                        normal: { name: 'ふつう', spec: '≥65%' },
+                        hard: { name: 'きびしい', spec: '≥80%' }
+                    }
+                },
+                tempo: {
+                    business: {
+                        easy: { name: 'やさしい', spec: '1.5:1 〜 5.0:1' },
+                        normal: { name: 'ふつう', spec: '2.0:1 〜 4.0:1' },
+                        hard: { name: 'きびしい', spec: '2.5:1 〜 3.5:1' }
+                    },
+                    half: {
+                        easy: { name: 'やさしい', spec: '1.5:1 〜 5.0:1' },
+                        normal: { name: 'ふつう', spec: '2.0:1 〜 4.0:1' },
+                        hard: { name: 'きびしい', spec: '2.5:1 〜 3.5:1' }
+                    }
+                },
+                face: {
+                    business: {
+                        easy: { name: 'やさしい', spec: '±20°' },
+                        normal: { name: 'ふつう', spec: '±12°' },
+                        hard: { name: 'きびしい', spec: '±6°' }
+                    },
+                    half: {
+                        easy: { name: 'やさしい', spec: '±18°' },
+                        normal: { name: 'ふつう', spec: '±10°' },
+                        hard: { name: 'きびしい', spec: '±5°' }
+                    }
+                }
+            };
+
+            const [selected, setSelected] = useState(null);
+            const config = difficultyData[drillId][zone];
+
+            return (
+                <div className="screen">
+                    <div className="header">
+                        <button className="btn btn-ghost back-btn" onClick={onBack}>←</button>
+                        <h2>難易度を選択</h2>
+                    </div>
+                    <div className="content">
+                        <div className="stack-v">
+                            {['easy', 'normal', 'hard'].map(level => (
+                                <div
+                                    key={level}
+                                    className={`difficulty-card ${selected === level ? 'selected' : ''}`}
+                                    onClick={() => { AudioUtils.click(); setSelected(level); }}
+                                >
+                                    <div className="difficulty-name">{config[level].name}</div>
+                                    <div className="difficulty-spec">{config[level].spec}</div>
+                                </div>
+                            ))}
+                        </div>
+                        <button
+                            className="btn btn-primary btn-lg btn-block"
+                            onClick={() => {
+                                if (selected) {
+                                    AudioUtils.click();
+                                    onSelectDifficulty(selected);
+                                }
+                            }}
+                            disabled={!selected}
+                            style={{ marginTop: '2rem', opacity: selected ? 1 : 0.5 }}
+                        >
+                            開始する
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // DRILL EXECUTION
+        const DrillExecutionScreen = ({ zone, drillId, difficulty, onComplete, onBack }) => {
+            const [state, setState] = useState('grip');
+            const [metrics, setMetrics] = useState(null);
+            const [displayAngle, setDisplayAngle] = useState(0);
+            const sensorHistoryRef = useRef([]);
+            const orientRef = useRef({ beta: 0, gamma: 0, alpha: 0 });
+            const baselineRef = useRef(null);
+            const stateRef = useRef('grip');
+            const recordingDataRef = useRef([]);
+
+            const drillConfig = {
+                width: {
+                    business: { easy: [15, 45], normal: [18, 38], hard: [20, 35] },
+                    half: { easy: [35, 75], normal: [40, 65], hard: [45, 60] }
+                },
+                smoothness: {
+                    business: { easy: 50, normal: 65, hard: 80 },
+                    half: { easy: 50, normal: 65, hard: 80 }
+                },
+                tempo: {
+                    business: { easy: [1.5, 5.0], normal: [2.0, 4.0], hard: [2.5, 3.5] },
+                    half: { easy: [1.5, 5.0], normal: [2.0, 4.0], hard: [2.5, 3.5] }
+                },
+                face: {
+                    business: { easy: 20, normal: 12, hard: 6 },
+                    half: { easy: 18, normal: 10, hard: 5 }
+                }
+            };
+
+            const config = drillConfig[drillId][zone][difficulty];
+
+            // Single unified sensor effect
+            useEffect(() => {
+                if (stateRef.current === 'grip' || stateRef.current === 'stopped') return;
+
+                const handleDeviceOrientation = (event) => {
+                    orientRef.current = {
+                        beta: event.beta || 0,
+                        gamma: event.gamma || 0,
+                        alpha: event.alpha || 0,
+                    };
+                    setDisplayAngle(Math.round(event.beta || 0));
+                };
+
+                const handleDeviceMotion = (event) => {
+                    const rr = event.rotationRate || {};
+                    const rotX = rr.beta || 0;
+                    const rotY = rr.gamma || 0;
+                    const rotZ = rr.alpha || 0;
+                    const rotMag = Math.sqrt(rotX * rotX + rotY * rotY + rotZ * rotZ);
+                    const a = event.accelerationIncludingGravity || event.acceleration || {};
+                    const jerk = calcJerk(a.x || 0, a.y || 0, a.z || 0);
+                    const now = Date.now();
+                    const o = orientRef.current;
+
+                    sensorHistoryRef.current.push({
+                        time: now,
+                        beta: o.beta, gamma: o.gamma, alpha: o.alpha,
+                        rotX, rotY, rotZ, rotMag, jerk
+                    });
+                    if (sensorHistoryRef.current.length > 500) sensorHistoryRef.current.shift();
+
+                    // State machine
+                    if (stateRef.current === 'waiting') {
+                        if (SensorUtils.detectStillness(sensorHistoryRef.current)) {
+                            baselineRef.current = { beta: o.beta, gamma: o.gamma, alpha: o.alpha };
+                            stateRef.current = 'ready';
+                            setState('ready');
+                            AudioUtils.ready();
+                        }
+                    } else if (stateRef.current === 'ready') {
+                        if (SensorUtils.detectMovement(sensorHistoryRef.current)) {
+                            stateRef.current = 'recording';
+                            setState('recording');
+                            recordingDataRef.current = [];
+                            AudioUtils.beep(1000, 100);
+                        }
+                    } else if (stateRef.current === 'recording') {
+                        recordingDataRef.current.push({
+                            time: now,
+                            beta: o.beta, gamma: o.gamma, alpha: o.alpha,
+                            rotX, rotY, rotZ, rotMag, jerk
+                        });
+
+                        // Update display angle
+                        if (baselineRef.current) {
+                            const dBeta = Math.abs(o.beta - baselineRef.current.beta);
+                            setDisplayAngle(Math.round(dBeta));
+                        }
+
+                        if (SensorUtils.detectStop(sensorHistoryRef.current)) {
+                            stateRef.current = 'stopped';
+                            setState('stopped');
+                            const calcMetrics = SensorUtils.calculateMetrics(
+                                recordingDataRef.current, baselineRef.current
+                            );
+                            setMetrics(calcMetrics);
+                            if (calcMetrics) AudioUtils.success();
+                            else AudioUtils.fail();
+                        }
+
+                        // Timeout after 5 seconds
+                        if (recordingDataRef.current.length > 0 &&
+                            now - recordingDataRef.current[0].time > 5000) {
+                            stateRef.current = 'stopped';
+                            setState('stopped');
+                            const calcMetrics = SensorUtils.calculateMetrics(
+                                recordingDataRef.current, baselineRef.current
+                            );
+                            setMetrics(calcMetrics);
+                        }
+                    }
+                };
+
+                window.addEventListener('deviceorientation', handleDeviceOrientation);
+                window.addEventListener('devicemotion', handleDeviceMotion);
+
+                return () => {
+                    window.removeEventListener('deviceorientation', handleDeviceOrientation);
+                    window.removeEventListener('devicemotion', handleDeviceMotion);
+                };
+            }, [state]);
+
+            const handleGripConfirm = async () => {
+                AudioUtils.click();
+                const ok = await requestSensorPermission();
+                if (!ok) return;
+                sensorHistoryRef.current = [];
+                recordingDataRef.current = [];
+                baselineRef.current = null;
+                stateRef.current = 'waiting';
+                setState('waiting');
+            };
+
+            if (state === 'grip') {
+                return (
+                    <div className="screen">
+                        <div className="header">
+                            <button className="btn btn-ghost back-btn" onClick={onBack}>←</button>
+                            <h2>握り方の確認</h2>
+                        </div>
+                        <div className="content">
+                            <div className="grip-guide">
+                                <div className="grip-icon">📱</div>
+                                <div className="grip-text">
+                                    スマートフォンを握ってください。<br/>
+                                    カメラは左を向いてください。
+                                </div>
+                            </div>
+                            <button className="btn btn-primary btn-lg btn-block" onClick={handleGripConfirm}>
+                                準備完了
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (state === 'ready' || state === 'waiting' || state === 'recording') {
+                const stateLabels = {
+                    waiting: '構えてください',
+                    ready: 'スイング準備完了 🎯',
+                    recording: '記録中...'
+                };
+
+                return (
+                    <div className="screen">
+                        <div className="header">
+                            <h2>ドリル実行中</h2>
+                        </div>
+                        <div className="content">
+                            <div className={`state-badge state-${state === 'ready' ? 'ready' : state === 'recording' ? 'recording' : 'waiting'}`}>
+                                {stateLabels[state]}
+                            </div>
+                            <div className="metric-circle">
+                                <div className="metric-value">{displayAngle}°</div>
+                                <div className="metric-label">腕の角度</div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (state === 'stopped' && metrics) {
+                let success = false;
+                let value = 0;
+                let target = '';
+
+                if (drillId === 'width') {
+                    value = metrics.betaDelta;
+                    if (Array.isArray(config)) {
+                        success = value >= config[0] && value <= config[1];
+                        target = `${config[0]}° 〜 ${config[1]}°`;
+                    }
+                } else if (drillId === 'smoothness') {
+                    value = metrics.smoothness;
+                    success = value >= config;
+                    target = `${config}% 以上`;
+                } else if (drillId === 'tempo') {
+                    value = metrics.tempo;
+                    if (Array.isArray(config)) {
+                        success = value >= config[0] && value <= config[1];
+                        target = `${config[0].toFixed(1)}:1 〜 ${config[1].toFixed(1)}:1`;
+                    }
+                } else if (drillId === 'face') {
+                    value = Math.abs(metrics.vfa);
+                    success = value <= config;
+                    target = `±${config}°`;
+                }
+
+                return (
+                    <div className="screen">
+                        {success && <Confetti count={30} />}
+                        <div className="header">
+                            <h2>{success ? '成功！' : 'もう少し！'}</h2>
+                        </div>
+                        <div className="content">
+                            <div className={`metric-circle ${success ? 'success' : 'fail'}`}>
+                                <div className="metric-value">
+                                    {drillId === 'tempo' ? value.toFixed(2) : value.toFixed(1)}
+                                </div>
+                                <div className="metric-label">
+                                    {drillId === 'width' && '°'}
+                                    {drillId === 'smoothness' && '%'}
+                                    {drillId === 'tempo' && ':1'}
+                                    {drillId === 'face' && '°'}
+                                </div>
+                            </div>
+
+                            <div className="range-info">
+                                <div className="range-box">
+                                    <div className="range-label">目標値</div>
+                                    <div className="range-value">{target}</div>
+                                </div>
+                                <div className="range-box">
+                                    <div className="range-label">あなたの値</div>
+                                    <div className={`range-value ${success ? 'success' : 'danger'}`}>
+                                        {drillId === 'tempo' ? value.toFixed(2) : value.toFixed(1)}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="result-tip">
+                                {drillId === 'width' && '適切な振り幅を保つことで、安定したスイングが実現します。'}
+                                {drillId === 'smoothness' && 'より滑らかな動きを意識して、緊張を取り除きましょう。'}
+                                {drillId === 'tempo' && 'テンポが一定することで、リズム感のあるスイングになります。'}
+                                {drillId === 'face' && 'フェース角を安定させることが、方向性の鍵になります。'}
+                            </div>
+
+                            {success && <div className="success-counter">✓ 成功回数: 1</div>}
+
+                            <div style={{ marginTop: '2rem' }} className="stack-v">
+                                <button className="btn btn-primary btn-lg btn-block" onClick={() => {
+                                    AudioUtils.click();
+                                    setState('grip');
+                                    setMetrics(null);
+                                    sensorHistoryRef.current = [];
+                                }}>
+                                    もう一度
+                                </button>
+                                <button className="btn btn-secondary btn-lg btn-block" onClick={onBack}>
+                                    別のドリル
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return null;
+        };
+
+        // FREE MODE - GRIP GUIDE
+        const FreeGripGuideScreen = ({ onComplete, onBack }) => {
+            const handleGripConfirm = async () => {
+                AudioUtils.click();
+                const ok = await requestSensorPermission();
+                if (!ok) return;
+                onComplete();
+            };
+            return (
+                <div className="screen">
+                    <div className="header">
+                        <button className="btn btn-ghost back-btn" onClick={onBack}>←</button>
+                        <h2>握り方の確認</h2>
+                    </div>
+                    <div className="content">
+                        <div className="grip-guide">
+                            <div className="grip-icon">📱</div>
+                            <div className="grip-text">
+                                スマートフォンを握ってください。<br/>
+                                カメラは左を向いてください。
+                            </div>
+                        </div>
+                        <button className="btn btn-primary btn-lg btn-block" onClick={handleGripConfirm}>
+                            準備完了
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // FREE MODE - CALIBRATION
+        const FreeCalibrationScreen = ({ onComplete, onBack }) => {
+            const [step, setStep] = useState(1);
+            const [calibrationReady, setCalibrationReady] = useState(false);
+
+            const handleStartCalibration = () => {
+                AudioUtils.beep(1000, 150);
+                setCalibrationReady(true);
+            };
+
+            return (
+                <div className="screen">
+                    <div className="header">
+                        <button className="btn btn-ghost back-btn" onClick={onBack}>←</button>
+                        <h2>キャリブレーション</h2>
+                    </div>
+                    <div className="content">
+                        <p className="subtitle" style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                            3回のスイングで調整します
+                        </p>
+
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className={`calibration-step ${step >= i ? '' : ''}`} style={{ opacity: step >= i ? 1 : 0.5 }}>
+                                <div className="step-number">{i}</div>
+                                <div className="step-title">スイング {i}</div>
+                                <div className="step-desc">
+                                    {step === i && '下のボタンを押してから、いつものペースでスイングしてください。'}
+                                    {step > i && '完了しました ✓'}
+                                    {step < i && '前のステップを完了してください。'}
+                                </div>
+                            </div>
+                        ))}
+
+                        {step <= 3 && (
+                            <button className="btn btn-primary btn-lg btn-block" onClick={() => {
+                                AudioUtils.click();
+                                handleStartCalibration();
+                                setTimeout(() => {
+                                    if (step < 3) {
+                                        setStep(step + 1);
+                                        setCalibrationReady(false);
+                                    } else {
+                                        AudioUtils.success();
+                                        onComplete();
+                                    }
+                                }, 2000);
+                            }} style={{ marginTop: '2rem' }}>
+                                {step === 3 ? 'キャリブレーション完了' : `スイング ${step} を実行`}
+                            </button>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // FREE MODE - EXECUTION
+        const FreeExecutionScreen = ({ onComplete, onBack }) => {
+            const [state, setState] = useState('waiting');
+            const [displayAngle, setDisplayAngle] = useState(0);
+            const [metrics, setMetrics] = useState(null);
+            const [openSection, setOpenSection] = useState('basic');
+            const sensorHistoryRef = useRef([]);
+            const orientRef = useRef({ beta: 0, gamma: 0 });
+            const baselineRef = useRef(null);
+            const stateRef = useRef('waiting');
+            const stillCountRef = useRef(0);
+            const recordStartRef = useRef(0);
+
+            useEffect(() => {
+                stateRef.current = state;
+            }, [state]);
+
+            useEffect(() => {
+                const handleDeviceOrientation = (event) => {
+                    orientRef.current.beta = event.beta || 0;
+                    orientRef.current.gamma = event.gamma || 0;
+                    setDisplayAngle(Math.round(event.beta || 0));
+                };
+
+                const handleDeviceMotion = (event) => {
+                    const rr = event.rotationRate || {};
+                    const rotX = rr.beta || 0;
+                    const rotY = rr.gamma || 0;
+                    const rotZ = rr.alpha || 0;
+                    const rotMag = Math.sqrt(rotX * rotX + rotY * rotY + rotZ * rotZ);
+                    const a = event.accelerationIncludingGravity || event.acceleration || {};
+                    const jerk = calcJerk(a.x || 0, a.y || 0, a.z || 0);
+
+                    const now = Date.now();
+                    const curState = stateRef.current;
+
+                    sensorHistoryRef.current.push({
+                        time: now,
+                        beta: orientRef.current.beta,
+                        gamma: orientRef.current.gamma,
+                        rotX, rotY, rotZ, rotMag, jerk
+                    });
+                    if (sensorHistoryRef.current.length > 500) {
+                        sensorHistoryRef.current.shift();
+                    }
+
+                    if (curState === 'waiting') {
+                        if (jerk < 2.5 && rotMag < 30) {
+                            stillCountRef.current++;
+                            if (stillCountRef.current > 50) {
+                                baselineRef.current = {
+                                    beta: orientRef.current.beta,
+                                    gamma: orientRef.current.gamma
+                                };
+                                setState('ready');
+                                AudioUtils.beep(800, 150);
+                            }
+                        } else {
+                            stillCountRef.current = 0;
+                        }
+                    }
+
+                    if (curState === 'ready') {
+                        if (jerk > 3 || rotMag > 50) {
+                            sensorHistoryRef.current = [];
+                            sensorHistoryRef.current.push({
+                                time: now,
+                                beta: orientRef.current.beta,
+                                gamma: orientRef.current.gamma,
+                                rotX, rotY, rotZ, rotMag, jerk
+                            });
+                            recordStartRef.current = now;
+                            setState('recording');
+                            AudioUtils.beep(1000, 100);
+                        }
+                    }
+
+                    if (curState === 'recording') {
+                        if (jerk < 4 && rotMag < 20 && (now - recordStartRef.current) > 300) {
+                            stillCountRef.current++;
+                            if (stillCountRef.current > 30) {
+                                const allData = sensorHistoryRef.current;
+                                const calcMetrics = SensorUtils.calculateMetrics(allData, baselineRef.current);
+                                setState('stopped');
+                                AudioUtils.success();
+                                if (calcMetrics) setMetrics(calcMetrics);
+                            }
+                        } else {
+                            stillCountRef.current = 0;
+                        }
+                        if ((now - recordStartRef.current) > 5000) {
+                            const allData = sensorHistoryRef.current;
+                            const calcMetrics = SensorUtils.calculateMetrics(allData, baselineRef.current);
+                            setState('stopped');
+                            AudioUtils.success();
+                            if (calcMetrics) setMetrics(calcMetrics);
+                        }
+                    }
+                };
+
+                window.addEventListener('deviceorientation', handleDeviceOrientation);
+                window.addEventListener('devicemotion', handleDeviceMotion);
+
+                return () => {
+                    window.removeEventListener('deviceorientation', handleDeviceOrientation);
+                    window.removeEventListener('devicemotion', handleDeviceMotion);
+                };
+            }, []);
+
+            if (state === 'waiting' || state === 'ready' || state === 'recording') {
+                return (
+                    <div className="screen">
+                        <div className="header">
+                            <h2>計測中</h2>
+                        </div>
+                        <div className="content">
+                            <div className={`state-badge state-${state === 'ready' ? 'ready' : state === 'recording' ? 'recording' : 'waiting'}`}>
+                                {state === 'waiting' && '構えてください'}
+                                {state === 'ready' && 'スイング準備完了'}
+                                {state === 'recording' && '記録中...'}
+                            </div>
+                            <div className="metric-circle">
+                                <div className="metric-value">{displayAngle}°</div>
+                                <div className="metric-label">腕の角度</div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (state === 'stopped' && metrics) {
+                return (
+                    <div className="screen">
+                        <div className="header">
+                            <h2>計測結果</h2>
+                        </div>
+                        <div className="content">
+                            <div className="expandable-section">
+                                <div className="expandable-header" onClick={() => setOpenSection(openSection === 'basic' ? '' : 'basic')}>
+                                    <span>基本データ</span>
+                                    <span className={`expandable-icon ${openSection === 'basic' ? 'open' : ''}`}>▼</span>
+                                </div>
+                                {openSection === 'basic' && (
+                                    <div className="expandable-content">
+                                        <div className="range-info">
+                                            <div className="range-box">
+                                                <div className="range-label">振り幅</div>
+                                                <div className="range-value">{metrics.betaDelta.toFixed(1)}°</div>
+                                            </div>
+                                            <div className="range-box">
+                                                <div className="range-label">スムーズさ</div>
+                                                <div className="range-value">{metrics.smoothness.toFixed(0)}%</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="expandable-section">
+                                <div className="expandable-header" onClick={() => setOpenSection(openSection === 'tempo' ? '' : 'tempo')}>
+                                    <span>テンポ・タイミング</span>
+                                    <span className={`expandable-icon ${openSection === 'tempo' ? 'open' : ''}`}>▼</span>
+                                </div>
+                                {openSection === 'tempo' && (
+                                    <div className="expandable-content">
+                                        <div className="range-info">
+                                            <div className="range-box">
+                                                <div className="range-label">テンポ比率</div>
+                                                <div className="range-value">{metrics.tempo.toFixed(2)}:1</div>
+                                            </div>
+                                            <div className="range-box">
+                                                <div className="range-label">ダウン時間</div>
+                                                <div className="range-value">{metrics.downswingTime.toFixed(0)}ms</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="expandable-section">
+                                <div className="expandable-header" onClick={() => setOpenSection(openSection === 'mechanics' ? '' : 'mechanics')}>
+                                    <span>スイング解析</span>
+                                    <span className={`expandable-icon ${openSection === 'mechanics' ? 'open' : ''}`}>▼</span>
+                                </div>
+                                {openSection === 'mechanics' && (
+                                    <div className="expandable-content">
+                                        <div className="range-info">
+                                            <div className="range-box">
+                                                <div className="range-label">フェース角</div>
+                                                <div className="range-value">{metrics.vfa.toFixed(1)}°</div>
+                                            </div>
+                                            <div className="range-box">
+                                                <div className="range-label">バックスイング</div>
+                                                <div className="range-value">{metrics.backswingTime.toFixed(0)}ms</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div style={{ marginTop: '2rem' }} className="stack-v">
+                                <button className="btn btn-primary btn-lg btn-block" onClick={() => {
+                                    AudioUtils.click();
+                                    setState('waiting');
+                                    setMetrics(null);
+                                    setOpenSection('basic');
+                                    sensorHistoryRef.current = [];
+                                    stillCountRef.current = 0;
+                                    baselineRef.current = null;
+                                }}>
+                                    もう一度計測
+                                </button>
+                                <button className="btn btn-secondary btn-lg btn-block" onClick={onBack}>
+                                    メニューに戻る
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return null;
+        };
+
+        // MAIN APP
+        const App = () => {
+            const [screen, setScreen] = useState('home');
+            const [mode, setMode] = useState(null);
+            const [zone, setZone] = useState(null);
+            const [drill, setDrill] = useState(null);
+            const [difficulty, setDifficulty] = useState(null);
+            const [freeStep, setFreeStep] = useState('grip');
+
+            const navigateTo = (newScreen) => {
+                AudioUtils.click();
+                setScreen(newScreen);
+            };
+
+            const goHome = () => {
+                AudioUtils.click();
+                setScreen('home');
+                setMode(null);
+                setZone(null);
+                setDrill(null);
+                setDifficulty(null);
+                setFreeStep('grip');
+            };
+
+            return (
+                <div className="container">
+                    {screen === 'home' && (
+                        <HomeScreen onSelectMode={(m) => {
+                            setMode(m);
+                            if (m === 'drill') {
+                                setScreen('drill-category');
+                            } else {
+                                setScreen('free-grip');
+                                setFreeStep('grip');
+                            }
+                        }} />
+                    )}
+
+                    {screen === 'drill-category' && mode === 'drill' && (
+                        <DrillCategoryScreen
+                            onSelectDrill={(z, d) => {
+                                setZone(z);
+                                setDrill(d);
+                                setScreen('drill-difficulty');
+                            }}
+                            onBack={goHome}
+                        />
+                    )}
+
+                    {screen === 'drill-difficulty' && (
+                        <DifficultyScreen
+                            zone={zone}
+                            drillId={drill}
+                            onSelectDifficulty={(diff) => {
+                                setDifficulty(diff);
+                                setScreen('drill-execution');
+                            }}
+                            onBack={() => setScreen('drill-category')}
+                        />
+                    )}
+
+                    {screen === 'drill-execution' && (
+                        <DrillExecutionScreen
+                            zone={zone}
+                            drillId={drill}
+                            difficulty={difficulty}
+                            onComplete={() => setScreen('drill-category')}
+                            onBack={goHome}
+                        />
+                    )}
+
+                    {screen === 'free-grip' && (
+                        <FreeGripGuideScreen
+                            onComplete={() => setScreen('free-calibration')}
+                            onBack={goHome}
+                        />
+                    )}
+
+                    {screen === 'free-calibration' && (
+                        <FreeCalibrationScreen
+                            onComplete={() => setScreen('free-execution')}
+                            onBack={goHome}
+                        />
+                    )}
+
+                    {screen === 'free-execution' && (
+                        <FreeExecutionScreen
+                            onComplete={() => setScreen('home')}
+                            onBack={goHome}
+                        />
+                    )}
+                </div>
+            );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
 </body>
 </html>
