@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>SWING LAB v7</title>
+<title>SWING LAB v7.1</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0a0a0a;color:#fff;
@@ -21,11 +21,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0a0a0a;
 .btn:active{transform:scale(0.95);background:#1d4ed8}
 .btn-secondary{background:#333;margin-top:12px}
 .btn-small{padding:10px 24px;font-size:14px;min-width:auto}
+.btn-green{background:#16a34a}
+.btn-green:active{background:#15803d}
 
 /* Welcome */
 .welcome-icon{font-size:64px;margin-bottom:16px}
 .step-list{text-align:left;margin:20px 0;line-height:2}
 .step-list span{color:#60a5fa}
+
+/* Grip Guide */
+.grip-guide{background:#111;border-radius:16px;padding:24px;width:100%;max-width:340px;margin:12px 0}
+.grip-visual{display:flex;justify-content:center;align-items:center;gap:20px;margin:16px 0}
+.phone-mock{width:60px;height:110px;border:3px solid #60a5fa;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;font-size:10px;color:#60a5fa;
+  position:relative;text-align:center;line-height:1.3}
+.phone-mock::after{content:"";position:absolute;bottom:6px;left:50%;transform:translateX(-50%);
+  width:20px;height:2px;background:#60a5fa;border-radius:1px}
+.hand-icon{font-size:48px}
+.grip-step{display:flex;align-items:flex-start;gap:12px;margin:10px 0;text-align:left;font-size:13px;line-height:1.6;color:#ccc}
+.grip-num{background:#2563eb;color:#fff;min-width:24px;height:24px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
 
 /* Calibration */
 .cal-progress{display:flex;gap:12px;margin:24px 0}
@@ -35,6 +50,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0a0a0a;
 .cal-dot.active{background:#2563eb;animation:pulse 1s infinite}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
 .cal-status{font-size:16px;color:#ccc;margin-top:12px;min-height:24px}
+
+/* Stillness progress bar */
+.still-bar-wrap{width:200px;height:6px;background:#222;border-radius:3px;margin:12px 0;overflow:hidden}
+.still-bar{height:100%;background:#2563eb;border-radius:3px;transition:width 0.1s linear}
+
+/* Ready flash */
+.ready-flash{animation:readyPulse 0.6s ease-in-out infinite alternate}
+@keyframes readyPulse{0%{opacity:0.6;transform:scale(0.95)}100%{opacity:1;transform:scale(1.05)}}
 
 /* Drill */
 .drill-header{display:flex;justify-content:space-between;width:100%;padding:12px 16px;
@@ -47,6 +70,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0a0a0a;
 .drill-ring.ok{border-color:#22c55e}
 .drill-ring.warn{border-color:#ef4444}
 .drill-ring.perfect{border-color:#fbbf24;box-shadow:0 0 30px rgba(251,191,36,0.3)}
+.drill-ring.ready-ring{border-color:#2563eb;box-shadow:0 0 20px rgba(37,99,235,0.4);animation:ringPulse 1s infinite}
+@keyframes ringPulse{0%,100%{box-shadow:0 0 20px rgba(37,99,235,0.2)}50%{box-shadow:0 0 40px rgba(37,99,235,0.6)}}
 .drill-angle{font-size:56px;font-weight:700;transition:color .15s}
 .drill-angle.ok{color:#22c55e}
 .drill-angle.warn{color:#ef4444}
@@ -59,8 +84,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0a0a0a;
 .drill-stat{text-align:center}
 .drill-stat .val{font-size:24px;font-weight:700}
 .drill-stat .lbl{font-size:11px;color:#888;margin-top:2px}
-.state-badge{font-size:12px;padding:4px 12px;border-radius:20px;background:#222;color:#aaa;
-  margin-bottom:8px}
+.state-badge{font-size:14px;padding:6px 16px;border-radius:20px;background:#222;color:#aaa;
+  margin-bottom:8px;transition:all .3s}
+.state-badge.ready-badge{background:#1e3a5f;color:#60a5fa;font-weight:700;font-size:16px;
+  animation:readyBadge 0.8s ease-in-out infinite alternate}
+@keyframes readyBadge{0%{background:#1e3a5f}100%{background:#2563eb;color:#fff}}
 .state-badge.recording{background:#7f1d1d;color:#fca5a5;animation:recBlink 1s infinite}
 @keyframes recBlink{0%,100%{opacity:1}50%{opacity:0.5}}
 
@@ -91,6 +119,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0a0a0a;
 .settings-btn{flex:1;padding:10px;border:2px solid #333;border-radius:8px;background:none;
   color:#aaa;font-size:13px;cursor:pointer;transition:all .2s}
 .settings-btn.active{border-color:#2563eb;color:#fff;background:#1e3a5f}
+
+/* Debug panel */
+.debug-panel{position:absolute;bottom:8px;left:8px;right:8px;font-size:10px;color:#555;
+  background:rgba(0,0,0,0.8);padding:6px 10px;border-radius:6px;font-family:monospace;line-height:1.5}
 </style>
 </head>
 <body>
@@ -106,13 +138,14 @@ const { useState, useEffect, useRef, useCallback } = React;
 // =====================================================
 // Constants
 // =====================================================
-const VERSION = "v7-test";
+const VERSION = "v7.1";
 
-const STILL_THRESHOLD = 0.8;
-const STILL_DURATION = 1200; // ms
-const MOVE_THRESHOLD = 15;
-const STOP_THRESHOLD = 3;
-const STOP_DURATION = 600; // ms
+// --- Sensitivity tuned for iPhone ---
+const STILL_THRESHOLD = 2.5;      // was 0.8 → more lenient stillness detection
+const STILL_DURATION = 800;       // was 1200ms → faster ready
+const MOVE_THRESHOLD = 3;         // was 15 → much more sensitive to swing start
+const STOP_THRESHOLD = 4;         // was 3
+const STOP_DURATION = 500;        // was 600ms
 
 // Business zone target: Δbeta +10° ~ +30° from address
 const DRILL_MODES = {
@@ -143,7 +176,7 @@ const DRILL_MODES = {
 };
 
 // VFA thresholds
-const VFA_SQUARE = 5; // ±5° = square
+const VFA_SQUARE = 5;
 const VFA_WARN = 10;
 
 // Coaching tips
@@ -159,7 +192,7 @@ const COACHING = {
 };
 
 // =====================================================
-// Audio Engine (Web Audio API)
+// Audio Engine (Web Audio API) - Enhanced for iOS
 // =====================================================
 class AudioEngine {
   constructor() {
@@ -171,39 +204,53 @@ class AudioEngine {
     if (this.initialized) return;
     try {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      // iOS requires resume after user gesture
+      if (this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
       this.initialized = true;
     } catch(e) { console.warn("AudioContext failed:", e); }
   }
 
-  // Short beep for correct
+  // Ensure context is active (iOS sometimes suspends it)
+  _ensureActive() {
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  }
+
+  // Short beep
   beep(freq = 880, dur = 0.08) {
     if (!this.ctx) return;
+    this._ensureActive();
     const o = this.ctx.createOscillator();
     const g = this.ctx.createGain();
     o.connect(g); g.connect(this.ctx.destination);
     o.frequency.value = freq;
     o.type = "sine";
-    g.gain.setValueAtTime(0.3, this.ctx.currentTime);
+    g.gain.setValueAtTime(0.4, this.ctx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
     o.start(); o.stop(this.ctx.currentTime + dur);
   }
 
-  // Buzz for deviation
-  buzz(dur = 0.15) {
+  // Buzz for deviation - louder
+  buzz(dur = 0.2) {
     if (!this.ctx) return;
+    this._ensureActive();
     const o = this.ctx.createOscillator();
     const g = this.ctx.createGain();
     o.connect(g); g.connect(this.ctx.destination);
-    o.frequency.value = 30; // Low freq = physical vibration through speaker
+    o.frequency.value = 50;
     o.type = "square";
-    g.gain.setValueAtTime(0.5, this.ctx.currentTime);
+    g.gain.setValueAtTime(0.6, this.ctx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
     o.start(); o.stop(this.ctx.currentTime + dur);
   }
 
-  // Perfect swing chime
+  // Perfect swing chime - louder
   perfect() {
     if (!this.ctx) return;
+    this._ensureActive();
     const t = this.ctx.currentTime;
     [880, 1108, 1318].forEach((f, i) => {
       const o = this.ctx.createOscillator();
@@ -212,17 +259,48 @@ class AudioEngine {
       o.frequency.value = f;
       o.type = "sine";
       g.gain.setValueAtTime(0, t + i * 0.1);
-      g.gain.linearRampToValueAtTime(0.3, t + i * 0.1 + 0.05);
-      g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.1 + 0.4);
+      g.gain.linearRampToValueAtTime(0.4, t + i * 0.1 + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.1 + 0.5);
       o.start(t + i * 0.1);
-      o.stop(t + i * 0.1 + 0.4);
+      o.stop(t + i * 0.1 + 0.5);
     });
   }
 
-  // Ready beep
+  // READY signal - clear double-beep, unmistakable
   ready() {
-    this.beep(660, 0.15);
-    setTimeout(() => this.beep(880, 0.2), 200);
+    if (!this.ctx) return;
+    this._ensureActive();
+    const t = this.ctx.currentTime;
+    // Double rising tone: "pi-po!"
+    [660, 880].forEach((f, i) => {
+      const o = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      o.connect(g); g.connect(this.ctx.destination);
+      o.frequency.value = f;
+      o.type = "sine";
+      g.gain.setValueAtTime(0.5, t + i * 0.15);
+      g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.15 + 0.2);
+      o.start(t + i * 0.15);
+      o.stop(t + i * 0.15 + 0.2);
+    });
+    // Also try vibration (works on Android, Chrome)
+    if (navigator.vibrate) {
+      navigator.vibrate([100, 50, 100]);
+    }
+  }
+
+  // Detecting stillness progress beep (subtle tick)
+  tick() {
+    if (!this.ctx) return;
+    this._ensureActive();
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.connect(g); g.connect(this.ctx.destination);
+    o.frequency.value = 1200;
+    o.type = "sine";
+    g.gain.setValueAtTime(0.15, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.03);
+    o.start(); o.stop(this.ctx.currentTime + 0.03);
   }
 }
 
@@ -237,9 +315,9 @@ class SwingAnalyzer {
   }
 
   reset() {
-    this.data = [];          // [{t, beta, gamma, alpha, rotX, rotY, rotZ, accX, accY, accZ}]
-    this.baseline = null;    // {beta, gamma, alpha}
-    this.state = "idle";     // idle -> waiting -> recording -> done
+    this.data = [];
+    this.baseline = null;
+    this.state = "idle";
     this.stillStart = 0;
     this.stopStart = 0;
     this.prevAcc = null;
@@ -251,7 +329,6 @@ class SwingAnalyzer {
     this.baseline = { beta, gamma, alpha };
   }
 
-  // Calculate jerk (rate of acceleration change)
   calcJerk(ax, ay, az) {
     if (!this.prevAcc) {
       this.prevAcc = { ax, ay, az };
@@ -266,38 +343,27 @@ class SwingAnalyzer {
     return j;
   }
 
-  // ZUPT: Zero Velocity Update at stationary points
   applyZUPT(data, baseline) {
     if (data.length < 10) return data;
-    // Find address baseline (first 5 samples average)
     const addrBeta = data.slice(0, 5).reduce((s, d) => s + d.beta, 0) / 5;
     const addrGamma = data.slice(0, 5).reduce((s, d) => s + d.gamma, 0) / 5;
-
-    // Find finish (last 5 samples average)
     const finBeta = data.slice(-5).reduce((s, d) => s + d.beta, 0) / 5;
     const finGamma = data.slice(-5).reduce((s, d) => s + d.gamma, 0) / 5;
-
-    // Linear drift correction
-    const driftBeta = (finBeta - addrBeta); // ideally should return to baseline
+    const driftBeta = (finBeta - addrBeta);
     const driftGamma = (finGamma - addrGamma);
     const n = data.length;
-
     return data.map((d, i) => ({
       ...d,
-      beta: d.beta - (driftBeta * i / n) * 0.5, // partial correction
+      beta: d.beta - (driftBeta * i / n) * 0.5,
       gamma: d.gamma - (driftGamma * i / n) * 0.5,
     }));
   }
 
-  // Detect top of swing (angular velocity zero-crossing on Y axis)
   detectTop(data) {
     if (data.length < 20) return Math.floor(data.length / 2);
-
-    // Find max Δbeta point as approximate top
     let maxDelta = -Infinity;
     let maxIdx = 0;
     const bl = this.baseline || { beta: data[0].beta };
-
     for (let i = 5; i < data.length - 5; i++) {
       const delta = Math.abs(data[i].beta - bl.beta);
       if (delta > maxDelta) {
@@ -305,71 +371,56 @@ class SwingAnalyzer {
         maxIdx = i;
       }
     }
-
-    // Refine using rotation rate zero-crossing near max
     const searchStart = Math.max(5, maxIdx - 15);
     const searchEnd = Math.min(data.length - 5, maxIdx + 15);
-
     for (let i = searchStart + 1; i < searchEnd; i++) {
       if (data[i-1].rotY > 0 && data[i].rotY <= 0) {
-        return i; // Zero-crossing found
+        return i;
       }
     }
-
     return maxIdx;
   }
 
-  // Analyze completed swing
   analyze(mode) {
     const config = DRILL_MODES[mode];
-    if (!this.baseline || this.data.length < 20) {
+    if (!this.baseline || this.data.length < 10) {
       return { valid: false, reason: "データ不足" };
     }
 
-    // Apply ZUPT / post-hoc correction
     const corrected = this.applyZUPT(this.data, this.baseline);
-
-    // Detect top
     const topIdx = this.detectTop(corrected);
     this.topIndex = topIdx;
 
-    // Calculate deltas from baseline
     const deltas = corrected.map(d => ({
       dBeta: d.beta - this.baseline.beta,
       dGamma: d.gamma - this.baseline.gamma,
       t: d.t,
     }));
 
-    // Top position values
     const topDelta = deltas[topIdx];
     const maxBeta = Math.max(...deltas.map(d => Math.abs(d.dBeta)));
 
-    // VFA at top
     const dBetaTop = topDelta.dBeta;
     const dGammaTop = topDelta.dGamma;
-    const k = 0.2; // coupling coefficient (default)
+    const k = 0.2;
     const vfa = dGammaTop * Math.cos(dBetaTop * Math.PI / 180) + k * dBetaTop;
 
-    // Check if swing is in target range
     const absDeltaBeta = Math.abs(dBetaTop);
     const inRange = absDeltaBeta >= config.targetMin && absDeltaBeta <= config.targetMax;
     const overSwing = absDeltaBeta > config.targetMax + config.warnMargin;
     const underSwing = absDeltaBeta < config.targetMin - config.warnMargin;
 
-    // Face angle check
     const faceSquare = Math.abs(vfa) <= VFA_SQUARE;
     const faceWarn = Math.abs(vfa) > VFA_WARN;
     const faceOpen = vfa > VFA_SQUARE;
     const faceClose = vfa < -VFA_SQUARE;
 
-    // Determine coaching tip
     let coachKey = "good";
     if (overSwing) coachKey = "over_swing";
     else if (underSwing) coachKey = "under_swing";
     else if (faceOpen && config.evalItems.includes("face")) coachKey = "face_open";
     else if (faceClose && config.evalItems.includes("face")) coachKey = "face_closed";
 
-    // Check early release (if beta drops too fast in first half of downswing)
     if (topIdx < corrected.length - 10) {
       const downMid = Math.floor((topIdx + corrected.length) / 2);
       const midDelta = Math.abs(deltas[downMid]?.dBeta || 0);
@@ -378,10 +429,8 @@ class SwingAnalyzer {
       }
     }
 
-    // Perfect check
     const isPerfect = inRange && (faceSquare || !config.evalItems.includes("face"));
 
-    // Smoothness score (lower jerk variance = smoother)
     let smoothness = 100;
     if (corrected.length > 10) {
       const jerks = [];
@@ -398,21 +447,10 @@ class SwingAnalyzer {
     }
 
     return {
-      valid: true,
-      isPerfect,
-      maxBeta: absDeltaBeta,
-      topBeta: dBetaTop,
-      vfa: Math.round(vfa * 10) / 10,
-      inRange,
-      overSwing,
-      underSwing,
-      faceSquare,
-      faceOpen,
-      faceClose,
-      smoothness,
-      coachKey,
-      coachTip: COACHING[coachKey],
-      dataPoints: corrected.length,
+      valid: true, isPerfect, maxBeta: absDeltaBeta, topBeta: dBetaTop,
+      vfa: Math.round(vfa * 10) / 10, inRange, overSwing, underSwing,
+      faceSquare, faceOpen, faceClose, smoothness, coachKey,
+      coachTip: COACHING[coachKey], dataPoints: corrected.length,
       durationMs: corrected.length > 0 ? corrected[corrected.length-1].t - corrected[0].t : 0,
     };
   }
@@ -422,11 +460,11 @@ class SwingAnalyzer {
 // Main App
 // =====================================================
 function App() {
-  const [screen, setScreen] = useState("welcome"); // welcome, permission, calibrating, drill, result
+  const [screen, setScreen] = useState("welcome");
   const [drillMode, setDrillMode] = useState("business");
   const [calCount, setCalCount] = useState(0);
-  const [calData, setCalData] = useState([]); // array of analyzed calibration swings
-  const [swingState, setSwingState] = useState("idle"); // idle, waiting, recording, done
+  const [calData, setCalData] = useState([]);
+  const [swingState, setSwingState] = useState("idle");
   const [currentAngle, setCurrentAngle] = useState(0);
   const [currentVFA, setCurrentVFA] = useState(0);
   const [isDeviation, setIsDeviation] = useState(false);
@@ -436,8 +474,9 @@ function App() {
   const [todayCount, setTodayCount] = useState(0);
   const [todayPerfect, setTodayPerfect] = useState(0);
   const [showCoaching, setShowCoaching] = useState("");
-  const [calibration, setCalibration] = useState(null); // {baseline, maxBeta, avgSwingPattern}
+  const [calibration, setCalibration] = useState(null);
   const [sensorDebug, setSensorDebug] = useState("");
+  const [stillProgress, setStillProgress] = useState(0); // 0-100
 
   const analyzerRef = useRef(new SwingAnalyzer());
   const sensorActiveRef = useRef(false);
@@ -451,9 +490,16 @@ function App() {
   const baselineRef = useRef(null);
   const recordingRef = useRef(false);
   const lastBuzzRef = useRef(0);
+  const lastTickRef = useRef(0);
   const calCountRef = useRef(0);
   const calDataRef = useRef([]);
   const frameRef = useRef(null);
+  const screenRef = useRef("welcome");
+  const drillModeRef = useRef("business");
+
+  // Keep refs in sync
+  useEffect(() => { screenRef.current = screen; }, [screen]);
+  useEffect(() => { drillModeRef.current = drillMode; }, [drillMode]);
 
   // ---- Sensor Setup ----
   const requestPermission = useCallback(async () => {
@@ -523,51 +569,143 @@ function App() {
   }, []);
 
   // ---- Processing Loop ----
+  const finishSwing = useCallback((analyzerArg) => {
+    const analyzer = analyzerArg || analyzerRef.current;
+    const mode = drillModeRef.current;
+
+    // During calibration phase
+    if (screenRef.current === "calibrating" || calCountRef.current < 3) {
+      const r = analyzer.analyze(mode);
+      if (r.valid) {
+        const newCalData = [...calDataRef.current, r];
+        calDataRef.current = newCalData;
+        setCalData(newCalData);
+        calCountRef.current += 1;
+        setCalCount(calCountRef.current);
+
+        if (calCountRef.current >= 3) {
+          const avgMaxBeta = newCalData.reduce((s, d) => s + d.maxBeta, 0) / newCalData.length;
+          const cal = {
+            baseline: baselineRef.current,
+            maxBeta: avgMaxBeta,
+            timestamp: Date.now(),
+          };
+          setCalibration(cal);
+          audio.perfect();
+          if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]);
+          setTimeout(() => {
+            setScreen("drill");
+            setSwingState("idle");
+          }, 1500);
+          return;
+        }
+      }
+      audio.beep(660, 0.1);
+      analyzer.reset();
+      stateRef.current = "waiting";
+      setSwingState("waiting");
+      setStillProgress(0);
+      return;
+    }
+
+    // Normal drill analysis
+    const r = analyzer.analyze(mode);
+    if (r.valid) {
+      if (r.isPerfect) {
+        audio.perfect();
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
+        setStreak(prev => {
+          const next = prev + 1;
+          setBestStreak(best => Math.max(best, next));
+          return next;
+        });
+        setTodayPerfect(prev => prev + 1);
+      } else {
+        audio.beep(330, 0.2);
+        setStreak(0);
+      }
+      setTodayCount(prev => prev + 1);
+      setResult(r);
+      setScreen("result");
+    } else {
+      audio.buzz(0.3);
+      setShowCoaching("うまく検出できませんでした。もう少しゆっくり振ってみてください");
+      analyzer.reset();
+      stateRef.current = "waiting";
+      setSwingState("waiting");
+      setStillProgress(0);
+    }
+  }, []);
+
   const processFrame = useCallback(() => {
     const now = Date.now();
     const o = latestOrient.current;
     const m = latestMotion.current;
     const analyzer = analyzerRef.current;
-    const config = DRILL_MODES[drillMode];
+    const mode = drillModeRef.current;
+    const config = DRILL_MODES[mode];
 
     // Calculate jerk
     const jerk = analyzer.calcJerk(m.accX, m.accY, m.accZ);
 
+    // Also check rotationRate magnitude as additional motion indicator
+    const rotMag = Math.sqrt(m.rotX**2 + m.rotY**2 + m.rotZ**2);
+
     // Debug
-    setSensorDebug(`β:${o.beta?.toFixed(0)} γ:${o.gamma?.toFixed(0)} J:${jerk?.toFixed(1)} S:${stateRef.current}`);
+    setSensorDebug(`β:${o.beta?.toFixed(0)} γ:${o.gamma?.toFixed(0)} J:${jerk?.toFixed(1)} R:${rotMag?.toFixed(0)} S:${stateRef.current}`);
 
     if (stateRef.current === "waiting") {
       // Detect stillness
-      if (jerk < STILL_THRESHOLD) {
+      if (jerk < STILL_THRESHOLD && rotMag < 30) {
         if (!stillStartRef.current) stillStartRef.current = now;
-        if (now - stillStartRef.current > STILL_DURATION) {
+        const elapsed = now - stillStartRef.current;
+        const progress = Math.min(100, (elapsed / STILL_DURATION) * 100);
+        setStillProgress(progress);
+
+        // Tick sound at 25%, 50%, 75%
+        const tickInterval = STILL_DURATION / 4;
+        if (elapsed > 0 && now - lastTickRef.current > tickInterval) {
+          audio.tick();
+          lastTickRef.current = now;
+        }
+
+        if (elapsed > STILL_DURATION) {
           // Address detected - set baseline
           baselineRef.current = { beta: o.beta, gamma: o.gamma, alpha: o.alpha };
           analyzer.setBaseline(o.beta, o.gamma, o.alpha);
-          audio.ready();
+          audio.ready(); // Clear double-beep
           stateRef.current = "ready";
           setSwingState("ready");
+          setStillProgress(100);
           stillStartRef.current = 0;
         }
       } else {
         stillStartRef.current = 0;
+        lastTickRef.current = 0;
+        setStillProgress(0);
       }
     }
     else if (stateRef.current === "ready") {
-      // Detect movement start
-      if (jerk > MOVE_THRESHOLD) {
+      // Detect movement start - use BOTH jerk and rotation rate
+      const isMoving = jerk > MOVE_THRESHOLD || rotMag > 50;
+      if (isMoving) {
         stateRef.current = "recording";
         recordingRef.current = true;
         setSwingState("recording");
         analyzer.data = [];
         stopStartRef.current = 0;
+        // Record the first data point immediately
+        analyzer.data.push({
+          t: now, beta: o.beta, gamma: o.gamma, alpha: o.alpha,
+          rotX: m.rotX, rotY: m.rotY, rotZ: m.rotZ,
+          accX: m.accX, accY: m.accY, accZ: m.accZ,
+        });
       }
     }
     else if (stateRef.current === "recording") {
       // Record data
       analyzer.data.push({
-        t: now,
-        beta: o.beta, gamma: o.gamma, alpha: o.alpha,
+        t: now, beta: o.beta, gamma: o.gamma, alpha: o.alpha,
         rotX: m.rotX, rotY: m.rotY, rotZ: m.rotZ,
         accX: m.accX, accY: m.accY, accZ: m.accZ,
       });
@@ -577,35 +715,29 @@ function App() {
         const dBeta = Math.abs(o.beta - baselineRef.current.beta);
         setCurrentAngle(Math.round(dBeta));
 
-        // VFA calculation
         const dGamma = o.gamma - baselineRef.current.gamma;
         const dB = o.beta - baselineRef.current.beta;
         const vfa = dGamma * Math.cos(dB * Math.PI / 180) + 0.2 * dB;
         setCurrentVFA(Math.round(vfa));
 
-        // Check if in expected corridor
-        // During backswing, angle should be increasing toward target
-        const isInCorridor = dBeta <= config.targetMax + config.warnMargin;
         const isDeviating = dBeta > config.targetMax + config.warnMargin ||
                            (config.evalItems.includes("face") && Math.abs(vfa) > VFA_WARN);
-
         setIsDeviation(isDeviating);
 
-        // Buzz on deviation (throttled)
         if (isDeviating && now - lastBuzzRef.current > 300) {
           audio.buzz();
+          if (navigator.vibrate) navigator.vibrate(100);
           lastBuzzRef.current = now;
         }
       }
 
-      // Detect end of swing (stillness)
-      if (jerk < STOP_THRESHOLD) {
+      // Detect end of swing (stillness + low rotation)
+      if (jerk < STOP_THRESHOLD && rotMag < 20) {
         if (!stopStartRef.current) stopStartRef.current = now;
         if (now - stopStartRef.current > STOP_DURATION) {
-          // Swing complete
           stateRef.current = "done";
           recordingRef.current = false;
-          finishSwing();
+          finishSwing(analyzer);
           return;
         }
       } else {
@@ -616,7 +748,7 @@ function App() {
       if (analyzer.data.length > 0 && now - analyzer.data[0].t > 5000) {
         stateRef.current = "done";
         recordingRef.current = false;
-        finishSwing();
+        finishSwing(analyzer);
         return;
       }
     }
@@ -624,82 +756,17 @@ function App() {
     if (stateRef.current !== "idle" && stateRef.current !== "done") {
       frameRef.current = requestAnimationFrame(processFrame);
     }
-  }, [drillMode]);
-
-  const finishSwing = useCallback(() => {
-    const analyzer = analyzerRef.current;
-    const mode = drillMode;
-
-    // During calibration phase
-    if (screen === "calibrating" || calCountRef.current < 3) {
-      const r = analyzer.analyze(mode);
-      if (r.valid) {
-        const newCalData = [...calDataRef.current, r];
-        calDataRef.current = newCalData;
-        setCalData(newCalData);
-        calCountRef.current += 1;
-        setCalCount(calCountRef.current);
-
-        if (calCountRef.current >= 3) {
-          // Calibration complete - compute thresholds
-          const avgMaxBeta = newCalData.reduce((s, d) => s + d.maxBeta, 0) / newCalData.length;
-          const cal = {
-            baseline: baselineRef.current,
-            maxBeta: avgMaxBeta,
-            timestamp: Date.now(),
-          };
-          setCalibration(cal);
-          audio.perfect();
-          setTimeout(() => {
-            setScreen("drill");
-            setSwingState("idle");
-          }, 1500);
-          return;
-        }
-      }
-      // Prepare for next calibration swing
-      audio.beep(660, 0.1);
-      analyzer.reset();
-      stateRef.current = "waiting";
-      setSwingState("waiting");
-      frameRef.current = requestAnimationFrame(processFrame);
-      return;
-    }
-
-    // Normal drill analysis
-    const r = analyzer.analyze(mode);
-    if (r.valid) {
-      if (r.isPerfect) {
-        audio.perfect();
-        setStreak(prev => {
-          const next = prev + 1;
-          setBestStreak(best => Math.max(best, next));
-          return next;
-        });
-        setTodayPerfect(prev => prev + 1);
-      } else {
-        audio.beep(330, 0.2); // low tone for not perfect
-        setStreak(0);
-      }
-      setTodayCount(prev => prev + 1);
-      setResult(r);
-      setScreen("result");
-    } else {
-      // Invalid swing - try again
-      audio.buzz(0.3);
-      setShowCoaching("うまく検出できませんでした。もう少しゆっくり振ってみてください");
-      analyzer.reset();
-      stateRef.current = "waiting";
-      setSwingState("waiting");
-      frameRef.current = requestAnimationFrame(processFrame);
-    }
-  }, [drillMode, screen, processFrame]);
+  }, [finishSwing]);
 
   // ---- Actions ----
   const handleStart = useCallback(async () => {
     const ok = await requestPermission();
     if (!ok) return;
     startSensors();
+    setScreen("grip_guide");
+  }, [requestPermission, startSensors]);
+
+  const handleStartCalibration = useCallback(() => {
     setScreen("calibrating");
     setCalCount(0);
     calCountRef.current = 0;
@@ -708,9 +775,11 @@ function App() {
     analyzerRef.current.reset();
     stateRef.current = "waiting";
     setSwingState("waiting");
+    setStillProgress(0);
     stillStartRef.current = 0;
+    lastTickRef.current = 0;
     frameRef.current = requestAnimationFrame(processFrame);
-  }, [requestPermission, startSensors, processFrame]);
+  }, [processFrame]);
 
   const handleDrill = useCallback(() => {
     analyzerRef.current.reset();
@@ -721,8 +790,10 @@ function App() {
     setIsDeviation(false);
     setCurrentAngle(0);
     setCurrentVFA(0);
+    setStillProgress(0);
     stillStartRef.current = 0;
     stopStartRef.current = 0;
+    lastTickRef.current = 0;
     setScreen("drill");
     frameRef.current = requestAnimationFrame(processFrame);
   }, [processFrame]);
@@ -749,17 +820,6 @@ function App() {
         <div className="title">SWING LAB</div>
         <div className="subtitle">{VERSION} — 自宅5分のスイングドリル</div>
 
-        <div style={{margin:"16px 0",padding:"16px",background:"#111",borderRadius:12,
-          maxWidth:320,textAlign:"left",fontSize:13,lineHeight:1.8,color:"#ccc"}}>
-          <div style={{marginBottom:8,color:"#fff",fontWeight:600}}>使い方</div>
-          <span style={{color:"#60a5fa"}}>1.</span> スマホをクラブのように縦に握る<br/>
-          <span style={{color:"#60a5fa"}}>2.</span> 画面を自分に向けて構える<br/>
-          <span style={{color:"#60a5fa"}}>3.</span> ゆっくりスイングするだけ<br/>
-          <div style={{marginTop:8,fontSize:11,color:"#888"}}>
-            ※ 最初の3回で自動キャリブレーションします
-          </div>
-        </div>
-
         <div className="settings-group">
           <div className="settings-label">ドリルモード</div>
           <div className="settings-row">
@@ -773,8 +833,49 @@ function App() {
           </div>
         </div>
 
-        <button className="btn" onClick={handleStart}>
+        <button className="btn" onClick={handleStart} style={{marginTop:20}}>
           はじめる
+        </button>
+      </div>
+    );
+  }
+
+  // Grip Guide Screen (NEW)
+  if (screen === "grip_guide") {
+    return (
+      <div className="screen">
+        <div className="title" style={{fontSize:22}}>スマホの構え方</div>
+        <div className="subtitle">クラブを握るように持ちます</div>
+
+        <div className="grip-guide">
+          <div className="grip-visual">
+            <div className="hand-icon">✊</div>
+            <div style={{fontSize:32}}>+</div>
+            <div className="phone-mock">
+              <span>画面は<br/>自分側</span>
+            </div>
+          </div>
+
+          <div className="grip-step">
+            <div className="grip-num">1</div>
+            <div><strong>縦に持つ</strong><br/>スマホをクラブのグリップだと思って、縦方向に両手で握ります</div>
+          </div>
+          <div className="grip-step">
+            <div className="grip-num">2</div>
+            <div><strong>画面を自分に向ける</strong><br/>画面が自分の顔に向くようにします。ボタン（下側）が地面に向きます</div>
+          </div>
+          <div className="grip-step">
+            <div className="grip-num">3</div>
+            <div><strong>アドレスの姿勢をとる</strong><br/>両手を体の前に下ろして、ゴルフの構えをします</div>
+          </div>
+          <div className="grip-step">
+            <div className="grip-num">4</div>
+            <div><strong>静止するとビープ音が鳴る</strong><br/>「ピポッ」と鳴ったらスイングOK。ゆっくり振ってください</div>
+          </div>
+        </div>
+
+        <button className="btn btn-green" onClick={handleStartCalibration} style={{marginTop:16}}>
+          わかった！キャリブレーション開始
         </button>
       </div>
     );
@@ -795,15 +896,22 @@ function App() {
           ))}
         </div>
 
-        <div style={{fontSize:64,margin:"20px 0"}}>
+        <div style={{fontSize:64,margin:"20px 0"}} className={swingState === "ready" ? "ready-flash" : ""}>
           {swingState === "waiting" ? "🧘" :
            swingState === "ready" ? "⛳" :
            swingState === "recording" ? "🏌️" : "✅"}
         </div>
 
-        <div className="cal-status">
+        {/* Stillness progress bar */}
+        {swingState === "waiting" && (
+          <div className="still-bar-wrap">
+            <div className="still-bar" style={{width: `${stillProgress}%`}} />
+          </div>
+        )}
+
+        <div className="cal-status" style={swingState === "ready" ? {color:"#60a5fa",fontWeight:700,fontSize:20} : {}}>
           {swingState === "waiting" ? "構えて静止してください..." :
-           swingState === "ready" ? "準備OK！振ってください" :
+           swingState === "ready" ? "🔔 振ってください！" :
            swingState === "recording" ? "記録中..." :
            calCount >= 3 ? "キャリブレーション完了！" : ""}
         </div>
@@ -814,7 +922,7 @@ function App() {
           </div>
         )}
 
-        <div style={{position:"absolute",bottom:16,fontSize:10,color:"#444"}}>{sensorDebug}</div>
+        <div className="debug-panel">{sensorDebug}</div>
       </div>
     );
   }
@@ -822,7 +930,8 @@ function App() {
   // Drill Screen
   if (screen === "drill") {
     const config = DRILL_MODES[drillMode];
-    const ringClass = swingState === "recording" ? (isDeviation ? "warn" : "ok") : "";
+    const ringClass = swingState === "recording" ? (isDeviation ? "warn" : "ok") :
+                      swingState === "ready" ? "ready-ring" : "";
     const angleClass = swingState === "recording" ? (isDeviation ? "warn" : "ok") : "";
 
     return (
@@ -834,21 +943,30 @@ function App() {
           </span>
         </div>
 
-        <div className={`state-badge ${swingState === "recording" ? "recording" : ""}`}>
+        <div className={`state-badge ${swingState === "ready" ? "ready-badge" : swingState === "recording" ? "recording" : ""}`}>
           {swingState === "waiting" ? "構えて静止..." :
-           swingState === "ready" ? "✅ 振ってください！" :
+           swingState === "ready" ? "🔔 振ってください！" :
            swingState === "recording" ? "● 記録中" : "待機中"}
         </div>
+
+        {/* Stillness progress bar */}
+        {swingState === "waiting" && (
+          <div className="still-bar-wrap">
+            <div className="still-bar" style={{width: `${stillProgress}%`}} />
+          </div>
+        )}
 
         <div className="drill-zone">
           <div className={`drill-ring ${ringClass}`}>
             <div>
               <div className={`drill-angle ${angleClass}`}>
-                {swingState === "recording" ? `${currentAngle}°` : "—"}
+                {swingState === "recording" ? `${currentAngle}°` :
+                 swingState === "ready" ? "GO!" : "—"}
               </div>
               <div className="drill-label">
                 {swingState === "recording" ?
                   `目標: ${config.targetMin}°〜${config.targetMax}°` :
+                  swingState === "ready" ? "スイングしてください" :
                   config.description}
               </div>
             </div>
@@ -886,7 +1004,7 @@ function App() {
           モード変更
         </button>
 
-        <div style={{position:"absolute",bottom:16,fontSize:10,color:"#444"}}>{sensorDebug}</div>
+        <div className="debug-panel">{sensorDebug}</div>
       </div>
     );
   }
@@ -928,6 +1046,12 @@ function App() {
               <span className="label">スムーズさ</span>
               <span className={`value ${result.smoothness >= 70 ? 'good' : 'bad'}`}>
                 {result.smoothness}%
+              </span>
+            </div>
+            <div className="result-item">
+              <span className="label">データ</span>
+              <span className="value" style={{color:"#888",fontSize:12}}>
+                {result.dataPoints}点 / {(result.durationMs/1000).toFixed(1)}秒
               </span>
             </div>
           </div>
