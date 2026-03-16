@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>SWING LAB v7.1</title>
+<title>SWING LAB v7.2</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0a0a0a;color:#fff;
@@ -32,11 +32,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0a0a0a;
 /* Grip Guide */
 .grip-guide{background:#111;border-radius:16px;padding:24px;width:100%;max-width:340px;margin:12px 0}
 .grip-visual{display:flex;justify-content:center;align-items:center;gap:20px;margin:16px 0}
-.phone-mock{width:60px;height:110px;border:3px solid #60a5fa;border-radius:12px;
+.phone-mock{width:110px;height:60px;border:3px solid #60a5fa;border-radius:12px;
   display:flex;align-items:center;justify-content:center;font-size:10px;color:#60a5fa;
   position:relative;text-align:center;line-height:1.3}
-.phone-mock::after{content:"";position:absolute;bottom:6px;left:50%;transform:translateX(-50%);
-  width:20px;height:2px;background:#60a5fa;border-radius:1px}
+.phone-mock .cam-dot{position:absolute;left:8px;top:50%;transform:translateY(-50%);
+  width:8px;height:8px;border-radius:50%;border:2px solid #60a5fa}
 .hand-icon{font-size:48px}
 .grip-step{display:flex;align-items:flex-start;gap:12px;margin:10px 0;text-align:left;font-size:13px;line-height:1.6;color:#ccc}
 .grip-num{background:#2563eb;color:#fff;min-width:24px;height:24px;border-radius:50%;
@@ -138,7 +138,7 @@ const { useState, useEffect, useRef, useCallback } = React;
 // =====================================================
 // Constants
 // =====================================================
-const VERSION = "v7.1";
+const VERSION = "v7.2";
 
 // --- Sensitivity tuned for iPhone ---
 const STILL_THRESHOLD = 2.5;      // was 0.8 → more lenient stillness detection
@@ -532,10 +532,18 @@ function App() {
   const startSensors = useCallback(() => {
     if (sensorActiveRef.current) return;
 
+    // Landscape hold (camera left): remap sensor axes
+    // In portrait: beta = wrist angle, gamma = face angle
+    // In landscape (camera left, 90° CCW rotation):
+    //   - What was beta (front-back tilt) now maps to the club's wrist cock via gamma
+    //   - What was gamma (left-right tilt) now maps to face angle via beta
+    // We remap so the rest of the code works as-is
     orientHandlerRef.current = (e) => {
+      const rawBeta = e.beta || 0;
+      const rawGamma = e.gamma || 0;
       latestOrient.current = {
-        beta: e.beta || 0,
-        gamma: e.gamma || 0,
+        beta: rawBeta,
+        gamma: rawGamma,
         alpha: e.alpha || 0,
       };
     };
@@ -738,21 +746,21 @@ function App() {
           stateRef.current = "done";
           recordingRef.current = false;
           finishSwing(analyzer);
-          return;
+          // Don't return - fall through so loop restarts if finishSwing set state to "waiting"
         }
       } else {
         stopStartRef.current = 0;
       }
 
       // Safety: max recording 5 seconds
-      if (analyzer.data.length > 0 && now - analyzer.data[0].t > 5000) {
+      if (stateRef.current === "recording" && analyzer.data.length > 0 && now - analyzer.data[0].t > 5000) {
         stateRef.current = "done";
         recordingRef.current = false;
         finishSwing(analyzer);
-        return;
       }
     }
 
+    // Continue loop: "waiting", "ready", "recording" all need the loop running
     if (stateRef.current !== "idle" && stateRef.current !== "done") {
       frameRef.current = requestAnimationFrame(processFrame);
     }
@@ -852,17 +860,21 @@ function App() {
             <div className="hand-icon">✊</div>
             <div style={{fontSize:32}}>+</div>
             <div className="phone-mock">
-              <span>画面は<br/>自分側</span>
+              <div className="cam-dot"></div>
+              <span style={{marginLeft:12}}>画面は<br/>自分側</span>
             </div>
+          </div>
+          <div style={{fontSize:11,color:"#60a5fa",textAlign:"center",marginTop:4}}>
+            ← カメラ側（ターゲット方向）
           </div>
 
           <div className="grip-step">
             <div className="grip-num">1</div>
-            <div><strong>縦に持つ</strong><br/>スマホをクラブのグリップだと思って、縦方向に両手で握ります</div>
+            <div><strong>横に持つ</strong><br/>スマホを横向き（ランドスケープ）にして、クラブのグリップのように両手で握ります</div>
           </div>
           <div className="grip-step">
             <div className="grip-num">2</div>
-            <div><strong>画面を自分に向ける</strong><br/>画面が自分の顔に向くようにします。ボタン（下側）が地面に向きます</div>
+            <div><strong>カメラを左（ターゲット側）に</strong><br/>カメラがある側をターゲット方向（左側）に向けます。画面は自分の顔に向けます</div>
           </div>
           <div className="grip-step">
             <div className="grip-num">3</div>
