@@ -464,52 +464,47 @@
             align-items: center;
             margin: 0.5rem 0;
         }
-
         .golfer-container {
             position: relative;
-            width: 260px;
-            height: 240px;
+            width: 280px;
+            height: 280px;
         }
-
         .golfer-svg {
             width: 100%;
             height: 100%;
         }
-
         .golfer-values {
             display: flex;
             justify-content: center;
-            gap: 2rem;
+            gap: 1.2rem;
             margin-top: 0.5rem;
         }
-
         .golfer-axis {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 0.15rem;
         }
-
         .golfer-axis-num {
             font-family: 'Inter', 'Noto Serif JP', sans-serif;
-            font-size: 1.6rem;
+            font-size: 1.4rem;
             font-weight: 700;
             color: var(--color-primary);
             line-height: 1;
         }
-
         .golfer-axis-num.gold {
             color: var(--color-gold);
         }
-
+        .golfer-axis-num.green {
+            color: #4A7A4A;
+        }
         .golfer-axis-unit {
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             font-weight: 600;
             color: var(--color-text-secondary);
             letter-spacing: 0.05em;
             text-transform: uppercase;
         }
-
         .golfer-total {
             display: flex;
             flex-direction: column;
@@ -520,14 +515,12 @@
             border-radius: 12px;
             color: white;
         }
-
         .golfer-total-num {
             font-family: 'Playfair Display', serif;
             font-size: 2rem;
             font-weight: 800;
             line-height: 1;
         }
-
         .golfer-total-label {
             font-size: 0.6rem;
             font-weight: 600;
@@ -535,12 +528,10 @@
             letter-spacing: 0.1em;
             text-transform: uppercase;
         }
-
         @keyframes golfer-pulse {
             0%, 100% { opacity: 0.6; }
             50% { opacity: 1; }
         }
-
         .golfer-recording .golfer-total {
             animation: golfer-pulse 1s ease-in-out infinite;
         }
@@ -1181,6 +1172,9 @@
             return d;
         };
 
+        // Clamp value between min and max
+        const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
         const SensorUtils = {
             detectStillness: (history, threshold = 2.0, duration = 600) => {
                 const now = Date.now();
@@ -1210,19 +1204,24 @@
                 return recent.every(d => d.rotMag < 15 && d.jerk < 3);
             },
 
-            // 2-axis angle calculation from baseline
+            // 3-axis angle calculation from baseline
             calcAngles: (orient, baseline) => {
-                if (!baseline) return { vertical: 0, horizontal: 0, combined: 0 };
+                if (!baseline) return { vertical: 0, horizontal: 0, wristCock: 0, combined: 0, signedHorizontal: 0 };
                 // Vertical plane: beta measures front-back tilt of the club
                 const dBeta = normAngle(orient.beta - baseline.beta);
                 // Horizontal plane: alpha measures rotation around vertical axis (body rotation)
                 const dAlpha = normAngle(orient.alpha - baseline.alpha);
-                // Combined swing arc = geometric sum of both planes
+                // Wrist cock: estimated from gamma (left-right tilt corresponds to wrist cock/uncock)
+                const dGamma = normAngle(orient.gamma - baseline.gamma);
+                const wristCock = clamp(dGamma * 1.2, -90, 90);
+                // Combined swing arc = geometric sum of vertical and horizontal
                 const combined = Math.sqrt(dBeta * dBeta + dAlpha * dAlpha);
                 return {
                     vertical: dBeta,
                     horizontal: dAlpha,
-                    combined
+                    wristCock,
+                    combined,
+                    signedHorizontal: dAlpha
                 };
             },
 
@@ -1234,7 +1233,7 @@
                     alpha: allData[0].alpha
                 };
 
-                // For each data point, calc 2-axis angles
+                // For each data point, calc 3-axis angles
                 const angles = allData.map(d => SensorUtils.calcAngles(d, bl));
 
                 // Find top of backswing: max combined angle
@@ -1248,6 +1247,31 @@
 
                 const verticalMax = Math.abs(angles[topIdx].vertical);
                 const horizontalMax = Math.abs(angles[topIdx].horizontal);
+
+                // Follow-through detection: find impact (signedHorizontal crosses zero after topIdx)
+                let followThroughIdx = topIdx;
+                let followThroughAngle = 0;
+                for (let i = topIdx + 1; i < allData.length - 2; i++) {
+                    if (angles[i].signedHorizontal * angles[topIdx].signedHorizontal < 0 ||
+                        (i > topIdx + 3 && Math.abs(angles[i].signedHorizontal) < Math.abs(angles[topIdx].signedHorizontal) * 0.3)) {
+                        // Impact found, now find max combined angle after impact
+                        for (let j = i; j < allData.length - 1; j++) {
+                            if (angles[j].combined > followThroughAngle) {
+                                followThroughAngle = angles[j].combined;
+                                followThroughIdx = j;
+                            }
+                        }
+                        break;
+                    }
+                }
+
+                // Max wrist cock during backswing (0 to topIdx)
+                let maxWristCock = 0;
+                for (let i = 0; i <= topIdx; i++) {
+                    if (Math.abs(angles[i].wristCock) > maxWristCock) {
+                        maxWristCock = Math.abs(angles[i].wristCock);
+                    }
+                }
 
                 // Tempo: backswing time / downswing time
                 const backswingTime = allData[topIdx].time - allData[0].time;
@@ -1287,7 +1311,10 @@
                     downswingTime,
                     topIdx,
                     dataPoints: allData.length,
-                    durationMs: allData[allData.length - 1].time - allData[0].time
+                    durationMs: allData[allData.length - 1].time - allData[0].time,
+                    followThroughAngle: Math.round(followThroughAngle * 10) / 10,
+                    followThroughIdx,
+                    maxWristCock: Math.round(maxWristCock * 10) / 10
                 };
             }
         };
@@ -1302,74 +1329,140 @@
             return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
         };
 
-        // GOLFER STICK FIGURE ANIMATION (rear view)
+        // GOLFER TOP-DOWN VIEW ANIMATION (bird's eye)
         const SwingCompass = ({ beta, gamma, alpha, baseline, state }) => {
             const angles = SensorUtils.calcAngles(
                 { beta: beta || 0, gamma: gamma || 0, alpha: alpha || 0 },
                 baseline
             );
-            const v = angles.vertical;   // backswing height (beta)
-            const h = angles.horizontal; // rotation around body (alpha)
+            const v = angles.vertical;      // elevation / swing plane angle
+            const h = angles.horizontal;    // body rotation (signed)
+            const wc = angles.wristCock;    // wrist cock angle from gamma
             const c = angles.combined;
 
             const isRecording = state === 'recording';
 
-            // Golfer body constants (rear view, centered)
-            const cx = 130; // center x of golfer body
-            const headY = 50;
-            const shoulderY = 75;
-            const hipY = 130;
-            const kneeY = 170;
-            const footY = 205;
-            const shoulderW = 28;
+            // Top-down view constants
+            const cx = 140;   // center of golfer body
+            const cy = 140;
+            const bodyR = 18; // torso radius (oval)
+            const headR = 10; // head radius
 
-            // Arms pivot from shoulder center
-            // Map sensor angles to arm+club swing angle
-            // At address (0°): arms hang down → angle ~0 from vertical downward
-            // Backswing: v increases → club goes up and behind → rotate clockwise (rear view)
-            // h gives lateral shift
-            const swingAngle = Math.max(-200, Math.min(200, -v * 1.2 + h * 0.4));
-            const swingRad = swingAngle * Math.PI / 180;
+            // === SWING ANGLE MAPPING (top-down view) ===
+            // Address position: arms point DOWN (toward ball, 6 o'clock = 180°)
+            // Backswing: rotate RIGHT (clockwise from above = increasing angle toward 90°=3 o'clock)
+            // Follow-through: rotate LEFT (toward 270°=9 o'clock)
+            //
+            // For a right-handed golfer from above:
+            //   h > 0 → backswing (arms rotate to player's right = clockwise)
+            //   h < 0 → follow-through (arms rotate to player's left = counterclockwise)
+            //   v contributes to backswing height (more lift = more rotation)
+            //
+            // Primary driver: horizontal rotation (alpha = body rotation visible from above)
+            // Secondary: vertical (beta) adds to backswing arc
+            const armAngleDeg = clamp(h * 1.0 + (h > 0 ? v * 0.3 : -Math.abs(v) * 0.15), -160, 160);
+            const armAngleRad = armAngleDeg * Math.PI / 180;
 
-            // Arm length + club length
-            const armLen = 45;
-            const clubLen = 55;
+            // Address direction: straight down (toward ball)
+            const addressAngle = Math.PI; // 180° = pointing down
 
-            // Hands position (end of arms)
-            const handX = cx + armLen * Math.sin(swingRad);
-            const handY = shoulderY + armLen * Math.cos(swingRad);
+            // Actual arm direction = address + swing rotation
+            const armDir = addressAngle - armAngleRad;
 
-            // Club head position (end of club from hands)
-            const clubX = handX + clubLen * Math.sin(swingRad);
-            const clubY = handY + clubLen * Math.cos(swingRad);
+            // Arm + club geometry
+            const armLen = 40;
+            const clubLen = 50;
 
-            // Swing trail: show arc path of club head
+            // Wrist cock: angle BETWEEN forearm and club shaft
+            // At address: ~0° (straight line)
+            // During backswing: increases (club lags behind arm)
+            // At top: max cock (~60-90°)
+            // During downswing: decreases (uncocking / release)
+            // Follow-through: slight re-cock
+            //
+            // The cock angle creates a bend at the wrist:
+            // - Positive cock: club head lags (rotated further back than arm direction)
+            // - This creates the "L" shape at the top of backswing
+            const cockAngleRad = wc * Math.PI / 180;
+
+            // Shoulder position (slightly offset from body center toward arm direction)
+            const shoulderX = cx;
+            const shoulderY = cy;
+
+            // Hand position (end of arm from shoulder)
+            const handX = shoulderX + armLen * Math.cos(armDir);
+            const handY = shoulderY + armLen * Math.sin(armDir);
+
+            // Club head position (from hand, with wrist cock offset)
+            // Club direction = arm direction + cock angle
+            const clubDir = armDir + cockAngleRad;
+            const clubHeadX = handX + clubLen * Math.cos(clubDir);
+            const clubHeadY = handY + clubLen * Math.sin(clubDir);
+
+            // Ball position (where the club hits at address)
+            const ballX = cx;
+            const ballY = cy + armLen + clubLen - 5;
+
+            // Target line direction: LEFT (9 o'clock direction = toward target)
+            const targetLineY = ballY;
+
+            // Swing trail arc (club head path from address through current position)
             const trailPoints = [];
-            const trailStart = 0;
-            const trailEnd = swingAngle;
-            const steps = Math.max(2, Math.abs(Math.round(trailEnd / 5)));
-            for (let i = 0; i <= steps; i++) {
-                const a = (trailStart + (trailEnd - trailStart) * i / steps) * Math.PI / 180;
-                const hx = cx + armLen * Math.sin(a);
-                const hy = shoulderY + armLen * Math.cos(a);
-                const chx = hx + clubLen * Math.sin(a);
-                const chy = hy + clubLen * Math.cos(a);
+            const trailSteps = Math.max(3, Math.abs(Math.round(armAngleDeg / 3)));
+            for (let i = 0; i <= trailSteps; i++) {
+                const frac = i / trailSteps;
+                const aaDeg = armAngleDeg * frac;
+                const aaRad = aaDeg * Math.PI / 180;
+                const aDir = addressAngle - aaRad;
+                // Interpolate cock angle
+                const ck = wc * frac * Math.PI / 180;
+                const cDir = aDir + ck;
+                const hx = shoulderX + armLen * Math.cos(aDir);
+                const hy = shoulderY + armLen * Math.sin(aDir);
+                const chx = hx + clubLen * Math.cos(cDir);
+                const chy = hy + clubLen * Math.sin(cDir);
                 trailPoints.push(`${i === 0 ? 'M' : 'L'} ${chx.toFixed(1)} ${chy.toFixed(1)}`);
             }
             const trailPath = trailPoints.join(' ');
 
-            // Body slight rotation based on horizontal angle
-            const bodyTilt = Math.max(-12, Math.min(12, h * 0.15));
-            const headTilt = Math.max(-8, Math.min(8, h * 0.1));
-
-            // Ground line
-            const groundY = 210;
-
-            // Color scheme
+            // Colors
             const bodyColor = '#2D3B2D';
             const clubColor = isRecording ? '#C8956C' : '#5A7A5A';
             const trailColor = '#C8956C';
-            const ghostColor = 'rgba(200,149,108,0.15)';
+
+            // Body rotation visual (shoulders rotate with swing)
+            const shoulderRotDeg = clamp(armAngleDeg * 0.4, -40, 40);
+            const shoulderRotRad = shoulderRotDeg * Math.PI / 180;
+
+            // Hip rotation (less than shoulders)
+            const hipRotDeg = shoulderRotDeg * 0.3;
+            const hipRotRad = hipRotDeg * Math.PI / 180;
+
+            // Head position (above body, slight rotation)
+            const headOffX = cx + Math.sin(shoulderRotRad * 0.2) * 3;
+            const headOffY = cy - bodyR - headR - 3;
+
+            // Shoulder endpoints (for visual line)
+            const sW = 22; // half shoulder width
+            const sLX = cx - sW * Math.cos(shoulderRotRad);
+            const sLY = cy - sW * Math.sin(shoulderRotRad);
+            const sRX = cx + sW * Math.cos(shoulderRotRad);
+            const sRY = cy + sW * Math.sin(shoulderRotRad);
+
+            // Hip endpoints
+            const hW = 14; // half hip width
+            const hLX = cx - hW * Math.cos(hipRotRad);
+            const hLY = cy + bodyR * 0.6 - hW * Math.sin(hipRotRad);
+            const hRX = cx + hW * Math.cos(hipRotRad);
+            const hRY = cy + bodyR * 0.6 + hW * Math.sin(hipRotRad);
+
+            // Feet positions (wider than hips, minimal rotation)
+            const feetY = cy + bodyR + 15;
+            const fLX = cx - 16;
+            const fRX = cx + 16;
+
+            // Swing arc indicator (at shoulder)
+            const arcRadius = 30;
 
             return React.createElement('div', {
                 className: `golfer-wrapper ${isRecording ? 'golfer-recording' : ''}`
@@ -1377,192 +1470,222 @@
                 React.createElement('div', { className: 'golfer-container' },
                     React.createElement('svg', {
                         className: 'golfer-svg',
-                        viewBox: '0 0 260 230'
+                        viewBox: '0 0 280 280'
                     },
-                        // Ground shadow
-                        React.createElement('ellipse', {
-                            cx: cx, cy: groundY, rx: 40, ry: 5,
-                            fill: 'rgba(45,59,45,0.08)'
-                        }),
-                        // Ground line
+                        // === BACKGROUND GUIDES ===
+                        // Target line (horizontal, pointing left = toward target)
                         React.createElement('line', {
-                            x1: 30, y1: groundY, x2: 230, y2: groundY,
-                            stroke: bodyColor, strokeWidth: 1, opacity: 0.15
+                            x1: 15, y1: targetLineY, x2: ballX - 15, y2: targetLineY,
+                            stroke: trailColor, strokeWidth: 1, opacity: 0.25,
+                            strokeDasharray: '5 4'
                         }),
-                        // Ghost address position (faint)
-                        Math.abs(swingAngle) > 5 ? React.createElement('g', { opacity: 0.2 },
-                            // Ghost arms
-                            React.createElement('line', {
-                                x1: cx, y1: shoulderY,
-                                x2: cx, y2: shoulderY + armLen,
-                                stroke: bodyColor, strokeWidth: 2.5, strokeLinecap: 'round'
-                            }),
-                            // Ghost club
-                            React.createElement('line', {
-                                x1: cx, y1: shoulderY + armLen,
-                                x2: cx, y2: shoulderY + armLen + clubLen,
-                                stroke: '#8A8A82', strokeWidth: 2, strokeLinecap: 'round'
-                            }),
-                            // Ghost clubhead
-                            React.createElement('rect', {
-                                x: cx - 4, y: shoulderY + armLen + clubLen - 2,
-                                width: 8, height: 6, rx: 1.5,
-                                fill: '#8A8A82', opacity: 0.6
-                            })
-                        ) : null,
-                        // Swing arc trail (gold)
-                        Math.abs(swingAngle) > 3 ? React.createElement('path', {
+                        // Target arrow (pointing left)
+                        React.createElement('polygon', {
+                            points: `18,${targetLineY - 4} 10,${targetLineY} 18,${targetLineY + 4}`,
+                            fill: trailColor, opacity: 0.3
+                        }),
+                        React.createElement('text', {
+                            x: 14, y: targetLineY - 8, textAnchor: 'start',
+                            fill: trailColor, fontSize: '7', fontWeight: 600, opacity: 0.4,
+                            fontFamily: 'Inter, sans-serif'
+                        }, '\u30BF\u30FC\u30B2\u30C3\u30C8'),
+
+                        // Right side label (テイクバック)
+                        React.createElement('text', {
+                            x: 265, y: cy - 5, textAnchor: 'end',
+                            fill: bodyColor, fontSize: '7', fontWeight: 500, opacity: 0.3,
+                            fontFamily: 'Inter, sans-serif'
+                        }, '\u30C6\u30A4\u30AF\u30D0\u30C3\u30AF'),
+                        React.createElement('text', {
+                            x: 265, y: cy + 5, textAnchor: 'end',
+                            fill: bodyColor, fontSize: '7', fontWeight: 500, opacity: 0.3,
+                            fontFamily: 'Inter, sans-serif'
+                        }, '\u2192'),
+
+                        // Left side label (フォロースルー)
+                        React.createElement('text', {
+                            x: 15, y: cy - 5, textAnchor: 'start',
+                            fill: bodyColor, fontSize: '7', fontWeight: 500, opacity: 0.3,
+                            fontFamily: 'Inter, sans-serif'
+                        }, '\u30D5\u30A9\u30ED\u30FC\u30B9\u30EB\u30FC'),
+                        React.createElement('text', {
+                            x: 15, y: cy + 5, textAnchor: 'start',
+                            fill: bodyColor, fontSize: '7', fontWeight: 500, opacity: 0.3,
+                            fontFamily: 'Inter, sans-serif'
+                        }, '\u2190'),
+
+                        // Ball position
+                        React.createElement('circle', {
+                            cx: ballX, cy: ballY, r: 4,
+                            fill: 'white', stroke: '#CCC', strokeWidth: 1
+                        }),
+
+                        // === SWING TRAIL ARC ===
+                        Math.abs(armAngleDeg) > 3 ? React.createElement('path', {
                             d: trailPath,
                             fill: 'none',
                             stroke: trailColor,
                             strokeWidth: 2,
                             strokeDasharray: '4 3',
+                            opacity: 0.45,
+                            strokeLinecap: 'round'
+                        }) : null,
+
+                        // Ghost address position
+                        Math.abs(armAngleDeg) > 5 ? React.createElement('g', { opacity: 0.15 },
+                            React.createElement('line', {
+                                x1: cx, y1: cy,
+                                x2: cx, y2: cy + armLen,
+                                stroke: bodyColor, strokeWidth: 2, strokeLinecap: 'round'
+                            }),
+                            React.createElement('line', {
+                                x1: cx, y1: cy + armLen,
+                                x2: cx, y2: cy + armLen + clubLen,
+                                stroke: '#8A8A82', strokeWidth: 1.5, strokeLinecap: 'round'
+                            })
+                        ) : null,
+
+                        // Swing angle arc at shoulder
+                        Math.abs(armAngleDeg) > 5 ? React.createElement('path', {
+                            d: describeArc(cx, cy, arcRadius,
+                                armAngleDeg > 0 ? 180 : 180 + armAngleDeg,
+                                armAngleDeg > 0 ? 180 + armAngleDeg : 180),
+                            fill: 'none',
+                            stroke: trailColor,
+                            strokeWidth: 1.5,
                             opacity: 0.5,
                             strokeLinecap: 'round'
                         }) : null,
-                        // Angle arc at shoulder
-                        Math.abs(swingAngle) > 5 ? React.createElement('path', {
-                            d: describeArc(cx, shoulderY, 25, 180, 180 + Math.min(170, Math.max(-170, swingAngle))),
-                            fill: 'none',
-                            stroke: trailColor,
-                            strokeWidth: 2,
-                            opacity: 0.6,
-                            strokeLinecap: 'round'
-                        }) : null,
-                        // Angle label at arc
+
+                        // Angle degree label on arc
                         Math.abs(c) > 3 ? React.createElement('text', {
-                            x: cx + 32 * Math.sin(swingRad * 0.5),
-                            y: shoulderY + 32 * Math.cos(swingRad * 0.5),
+                            x: cx + (arcRadius + 10) * Math.cos(addressAngle - armAngleRad * 0.5),
+                            y: cy + (arcRadius + 10) * Math.sin(addressAngle - armAngleRad * 0.5),
                             textAnchor: 'middle',
+                            dominantBaseline: 'middle',
                             fill: trailColor,
-                            fontSize: '11',
+                            fontSize: '10',
                             fontWeight: 700,
                             fontFamily: 'Inter, sans-serif'
                         }, `${Math.round(c)}\u00B0`) : null,
-                        // === BODY (rear view) ===
-                        // Head
+
+                        // === BODY (top-down) ===
+                        // Body shadow / ground
+                        React.createElement('ellipse', {
+                            cx: cx, cy: cy, rx: bodyR + 5, ry: bodyR + 8,
+                            fill: 'rgba(45,59,45,0.04)'
+                        }),
+
+                        // Feet (small ovals, below body)
+                        React.createElement('ellipse', {
+                            cx: fLX, cy: feetY, rx: 5, ry: 8,
+                            fill: 'none', stroke: bodyColor, strokeWidth: 1.5, opacity: 0.4
+                        }),
+                        React.createElement('ellipse', {
+                            cx: fRX, cy: feetY, rx: 5, ry: 8,
+                            fill: 'none', stroke: bodyColor, strokeWidth: 1.5, opacity: 0.4
+                        }),
+
+                        // Hip line
+                        React.createElement('line', {
+                            x1: hLX, y1: hLY, x2: hRX, y2: hRY,
+                            stroke: bodyColor, strokeWidth: 2.5, strokeLinecap: 'round', opacity: 0.5
+                        }),
+
+                        // Torso (oval)
+                        React.createElement('ellipse', {
+                            cx: cx, cy: cy, rx: bodyR * 0.85, ry: bodyR,
+                            fill: '#E8E4DC', stroke: bodyColor, strokeWidth: 2.5,
+                            transform: `rotate(${shoulderRotDeg * 0.3}, ${cx}, ${cy})`
+                        }),
+
+                        // Shoulder line
+                        React.createElement('line', {
+                            x1: sLX, y1: sLY, x2: sRX, y2: sRY,
+                            stroke: bodyColor, strokeWidth: 3, strokeLinecap: 'round'
+                        }),
+
+                        // Head (circle, above body)
                         React.createElement('circle', {
-                            cx: cx + headTilt, cy: headY, r: 14,
-                            fill: 'none', stroke: bodyColor, strokeWidth: 3
+                            cx: headOffX, cy: headOffY, r: headR,
+                            fill: '#E8E4DC', stroke: bodyColor, strokeWidth: 2.5
                         }),
-                        // Neck
+                        // Cap brim indicator
                         React.createElement('line', {
-                            x1: cx + headTilt, y1: headY + 14,
-                            x2: cx + bodyTilt * 0.3, y2: shoulderY,
-                            stroke: bodyColor, strokeWidth: 3, strokeLinecap: 'round'
+                            x1: headOffX - 5, y1: headOffY - 3,
+                            x2: headOffX + 5, y2: headOffY - 3,
+                            stroke: bodyColor, strokeWidth: 2, strokeLinecap: 'round'
                         }),
-                        // Spine (slight lean)
-                        React.createElement('line', {
-                            x1: cx + bodyTilt * 0.3, y1: shoulderY,
-                            x2: cx + bodyTilt, y2: hipY,
-                            stroke: bodyColor, strokeWidth: 3.5, strokeLinecap: 'round'
-                        }),
-                        // Shoulders
-                        React.createElement('line', {
-                            x1: cx - shoulderW + bodyTilt * 0.3, y1: shoulderY,
-                            x2: cx + shoulderW + bodyTilt * 0.3, y2: shoulderY,
-                            stroke: bodyColor, strokeWidth: 3, strokeLinecap: 'round'
-                        }),
-                        // Hips
-                        React.createElement('line', {
-                            x1: cx - 16 + bodyTilt, y1: hipY,
-                            x2: cx + 16 + bodyTilt, y2: hipY,
-                            stroke: bodyColor, strokeWidth: 3, strokeLinecap: 'round'
-                        }),
-                        // Left leg
-                        React.createElement('line', {
-                            x1: cx - 16 + bodyTilt, y1: hipY,
-                            x2: cx - 14, y2: kneeY,
-                            stroke: bodyColor, strokeWidth: 2.5, strokeLinecap: 'round'
-                        }),
-                        React.createElement('line', {
-                            x1: cx - 14, y1: kneeY,
-                            x2: cx - 16, y2: footY,
-                            stroke: bodyColor, strokeWidth: 2.5, strokeLinecap: 'round'
-                        }),
-                        // Right leg
-                        React.createElement('line', {
-                            x1: cx + 16 + bodyTilt, y1: hipY,
-                            x2: cx + 14, y2: kneeY,
-                            stroke: bodyColor, strokeWidth: 2.5, strokeLinecap: 'round'
-                        }),
-                        React.createElement('line', {
-                            x1: cx + 14, y1: kneeY,
-                            x2: cx + 16, y2: footY,
-                            stroke: bodyColor, strokeWidth: 2.5, strokeLinecap: 'round'
-                        }),
-                        // Feet
-                        React.createElement('line', {
-                            x1: cx - 22, y1: footY, x2: cx - 10, y2: footY,
-                            stroke: bodyColor, strokeWidth: 2.5, strokeLinecap: 'round'
-                        }),
-                        React.createElement('line', {
-                            x1: cx + 10, y1: footY, x2: cx + 22, y2: footY,
-                            stroke: bodyColor, strokeWidth: 2.5, strokeLinecap: 'round'
-                        }),
+
                         // === ARMS + CLUB (animated) ===
-                        // Arms (shoulder to hands)
+                        // Left arm (from shoulder to hand) - both arms go together in top-down view
                         React.createElement('line', {
-                            x1: cx, y1: shoulderY,
+                            x1: shoulderX, y1: shoulderY,
                             x2: handX, y2: handY,
                             stroke: bodyColor, strokeWidth: 3, strokeLinecap: 'round'
                         }),
-                        // Club shaft (hands to near club head)
+
+                        // Wrist cock angle indicator (small arc at wrist)
+                        Math.abs(wc) > 5 ? React.createElement('path', {
+                            d: describeArc(handX, handY, 8,
+                                (armDir * 180 / Math.PI),
+                                (clubDir * 180 / Math.PI)),
+                            fill: 'none',
+                            stroke: '#4A7A4A',
+                            strokeWidth: 1.5,
+                            opacity: 0.6,
+                            strokeLinecap: 'round'
+                        }) : null,
+
+                        // Club shaft (from hand to club head, WITH wrist cock offset)
                         React.createElement('line', {
                             x1: handX, y1: handY,
-                            x2: clubX, y2: clubY,
+                            x2: clubHeadX, y2: clubHeadY,
                             stroke: clubColor, strokeWidth: 2.5, strokeLinecap: 'round'
                         }),
-                        // Club head (small rectangle at end)
+
+                        // Club head (small rectangle, rotated to face perpendicular to shaft)
                         React.createElement('rect', {
-                            x: clubX - 5, y: clubY - 2,
-                            width: 10, height: 7, rx: 2,
+                            x: clubHeadX - 4, y: clubHeadY - 2,
+                            width: 12, height: 5, rx: 1.5,
                             fill: clubColor,
-                            transform: `rotate(${swingAngle}, ${clubX}, ${clubY})`
+                            transform: `rotate(${clubDir * 180 / Math.PI + 90}, ${clubHeadX}, ${clubHeadY})`
                         }),
+
                         // Hand grip dot
                         React.createElement('circle', {
-                            cx: handX, cy: handY, r: 3.5,
+                            cx: handX, cy: handY, r: 3,
                             fill: bodyColor
                         }),
-                        // Target line arrow (right side)
-                        React.createElement('line', {
-                            x1: 195, y1: groundY, x2: 240, y2: groundY,
-                            stroke: '#C8956C', strokeWidth: 1.5, opacity: 0.4,
-                            strokeDasharray: '4 3'
-                        }),
-                        React.createElement('polygon', {
-                            points: `240,${groundY - 4} 248,${groundY} 240,${groundY + 4}`,
-                            fill: '#C8956C', opacity: 0.4
-                        }),
-                        React.createElement('text', {
-                            x: 244, y: groundY - 8, textAnchor: 'middle',
-                            fill: '#C8956C', fontSize: '8', fontWeight: 500, opacity: 0.5,
-                            fontFamily: 'Inter, sans-serif'
-                        }, '\u98DB\u7403\u7DDA'),
-                        // Recording indicator
+
+                        // === RECORDING INDICATOR ===
                         isRecording ? React.createElement('circle', {
-                            cx: 20, cy: 20, r: 5,
+                            cx: 18, cy: 18, r: 5,
                             fill: '#C45B4A'
                         }) : null,
                         isRecording ? React.createElement('text', {
-                            x: 30, y: 24,
-                            fill: '#C45B4A', fontSize: '10', fontWeight: 600,
+                            x: 28, y: 22,
+                            fill: '#C45B4A', fontSize: '9', fontWeight: 600,
                             fontFamily: 'Inter, sans-serif'
                         }, 'REC') : null
                     )
                 ),
-                // Numeric values
+                // Numeric values: 3 axes now
                 React.createElement('div', { className: 'golfer-values' },
                     React.createElement('div', { className: 'golfer-axis' },
                         React.createElement('span', { className: 'golfer-axis-num gold' },
-                            `${Math.abs(Math.round(v))}\u00B0`),
-                        React.createElement('span', { className: 'golfer-axis-unit' }, '\u30D0\u30C3\u30AF\u30B9\u30A4\u30F3\u30B0')
+                            `${Math.abs(Math.round(h > 0 ? c : 0))}\u00B0`),
+                        React.createElement('span', { className: 'golfer-axis-unit' }, '\u30C6\u30A4\u30AF\u30D0\u30C3\u30AF')
+                    ),
+                    React.createElement('div', { className: 'golfer-axis' },
+                        React.createElement('span', { className: 'golfer-axis-num green' },
+                            `${Math.abs(Math.round(wc))}\u00B0`),
+                        React.createElement('span', { className: 'golfer-axis-unit' }, '\u30B3\u30C3\u30AF')
                     ),
                     React.createElement('div', { className: 'golfer-axis' },
                         React.createElement('span', { className: 'golfer-axis-num' },
-                            `${Math.abs(Math.round(h))}\u00B0`),
-                        React.createElement('span', { className: 'golfer-axis-unit' }, '\u56DE\u8EE2\u89D2\u5EA6')
+                            `${Math.abs(Math.round(h < 0 ? c : 0))}\u00B0`),
+                        React.createElement('span', { className: 'golfer-axis-unit' }, '\u30D5\u30A9\u30ED\u30FC')
                     )
                 ),
                 // Combined total
