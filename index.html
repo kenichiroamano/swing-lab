@@ -800,11 +800,11 @@
                 try {
                     const perm = await DeviceOrientationEvent.requestPermission();
                     if (perm !== 'granted') {
-                        alert("ã»ã³ãµã¼ã®è¨±å¯ãå¿è¦ã§ããè¨­å®ããã¢ã¼ã·ã§ã³ã»ã³ãµã¼ãè¨±å¯ãã¦ãã ããã");
+                        alert("センサーの許可が必要です。設定からモーションセンサーを許可してください。");
                         return false;
                     }
                 } catch(e) {
-                    alert("ã»ã³ãµã¼è¨±å¯ã¨ã©ã¼: " + e.message);
+                    alert("センサー許可エラー: " + e.message);
                     return false;
                 }
             }
@@ -948,7 +948,7 @@
                 for (let i = 0; i < count; i++) {
                     const particle = document.createElement('div');
                     particle.className = 'confetti-particle';
-                    particle.innerHTML = ['ð', 'â­', 'â¨', 'ð'][Math.floor(Math.random() * 4)];
+                    particle.innerHTML = ['🎉', '⭐', '✨', '🌟'][Math.floor(Math.random() * 4)];
                     particle.style.fontSize = (Math.random() * 1.5 + 1) + 'rem';
                     particle.style.left = Math.random() * window.innerWidth + 'px';
                     particle.style.top = '-20px';
@@ -988,7 +988,7 @@
                 <div className="screen">
                     <div className="header">
                         <div className="logo">GOLFLEV</div>
-                        <p className="subtitle">v9.0 â Smart Swing Trainer</p>
+                        <p className="subtitle">v9.0 — Smart Swing Trainer</p>
                     </div>
                     <div className="content">
                         <div className="stack-v">
@@ -997,7 +997,7 @@
                                 onClick={() => { AudioUtils.click(); onSelectMode('drill'); }}
                                 style={{ height: '56px', marginBottom: '1rem' }}
                             >
-                                ç·´ç¿ãå§ãã
+                                練習を始める
                             </button>
                             <div className="grid-2">
                                 <div
@@ -1005,11 +1005,11 @@
                                     onClick={() => { AudioUtils.click(); onSelectMode('drill'); }}
                                 >
                                     <div className="card-title-area">
-                                        <div className="card-icon">ð¯</div>
+                                        <div className="card-icon">🎯</div>
                                     </div>
                                     <div className="mode-card">
-                                        <div className="mode-card-title">ããªã«</div>
-                                        <div className="mode-card-desc">1ã¤ãã¤ãã¹ã¿ã¼</div>
+                                        <div className="mode-card-title">ドリル</div>
+                                        <div className="mode-card-desc">1つずつマスター</div>
                                     </div>
                                 </div>
                                 <div
@@ -1017,11 +1017,11 @@
                                     onClick={() => { AudioUtils.click(); onSelectMode('free'); }}
                                 >
                                     <div className="card-title-area">
-                                        <div className="card-icon">ð</div>
+                                        <div className="card-icon">📊</div>
                                     </div>
                                     <div className="mode-card">
-                                        <div className="mode-card-title">è¨æ¸¬</div>
-                                        <div className="mode-card-desc">å¨ãã¼ã¿ãåæ</div>
+                                        <div className="mode-card-title">計測</div>
+                                        <div className="mode-card-desc">全データを分析</div>
                                     </div>
                                 </div>
                             </div>
@@ -1034,21 +1034,21 @@
         // DRILL CATEGORY SELECTION
         const DrillCategoryScreen = ({ onSelectDrill, onBack }) => {
             const drills = [
-                { id: 'width', name: 'ãµãå¹', icon: 'ð', jp: 'Swing Width' },
-                { id: 'smoothness', name: 'ã¹ã ã¼ãºã', icon: 'ð', jp: 'Smoothness' },
-                { id: 'tempo', name: 'ãã³ã', icon: 'ðµ', jp: 'Tempo' },
-                { id: 'face', name: 'ãã§ã¼ã¹ç®¡ç', icon: 'ð¯', jp: 'Face Control' }
+                { id: 'width', name: 'ふり幅', icon: '📐', jp: 'Swing Width' },
+                { id: 'smoothness', name: 'スムーズさ', icon: '🌊', jp: 'Smoothness' },
+                { id: 'tempo', name: 'テンポ', icon: '🎵', jp: 'Tempo' },
+                { id: 'face', name: 'フェース管理', icon: '🎯', jp: 'Face Control' }
             ];
 
             return (
                 <div className="screen">
                     <div className="header">
-                        <button className="btn btn-ghost back-btn" onClick={onBack}>â</button>
-                        <h2>ããªã«ãé¸æ</h2>
+                        <button className="btn btn-ghost back-btn" onClick={onBack}>←</button>
+                        <h2>ドリルを選択</h2>
                     </div>
                     <div className="content">
                         <div className="drill-grid">
-                            <div className="drill-category-title">ãã¸ãã¹ã¾ã¼ã³</div>
+                            <div className="drill-category-title">ビジネスゾーン</div>
                             {drills.map(drill => (
                                 <div
                                     key={`bz-${drill.id}`}
@@ -1058,7 +1058,7 @@
                                     <div className="card-title-area">
                                         <div className="card-icon">{drill.icon}</div>
                                         <div className="card-progress">
-                                            <span>â 0</span>
+                                            <span>✓ 0</span>
                                         </div>
                                     </div>
                                     <h3>{drill.name}</h3>
@@ -1066,7 +1066,7 @@
                                 </div>
                             ))}
 
-                            <div className="drill-category-title">ãã¼ãã¹ã¤ã³ã°</div>
+                            <div className="drill-category-title">ハーフスイング</div>
                             {drills.map(drill => (
                                 <div
                                     key={`hs-${drill.id}`}
@@ -1076,7 +1076,7 @@
                                     <div className="card-title-area">
                                         <div className="card-icon">{drill.icon}</div>
                                         <div className="card-progress">
-                                            <span>â 0</span>
+                                            <span>✓ 0</span>
                                         </div>
                                     </div>
                                     <h3>{drill.name}</h3>
@@ -1094,50 +1094,50 @@
             const difficultyData = {
                 width: {
                     business: {
-                        easy: { name: 'ãããã', spec: '15Â° ã 45Â°' },
-                        normal: { name: 'ãµã¤ã', spec: '18Â° ã 38Â°' },
-                        hard: { name: 'ãã³ãã', spec: '20Â° ã 35Â°' }
+                        easy: { name: 'やさしい', spec: '15° 〜 45°' },
+                        normal: { name: 'ふつう', spec: '18° 〜 38°' },
+                        hard: { name: 'きびしい', spec: '20° 〜 35°' }
                     },
                     half: {
-                        easy: { name: 'ãããã', spec: '35Â° ã 75Â°' },
-                        normal: { name: 'ãµã¤ã', spec: '40Â° ã 65Â°' },
-                        hard: { name: 'ãã³ãã', spec: '45Â° ã 60Â°' }
+                        easy: { name: 'やさしい', spec: '35° 〜 75°' },
+                        normal: { name: 'ふつう', spec: '40° 〜 65°' },
+                        hard: { name: 'きびしい', spec: '45° 〜 60°' }
                     }
                 },
                 smoothness: {
                     business: {
-                        easy: { name: 'ãããã', spec: 'â¥50%' },
-                        normal: { name: 'ãµã¤ã', spec: 'â¥65%' },
-                        hard: { name: 'ãã³ãã', spec: 'â¥80%' }
+                        easy: { name: 'やさしい', spec: '≥50%' },
+                        normal: { name: 'ふつう', spec: '≥65%' },
+                        hard: { name: 'きびしい', spec: '≥80%' }
                     },
                     half: {
-                        easy: { name: 'ãããã', spec: 'â¥50%' },
-                        normal: { name: 'ãµã¤ã', spec: 'â¥65%' },
-                        hard: { name: 'ãã³ãã', spec: 'â¥80%' }
+                        easy: { name: 'やさしい', spec: '≥50%' },
+                        normal: { name: 'ふつう', spec: '≥65%' },
+                        hard: { name: 'きびしい', spec: '≥80%' }
                     }
                 },
                 tempo: {
                     business: {
-                        easy: { name: 'ãããã', spec: '1.5:1 ã 5.0:1' },
-                        normal: { name: 'ãµã¤ã', spec: '2.0:1 ã 4.0:1' },
-                        hard: { name: 'ãã³ãã', spec: '2.5:1 ã 3.5:1' }
+                        easy: { name: 'やさしい', spec: '1.5:1 〜 5.0:1' },
+                        normal: { name: 'ふつう', spec: '2.0:1 〜 4.0:1' },
+                        hard: { name: 'きびしい', spec: '2.5:1 〜 3.5:1' }
                     },
                     half: {
-                        easy: { name: 'ãããã', spec: '1.5:1 ã 5.0:1' },
-                        normal: { name: 'ãµã¤ã', spec: '2.0:1 ã 4.0:1' },
-                        hard: { name: 'ãã³ãã', spec: '2.5:1 ã 3.5:1' }
+                        easy: { name: 'やさしい', spec: '1.5:1 〜 5.0:1' },
+                        normal: { name: 'ふつう', spec: '2.0:1 〜 4.0:1' },
+                        hard: { name: 'きびしい', spec: '2.5:1 〜 3.5:1' }
                     }
                 },
                 face: {
                     business: {
-                        easy: { name: 'ãããã', spec: 'Â±20Â°' },
-                        normal: { name: 'ãµã¤ã', spec: 'Â±12Â°' },
-                        hard: { name: 'ãã³ãã', spec: 'Â±6Â°' }
+                        easy: { name: 'やさしい', spec: '±20°' },
+                        normal: { name: 'ふつう', spec: '±12°' },
+                        hard: { name: 'きびしい', spec: '±6°' }
                     },
                     half: {
-                        easy: { name: 'ãããã', spec: 'Â±18Â°' },
-                        normal: { name: 'ãµã¤ã', spec: 'Â±10Â°' },
-                        hard: { name: 'ãã³ãã', spec: 'Â±5Â°' }
+                        easy: { name: 'やさしい', spec: '±18°' },
+                        normal: { name: 'ふつう', spec: '±10°' },
+                        hard: { name: 'きびしい', spec: '±5°' }
                     }
                 }
             };
@@ -1148,8 +1148,8 @@
             return (
                 <div className="screen">
                     <div className="header">
-                        <button className="btn btn-ghost back-btn" onClick={onBack}>â</button>
-                        <h2>é£æåº¦ãé¸æ</h2>
+                        <button className="btn btn-ghost back-btn" onClick={onBack}>←</button>
+                        <h2>難易度を選択</h2>
                     </div>
                     <div className="content">
                         <div className="stack-v">
@@ -1175,7 +1175,7 @@
                             disabled={!selected}
                             style={{ marginTop: '2rem', opacity: selected ? 1 : 0.5 }}
                         >
-                            éå§ãã
+                            開始する
                         </button>
                     </div>
                 </div>
@@ -1321,19 +1321,19 @@
                 return (
                     <div className="screen">
                         <div className="header">
-                            <button className="btn btn-ghost back-btn" onClick={onBack}>â</button>
-                            <h2>æ¡ãæ¹ã®ç¢ºèª</h2>
+                            <button className="btn btn-ghost back-btn" onClick={onBack}>←</button>
+                            <h2>握り方の確認</h2>
                         </div>
                         <div className="content">
                             <div className="grip-guide">
-                                <div className="grip-icon">ð±</div>
+                                <div className="grip-icon">📱</div>
                                 <div className="grip-text">
-                                    ã¹ãã¼ããã©ã³ãæ¡ã£ã¦ãã ããã<br/>
-                                    ã«ã¡ã©ã¯å·¦ãåãã¦ãã ããã
+                                    スマートフォンを握ってください。<br/>
+                                    カメラは左を向いてください。
                                 </div>
                             </div>
                             <button className="btn btn-primary btn-lg btn-block" onClick={handleGripConfirm}>
-                                æºåå®äº
+                                準備完了
                             </button>
                         </div>
                     </div>
@@ -1342,23 +1342,23 @@
 
             if (state === 'ready' || state === 'waiting' || state === 'recording') {
                 const stateLabels = {
-                    waiting: 'ã¹ã¤ã³ã°ãã¦ãã ãã',
-                    ready: 'ã¹ã¤ã³ã°æºåå®äº',
-                    recording: 'è¨é²ä¸­...'
+                    waiting: 'スイングしてください',
+                    ready: 'スイング準備完了',
+                    recording: '記録中...'
                 };
 
                 return (
                     <div className="screen">
                         <div className="header">
-                            <h2>ããªã«å®è¡ä¸­</h2>
+                            <h2>ドリル実行中</h2>
                         </div>
                         <div className="content">
                             <div className={`state-badge state-${state === 'ready' ? 'ready' : state === 'recording' ? 'recording' : 'waiting'}`}>
                                 {stateLabels[state]}
                             </div>
                             <div className={`metric-circle ${state === 'recording' ? 'waiting' : ''}`}>
-                                <div className="metric-value">{displayAngle}Â°</div>
-                                <div className="metric-label">èã®è§åº¦</div>
+                                <div className="metric-value">{displayAngle}°</div>
+                                <div className="metric-label">腕の角度</div>
                             </div>
                         </div>
                     </div>
@@ -1376,25 +1376,25 @@
                     displayValue = Math.round(value);
                     if (Array.isArray(config)) {
                         success = value >= config[0] && value <= config[1];
-                        target = `${config[0]}Â° ã ${config[1]}Â°`;
+                        target = `${config[0]}° 〜 ${config[1]}°`;
                     }
                 } else if (drillId === 'smoothness') {
                     value = metrics.smoothness;
                     displayValue = Math.round(value);
                     success = value >= config;
-                    target = `${config}% ä»¥ä¸`;
+                    target = `${config}% 以上`;
                 } else if (drillId === 'tempo') {
                     value = metrics.tempo;
                     displayValue = Math.round(value * 100) / 100;
                     if (Array.isArray(config)) {
                         success = value >= config[0] && value <= config[1];
-                        target = `${config[0].toFixed(1)}:1 ã ${config[1].toFixed(1)}:1`;
+                        target = `${config[0].toFixed(1)}:1 〜 ${config[1].toFixed(1)}:1`;
                     }
                 } else if (drillId === 'face') {
                     value = Math.abs(metrics.vfa);
                     displayValue = Math.round(value * 10) / 10;
                     success = value <= config;
-                    target = `Â±${config}Â°`;
+                    target = `±${config}°`;
                 }
 
                 const countUpValue = useCountUp(displayValue, 800);
@@ -1403,7 +1403,7 @@
                     <div className="screen">
                         {success && <Confetti count={30} />}
                         <div className="header">
-                            <h2>{success ? 'å®æï¼' : 'ãã¨å°ã'}</h2>
+                            <h2>{success ? '完成！' : 'あと少し'}</h2>
                         </div>
                         <div className="content">
                             <div className={`metric-circle ${success ? 'success' : 'fail'}`}>
@@ -1411,20 +1411,20 @@
                                     {drillId === 'tempo' ? countUpValue.toFixed(2) : countUpValue}
                                 </div>
                                 <div className="metric-label">
-                                    {drillId === 'width' && 'Â°'}
+                                    {drillId === 'width' && '°'}
                                     {drillId === 'smoothness' && '%'}
                                     {drillId === 'tempo' && ':1'}
-                                    {drillId === 'face' && 'Â°'}
+                                    {drillId === 'face' && '°'}
                                 </div>
                             </div>
 
                             <div className="range-info">
                                 <div className="range-box">
-                                    <div className="range-label">ç®æ¨å¤</div>
+                                    <div className="range-label">目標値</div>
                                     <div className="range-value">{target}</div>
                                 </div>
                                 <div className="range-box">
-                                    <div className="range-label">ããªãã®å¤</div>
+                                    <div className="range-label">あなたの値</div>
                                     <div className={`range-value ${success ? 'success' : 'danger'}`}>
                                         {drillId === 'tempo' ? value.toFixed(2) : value.toFixed(1)}
                                     </div>
@@ -1432,13 +1432,13 @@
                             </div>
 
                             <div className="result-tip">
-                                {drillId === 'width' && 'é©åãªæ¯ãå¹ãä¿ã¤ãã¨ã§ãå®å®ããã¹ã¤ã³ã°ãå®ç¾ãã¾ãã'}
-                                {drillId === 'smoothness' && 'ããæ»ãããªåããæè­ãã¦ãç·å¼µãåãé¤ãã¾ãããã'}
-                                {drillId === 'tempo' && 'ãã³ããä¸å®ãããã¨ã§ããªãºã æã®ããã¹ã¤ã³ã°ã«ãªãã¾ãã'}
-                                {drillId === 'face' && 'ãã§ã¼ã¹è§ãå®å®ããããã¨ããæ¹åæ§ã®éµã«ãªãã¾ãã'}
+                                {drillId === 'width' && '適切な振り幅を保つことで、安定したスイングが実現します。'}
+                                {drillId === 'smoothness' && 'より滑らかな動きを意識して、緊張を取り除きましょう。'}
+                                {drillId === 'tempo' && 'テンポが一定することで、リズム感のあるスイングになります。'}
+                                {drillId === 'face' && 'フェース角を安定させることが、方向性の鍵になります。'}
                             </div>
 
-                            {success && <div className="success-counter">â æååæ°: 1</div>}
+                            {success && <div className="success-counter">✓ 成功回数: 1</div>}
 
                             <div style={{ marginTop: '2rem' }} className="stack-v">
                                 <button className="btn btn-primary btn-lg btn-block" onClick={() => {
@@ -1447,10 +1447,10 @@
                                     setMetrics(null);
                                     sensorHistoryRef.current = [];
                                 }}>
-                                    ããä¸åº¦
+                                    もう一度
                                 </button>
                                 <button className="btn btn-secondary btn-lg btn-block" onClick={onBack}>
-                                    å¥ã®ããªã«
+                                    別のドリル
                                 </button>
                             </div>
                         </div>
@@ -1472,19 +1472,19 @@
             return (
                 <div className="screen">
                     <div className="header">
-                        <button className="btn btn-ghost back-btn" onClick={onBack}>â</button>
-                        <h2>æ¡ãæ¹ã®ç¢ºèª</h2>
+                        <button className="btn btn-ghost back-btn" onClick={onBack}>←</button>
+                        <h2>握り方の確認</h2>
                     </div>
                     <div className="content">
                         <div className="grip-guide">
-                            <div className="grip-icon">ð±</div>
+                            <div className="grip-icon">📱</div>
                             <div className="grip-text">
-                                ã¹ãã¼ããã©ã³ãæ¡ã£ã¦ãã ããã<br/>
-                                ã«ã¡ã©ã¯å·¦ãåãã¦ãã ããã
+                                スマートフォンを握ってください。<br/>
+                                カメラは左を向いてください。
                             </div>
                         </div>
                         <button className="btn btn-primary btn-lg btn-block" onClick={handleGripConfirm}>
-                            æºåå®äº
+                            準備完了
                         </button>
                     </div>
                 </div>
@@ -1504,22 +1504,22 @@
             return (
                 <div className="screen">
                     <div className="header">
-                        <button className="btn btn-ghost back-btn" onClick={onBack}>â</button>
-                        <h2>ã­ã£ãªãã¬ã¼ã·ã§ã³</h2>
+                        <button className="btn btn-ghost back-btn" onClick={onBack}>←</button>
+                        <h2>キャリブレーション</h2>
                     </div>
                     <div className="content">
                         <p className="subtitle" style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                            3åã®ã¹ã¤ã³ã°ã§èª¿æ´ãã¾ã
+                            3回のスイングで調整します
                         </p>
 
                         {[1, 2, 3].map(i => (
                             <div key={i} className={`calibration-step ${step >= i ? '' : ''}`} style={{ opacity: step >= i ? 1 : 0.5 }}>
                                 <div className="step-number">{i}</div>
-                                <div className="step-title">ã¹ã¤ã³ã° {i}</div>
+                                <div className="step-title">スイング {i}</div>
                                 <div className="step-desc">
-                                    {step === i && 'ä¸ã®ãã¿ã³ãæ¼ãã¦ããããã¤ãã®ãã¼ã¹ã§ã¹ã¤ã³ã°ãã¦ãã ããã'}
-                                    {step > i && 'å®äºãã¾ãã â'}
-                                    {step < i && 'åã®ã¹ããããå®äºãã¦ãã ããã'}
+                                    {step === i && '下のボタンを押してから、いつものペースでスイングしてください。'}
+                                    {step > i && '完了しました ✓'}
+                                    {step < i && '前のステップを完了してください。'}
                                 </div>
                             </div>
                         ))}
@@ -1538,7 +1538,7 @@
                                     }
                                 }, 2000);
                             }} style={{ marginTop: '2rem' }}>
-                                {step === 3 ? 'ã­ã£ãªãã¬ã¼ã·ã§ã³å®äº' : `ã¹ã¤ã³ã° ${step} ãå®è¡`}
+                                {step === 3 ? 'キャリブレーション完了' : `スイング ${step} を実行`}
                             </button>
                         )}
                     </div>
@@ -1659,17 +1659,17 @@
                 return (
                     <div className="screen">
                         <div className="header">
-                            <h2>è¨æ¸¬ä¸­</h2>
+                            <h2>計測中</h2>
                         </div>
                         <div className="content">
                             <div className={`state-badge state-${state === 'ready' ? 'ready' : state === 'recording' ? 'recording' : 'waiting'}`}>
-                                {state === 'waiting' && 'ã¹ã¤ã³ã°ãã¦ãã ãã'}
-                                {state === 'ready' && 'ã¹ã¤ã³ã°æºåå®äº'}
-                                {state === 'recording' && 'è¨é²ä¸­...'}
+                                {state === 'waiting' && 'スイングしてください'}
+                                {state === 'ready' && 'スイング準備完了'}
+                                {state === 'recording' && '記録中...'}
                             </div>
                             <div className={`metric-circle ${state === 'recording' ? 'waiting' : ''}`}>
-                                <div className="metric-value">{displayAngle}Â°</div>
-                                <div className="metric-label">èã®è§åº¦</div>
+                                <div className="metric-value">{displayAngle}°</div>
+                                <div className="metric-label">腕の角度</div>
                             </div>
                         </div>
                     </div>
@@ -1680,23 +1680,23 @@
                 return (
                     <div className="screen">
                         <div className="header">
-                            <h2>è¨æ¸¬çµæ</h2>
+                            <h2>計測結果</h2>
                         </div>
                         <div className="content">
                             <div className="expandable-section">
                                 <div className="expandable-header" onClick={() => setOpenSection(openSection === 'basic' ? '' : 'basic')}>
-                                    <span>åºæ¬ãã¼ã¿</span>
-                                    <span className={`expandable-icon ${openSection === 'basic' ? 'open' : ''}`}>â¼</span>
+                                    <span>基本データ</span>
+                                    <span className={`expandable-icon ${openSection === 'basic' ? 'open' : ''}`}>▼</span>
                                 </div>
                                 {openSection === 'basic' && (
                                     <div className="expandable-content">
                                         <div className="range-info">
                                             <div className="range-box">
-                                                <div className="range-label">æ¯ãå¹</div>
-                                                <div className="range-value">{metrics.betaDelta.toFixed(1)}Â°</div>
+                                                <div className="range-label">振り幅</div>
+                                                <div className="range-value">{metrics.betaDelta.toFixed(1)}°</div>
                                             </div>
                                             <div className="range-box">
-                                                <div className="range-label">ã¹ã ã¼ãºã</div>
+                                                <div className="range-label">スムーズさ</div>
                                                 <div className="range-value">{metrics.smoothness.toFixed(0)}%</div>
                                             </div>
                                         </div>
@@ -1706,18 +1706,18 @@
 
                             <div className="expandable-section">
                                 <div className="expandable-header" onClick={() => setOpenSection(openSection === 'tempo' ? '' : 'tempo')}>
-                                    <span>ãã³ãã»ã¿ã¤ãã³ã°</span>
-                                    <span className={`expandable-icon ${openSection === 'tempo' ? 'open' : ''}`}>â¼</span>
+                                    <span>テンポ・タイミング</span>
+                                    <span className={`expandable-icon ${openSection === 'tempo' ? 'open' : ''}`}>▼</span>
                                 </div>
                                 {openSection === 'tempo' && (
                                     <div className="expandable-content">
                                         <div className="range-info">
                                             <div className="range-box">
-                                                <div className="range-label">ãã³ãæ¯ç</div>
+                                                <div className="range-label">テンポ比率</div>
                                                 <div className="range-value">{metrics.tempo.toFixed(2)}:1</div>
                                             </div>
                                             <div className="range-box">
-                                                <div className="range-label">ãã¦ã³æé</div>
+                                                <div className="range-label">ダウン時間</div>
                                                 <div className="range-value">{metrics.downswingTime.toFixed(0)}ms</div>
                                             </div>
                                         </div>
@@ -1727,18 +1727,18 @@
 
                             <div className="expandable-section">
                                 <div className="expandable-header" onClick={() => setOpenSection(openSection === 'mechanics' ? '' : 'mechanics')}>
-                                    <span>ã¹ã¤ã³ã°è§£æ</span>
-                                    <span className={`expandable-icon ${openSection === 'mechanics' ? 'open' : ''}`}>â¼</span>
+                                    <span>スイング解析</span>
+                                    <span className={`expandable-icon ${openSection === 'mechanics' ? 'open' : ''}`}>▼</span>
                                 </div>
                                 {openSection === 'mechanics' && (
                                     <div className="expandable-content">
                                         <div className="range-info">
                                             <div className="range-box">
-                                                <div className="range-label">ãã§ã¼ã¹è§</div>
-                                                <div className="range-value">{metrics.vfa.toFixed(1)}Â°</div>
+                                                <div className="range-label">フェース角</div>
+                                                <div className="range-value">{metrics.vfa.toFixed(1)}°</div>
                                             </div>
                                             <div className="range-box">
-                                                <div className="range-label">ããã¯ã¹ã¤ã³ã°</div>
+                                                <div className="range-label">バックスイング</div>
                                                 <div className="range-value">{metrics.backswingTime.toFixed(0)}ms</div>
                                             </div>
                                         </div>
@@ -1756,10 +1756,10 @@
                                     stillCountRef.current = 0;
                                     baselineRef.current = null;
                                 }}>
-                                    ããä¸åº¦è¨æ¸¬
+                                    もう一度計測
                                 </button>
                                 <button className="btn btn-secondary btn-lg btn-block" onClick={onBack}>
-                                    ãã¼ã ã«æ»ã
+                                    ホームに戻る
                                 </button>
                             </div>
                         </div>
