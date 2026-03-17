@@ -407,8 +407,8 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 1rem;
-            margin: 1rem 0;
+            gap: 0.75rem;
+            margin: 0.5rem 0;
         }
 
         .phase-steps {
@@ -455,6 +455,128 @@
             color: var(--color-text-secondary);
             text-align: center;
             line-height: 1.4;
+        }
+
+        /* 3D SWING COMPASS */
+        .compass-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0.5rem 0;
+        }
+
+        .compass-container {
+            position: relative;
+            width: 220px;
+            height: 220px;
+            perspective: 600px;
+        }
+
+        .compass-svg {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            z-index: 2;
+        }
+
+        .compass-disc {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            border: 2px solid rgba(45, 59, 45, 0.15);
+            background: radial-gradient(circle at 40% 40%, rgba(200,149,108,0.08), rgba(45,59,45,0.05));
+            transform-style: preserve-3d;
+            transition: transform 0.08s linear;
+            z-index: 1;
+        }
+
+        .compass-disc::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--color-primary);
+            transform: translate(-50%, -50%);
+        }
+
+        .compass-values {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 0.75rem;
+        }
+
+        .compass-axis {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.15rem;
+        }
+
+        .compass-axis-num {
+            font-family: 'Inter', 'Noto Serif JP', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            line-height: 1;
+        }
+
+        .compass-axis-num.gold {
+            color: var(--color-gold);
+        }
+
+        .compass-axis-unit {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: var(--color-text-secondary);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .compass-total {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 0.5rem;
+            padding: 0.5rem 1.5rem;
+            background: linear-gradient(135deg, var(--color-primary) 0%, #3A4D3A 100%);
+            border-radius: 12px;
+            color: white;
+        }
+
+        .compass-total-num {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .compass-total-label {
+            font-size: 0.6rem;
+            font-weight: 600;
+            opacity: 0.8;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .compass-recording .compass-disc {
+            border-color: rgba(200, 149, 108, 0.4);
+            box-shadow: 0 0 20px rgba(200, 149, 108, 0.15);
+        }
+
+        @keyframes compass-pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .compass-recording .compass-total {
+            animation: compass-pulse 1s ease-in-out infinite;
         }
 
         /* CARD TITLE AREA */
@@ -1076,7 +1198,7 @@
             }
         };
 
-        // SENSOR UTILS (v7.4 proven logic)
+        // SENSOR UTILS v11 - 2-axis measurement, improved accuracy
         const _prevAcc = { x: 0, y: 0, z: 0 };
         const calcJerk = (ax, ay, az) => {
             const j = Math.sqrt(
@@ -1086,60 +1208,115 @@
             return j;
         };
 
+        // Normalize angle delta to -180..180
+        const normAngle = (d) => {
+            while (d > 180) d -= 360;
+            while (d < -180) d += 360;
+            return d;
+        };
+
         const SensorUtils = {
-            detectStillness: (history, threshold = 2.5, duration = 800) => {
+            detectStillness: (history, threshold = 2.0, duration = 600) => {
                 const now = Date.now();
-                const recentData = history.filter(d => now - d.time < duration);
-                if (recentData.length < 5) return false;
-                const avgJerk = recentData.reduce((sum, d) => sum + (d.jerk || 0), 0) / recentData.length;
-                const avgRot = recentData.reduce((sum, d) => sum + (d.rotMag || 0), 0) / recentData.length;
-                return avgJerk < threshold && avgRot < 30;
+                const recent = history.filter(d => now - d.time < duration);
+                if (recent.length < 5) return false;
+                const avgJerk = recent.reduce((s, d) => s + (d.jerk || 0), 0) / recent.length;
+                const avgRot = recent.reduce((s, d) => s + (d.rotMag || 0), 0) / recent.length;
+                return avgJerk < threshold && avgRot < 25;
             },
 
-            detectMovement: (history, jerkThreshold = 3, rotThreshold = 50) => {
-                if (history.length === 0) return false;
-                const latest = history[history.length - 1];
-                return (latest.jerk > jerkThreshold) || (latest.rotMag > rotThreshold);
+            // Detect swing start: uses rotationRate magnitude (gyroscope)
+            // More reliable than jerk for detecting actual rotational movement
+            detectSwingStart: (history) => {
+                if (history.length < 3) return false;
+                const last3 = history.slice(-3);
+                // Swing start: rotMag consistently > 40 deg/s for 3 samples
+                // OR single strong rotMag > 80 deg/s
+                const avgRot = last3.reduce((s, d) => s + d.rotMag, 0) / 3;
+                const maxRot = Math.max(...last3.map(d => d.rotMag));
+                return avgRot > 40 || maxRot > 80;
             },
 
-            detectStop: (history, jerkThreshold = 4, rotThreshold = 20, duration = 500) => {
+            detectStop: (history, duration = 400) => {
                 const now = Date.now();
-                const recentData = history.filter(d => now - d.time < duration);
-                if (recentData.length < 3) return false;
-                return recentData.every(d =>
-                    (d.jerk <= jerkThreshold) && (d.rotMag <= rotThreshold)
-                );
+                const recent = history.filter(d => now - d.time < duration);
+                if (recent.length < 3) return false;
+                return recent.every(d => d.rotMag < 15 && d.jerk < 3);
+            },
+
+            // 2-axis angle calculation from baseline
+            calcAngles: (orient, baseline) => {
+                if (!baseline) return { vertical: 0, horizontal: 0, combined: 0 };
+                // Vertical plane: beta measures front-back tilt of the club
+                const dBeta = normAngle(orient.beta - baseline.beta);
+                // Horizontal plane: alpha measures rotation around vertical axis (body rotation)
+                const dAlpha = normAngle(orient.alpha - baseline.alpha);
+                // Combined swing arc = geometric sum of both planes
+                const combined = Math.sqrt(dBeta * dBeta + dAlpha * dAlpha);
+                return {
+                    vertical: dBeta,
+                    horizontal: dAlpha,
+                    combined
+                };
             },
 
             calculateMetrics: (allData, baseline) => {
-                if (!allData || allData.length < 10) return null;
-                const bl = baseline || { beta: allData[0].beta, gamma: allData[0].gamma };
+                if (!allData || allData.length < 8) return null;
+                const bl = baseline || {
+                    beta: allData[0].beta,
+                    gamma: allData[0].gamma,
+                    alpha: allData[0].alpha
+                };
 
-                // Find top of backswing (max beta delta from baseline)
-                let maxDelta = -Infinity, topIdx = 0;
-                for (let i = 5; i < allData.length - 5; i++) {
-                    const delta = Math.abs(allData[i].beta - bl.beta);
-                    if (delta > maxDelta) { maxDelta = delta; topIdx = i; }
+                // For each data point, calc 2-axis angles
+                const angles = allData.map(d => SensorUtils.calcAngles(d, bl));
+
+                // Find top of backswing: max combined angle
+                let maxCombined = 0, topIdx = 0;
+                for (let i = 2; i < allData.length - 2; i++) {
+                    if (angles[i].combined > maxCombined) {
+                        maxCombined = angles[i].combined;
+                        topIdx = i;
+                    }
                 }
 
-                const betaDelta = maxDelta;
+                const verticalMax = Math.abs(angles[topIdx].vertical);
+                const horizontalMax = Math.abs(angles[topIdx].horizontal);
+
+                // Tempo: backswing time / downswing time
                 const backswingTime = allData[topIdx].time - allData[0].time;
                 const downswingTime = allData[allData.length - 1].time - allData[topIdx].time;
-                const tempo = downswingTime > 10 ? backswingTime / downswingTime : 0;
+                const tempo = downswingTime > 20 ? backswingTime / downswingTime : 0;
 
-                const avgJerk = allData.reduce((sum, d) => sum + (d.jerk || 0), 0) / allData.length;
-                const smoothness = Math.max(0, Math.min(100, Math.round(100 - avgJerk * 3)));
+                // Smoothness: based on jerk variance (lower variance = smoother)
+                const jerks = allData.map(d => d.jerk || 0);
+                const avgJerk = jerks.reduce((s, j) => s + j, 0) / jerks.length;
+                const jerkVariance = jerks.reduce((s, j) => s + (j - avgJerk) ** 2, 0) / jerks.length;
+                const smoothness = Math.max(0, Math.min(100,
+                    Math.round(100 - Math.sqrt(jerkVariance) * 2.5)
+                ));
 
-                // VFA at top (relative to baseline)
-                const dGamma = allData[topIdx].gamma - bl.gamma;
-                const dBeta = allData[topIdx].beta - bl.beta;
-                const vfa = dGamma * Math.cos(dBeta * Math.PI / 180) + 0.2 * dBeta;
+                // VFA (Vertical Face Angle) at top of backswing
+                // gamma = side-to-side tilt = face angle relative to swing plane
+                // Corrected for beta tilt: project gamma onto the horizontal plane
+                const dGammaTop = normAngle(allData[topIdx].gamma - bl.gamma);
+                const betaRadTop = angles[topIdx].vertical * Math.PI / 180;
+                // Face angle = gamma component projected onto plane perpendicular to swing direction
+                const vfa = dGammaTop * Math.cos(betaRadTop);
+
+                // Peak rotational velocity (deg/s) - indicator of swing speed
+                const peakRotVel = Math.max(...allData.map(d => d.rotMag));
 
                 return {
-                    betaDelta: Math.round(betaDelta * 10) / 10,
+                    verticalAngle: Math.round(verticalMax * 10) / 10,
+                    horizontalAngle: Math.round(horizontalMax * 10) / 10,
+                    combinedAngle: Math.round(maxCombined * 10) / 10,
+                    // Legacy compatibility
+                    betaDelta: Math.round(maxCombined * 10) / 10,
                     tempo: Math.round(tempo * 10) / 10,
                     smoothness,
                     vfa: Math.round(vfa * 10) / 10,
+                    peakRotVel: Math.round(peakRotVel),
                     backswingTime,
                     downswingTime,
                     topIdx,
@@ -1147,6 +1324,122 @@
                     durationMs: allData[allData.length - 1].time - allData[0].time
                 };
             }
+        };
+
+        // SVG Arc path helper
+        const describeArc = (cx, cy, r, startAngle, endAngle) => {
+            const rad = (a) => (a - 90) * Math.PI / 180;
+            const start = { x: cx + r * Math.cos(rad(endAngle)), y: cy + r * Math.sin(rad(endAngle)) };
+            const end = { x: cx + r * Math.cos(rad(startAngle)), y: cy + r * Math.sin(rad(startAngle)) };
+            const diff = Math.abs(endAngle - startAngle);
+            const largeArc = diff > 180 ? 1 : 0;
+            return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
+        };
+
+        // 3D SWING COMPASS COMPONENT
+        const SwingCompass = ({ beta, gamma, alpha, baseline, state }) => {
+            const angles = SensorUtils.calcAngles(
+                { beta: beta || 0, gamma: gamma || 0, alpha: alpha || 0 },
+                baseline
+            );
+            const v = angles.vertical;
+            const h = angles.horizontal;
+            const c = angles.combined;
+
+            // Clamp arcs to reasonable range for SVG drawing
+            const vArc = Math.min(Math.max(Math.abs(v), 0), 170);
+            const hArc = Math.min(Math.max(Math.abs(h), 0), 170);
+
+            // 3D disc tilt CSS
+            const discStyle = {
+                transform: `rotateX(${Math.max(-45, Math.min(45, -v * 0.3))}deg) rotateY(${Math.max(-45, Math.min(45, h * 0.3))}deg)`
+            };
+
+            const isRecording = state === 'recording';
+
+            return React.createElement('div', {
+                className: `compass-wrapper ${isRecording ? 'compass-recording' : ''}`
+            },
+                React.createElement('div', { className: 'compass-container' },
+                    // 3D tilting disc
+                    React.createElement('div', { className: 'compass-disc', style: discStyle }),
+                    // SVG overlay
+                    React.createElement('svg', {
+                        className: 'compass-svg',
+                        viewBox: '0 0 220 220'
+                    },
+                        // Outer reference ring
+                        React.createElement('circle', {
+                            cx: 110, cy: 110, r: 95,
+                            fill: 'none', stroke: '#2D3B2D', strokeWidth: 1.5, opacity: 0.15
+                        }),
+                        // Tick marks every 30 degrees
+                        ...[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((a, i) => {
+                            const r1 = 90, r2 = 96;
+                            const rad = (a - 90) * Math.PI / 180;
+                            return React.createElement('line', {
+                                key: `tick-${i}`,
+                                x1: 110 + r1 * Math.cos(rad), y1: 110 + r1 * Math.sin(rad),
+                                x2: 110 + r2 * Math.cos(rad), y2: 110 + r2 * Math.sin(rad),
+                                stroke: '#2D3B2D', strokeWidth: a % 90 === 0 ? 2 : 1,
+                                opacity: a % 90 === 0 ? 0.4 : 0.2
+                            });
+                        }),
+                        // Vertical arc (gold) - from top, clockwise = positive beta
+                        vArc > 1 ? React.createElement('path', {
+                            d: describeArc(110, 110, 75, 0, v > 0 ? vArc : -vArc),
+                            fill: 'none', stroke: '#C8956C', strokeWidth: 5,
+                            strokeLinecap: 'round', opacity: 0.9
+                        }) : null,
+                        // Horizontal arc (deep green) - from right, counter-clockwise = positive alpha
+                        hArc > 1 ? React.createElement('path', {
+                            d: describeArc(110, 110, 60, 90, 90 + (h > 0 ? hArc : -hArc)),
+                            fill: 'none', stroke: '#2D3B2D', strokeWidth: 5,
+                            strokeLinecap: 'round', opacity: 0.9
+                        }) : null,
+                        // Direction needle
+                        React.createElement('line', {
+                            x1: 110, y1: 110,
+                            x2: 110 + 50 * Math.sin((h) * Math.PI / 180),
+                            y2: 110 - 50 * Math.cos((v) * Math.PI / 180),
+                            stroke: isRecording ? '#C8956C' : '#2D3B2D',
+                            strokeWidth: 2.5, strokeLinecap: 'round', opacity: 0.7
+                        }),
+                        // Center dot
+                        React.createElement('circle', {
+                            cx: 110, cy: 110, r: 4, fill: '#2D3B2D'
+                        }),
+                        // Labels
+                        React.createElement('text', {
+                            x: 110, y: 22, textAnchor: 'middle',
+                            fill: '#C8956C', fontSize: '9', fontWeight: 600, opacity: 0.7
+                        }, '\u5782\u76F4'),
+                        React.createElement('text', {
+                            x: 205, y: 114, textAnchor: 'middle',
+                            fill: '#2D3B2D', fontSize: '9', fontWeight: 600, opacity: 0.7
+                        }, '\u6C34\u5E73')
+                    )
+                ),
+                // Numeric values
+                React.createElement('div', { className: 'compass-values' },
+                    React.createElement('div', { className: 'compass-axis' },
+                        React.createElement('span', { className: 'compass-axis-num gold' },
+                            `${Math.abs(Math.round(v))}\u00B0`),
+                        React.createElement('span', { className: 'compass-axis-unit' }, '\u5782\u76F4\u9762\u89D2\u5EA6')
+                    ),
+                    React.createElement('div', { className: 'compass-axis' },
+                        React.createElement('span', { className: 'compass-axis-num' },
+                            `${Math.abs(Math.round(h))}\u00B0`),
+                        React.createElement('span', { className: 'compass-axis-unit' }, '\u6C34\u5E73\u9762\u89D2\u5EA6')
+                    )
+                ),
+                // Combined total (only during recording or when there's movement)
+                c > 2 ? React.createElement('div', { className: 'compass-total' },
+                    React.createElement('span', { className: 'compass-total-num' },
+                        `${Math.round(c)}\u00B0`),
+                    React.createElement('span', { className: 'compass-total-label' }, '\u5408\u6210\u632F\u308A\u5E45')
+                ) : null
+            );
         };
 
         // CONFETTI EFFECT
@@ -1465,7 +1758,7 @@
         const DrillExecutionScreen = ({ zone, drillId, difficulty, onComplete, onBack }) => {
             const [state, setState] = useState('grip');
             const [metrics, setMetrics] = useState(null);
-            const [displayAngle, setDisplayAngle] = useState(0);
+            const [orient, setOrient] = useState({ beta: 0, gamma: 0, alpha: 0 });
             const sensorHistoryRef = useRef([]);
             const orientRef = useRef({ beta: 0, gamma: 0, alpha: 0 });
             const baselineRef = useRef(null);
@@ -1500,12 +1793,17 @@
                 if (stateRef.current === 'grip' || stateRef.current === 'stopped') return;
 
                 const handleDeviceOrientation = (event) => {
-                    orientRef.current = {
+                    const o = {
                         beta: event.beta || 0,
                         gamma: event.gamma || 0,
                         alpha: event.alpha || 0,
                     };
-                    setDisplayAngle(Math.round(event.beta || 0));
+                    orientRef.current = o;
+                    // Throttle React state updates to ~15fps for compass animation
+                    if (!handleDeviceOrientation._last || Date.now() - handleDeviceOrientation._last > 66) {
+                        handleDeviceOrientation._last = Date.now();
+                        setOrient({ ...o });
+                    }
                 };
 
                 const handleDeviceMotion = (event) => {
@@ -1537,17 +1835,15 @@
                             AudioUtils.ready();
                         }
                     } else if (stateRef.current === 'ready') {
-                        // Count stable samples in ready state
-                        if (jerk < 2.5 && rotMag < 30) {
+                        if (jerk < 2.0 && rotMag < 25) {
                             readyStableCountRef.current++;
                         } else {
                             readyStableCountRef.current = 0;
                         }
-                        // Only start recording after 0.8s of stability in ready state
-                        // This prevents triggering from arm-lowering motion
                         const readyElapsed = now - readyTimeRef.current;
-                        if (readyElapsed > 800 && readyStableCountRef.current > 10 &&
-                            SensorUtils.detectMovement(sensorHistoryRef.current)) {
+                        // Use gyroscope-based swing detection (more reliable)
+                        if (readyElapsed > 600 && readyStableCountRef.current > 8 &&
+                            SensorUtils.detectSwingStart(sensorHistoryRef.current)) {
                             stateRef.current = 'recording';
                             setState('recording');
                             recordingDataRef.current = [];
@@ -1559,12 +1855,6 @@
                             beta: o.beta, gamma: o.gamma, alpha: o.alpha,
                             rotX, rotY, rotZ, rotMag, jerk
                         });
-
-                        // Update display angle
-                        if (baselineRef.current) {
-                            const dBeta = Math.abs(o.beta - baselineRef.current.beta);
-                            setDisplayAngle(Math.round(dBeta));
-                        }
 
                         if (SensorUtils.detectStop(sensorHistoryRef.current)) {
                             stateRef.current = 'stopped';
@@ -1661,10 +1951,13 @@
                                     {state === 'recording' && 'スイングを記録しています。フィニッシュで止まってください'}
                                 </div>
                             </div>
-                            <div className={`metric-circle ${state === 'recording' ? 'waiting' : ''}`}>
-                                <div className="metric-value">{displayAngle}°</div>
-                                <div className="metric-label">腕の角度</div>
-                            </div>
+                            <SwingCompass
+                                beta={orient.beta}
+                                gamma={orient.gamma}
+                                alpha={orient.alpha}
+                                baseline={baselineRef.current}
+                                state={state}
+                            />
                         </div>
                     </div>
                 );
@@ -1677,7 +1970,7 @@
                 let displayValue = 0;
 
                 if (drillId === 'width') {
-                    value = metrics.betaDelta;
+                    value = metrics.combinedAngle;
                     displayValue = Math.round(value);
                     if (Array.isArray(config)) {
                         success = value >= config[0] && value <= config[1];
@@ -1857,11 +2150,11 @@
         // FREE MODE - EXECUTION
         const FreeExecutionScreen = ({ onComplete, onBack }) => {
             const [state, setState] = useState('waiting');
-            const [displayAngle, setDisplayAngle] = useState(0);
+            const [orient, setOrient] = useState({ beta: 0, gamma: 0, alpha: 0 });
             const [metrics, setMetrics] = useState(null);
             const [openSection, setOpenSection] = useState('basic');
             const sensorHistoryRef = useRef([]);
-            const orientRef = useRef({ beta: 0, gamma: 0 });
+            const orientRef = useRef({ beta: 0, gamma: 0, alpha: 0 });
             const baselineRef = useRef(null);
             const stateRef = useRef('waiting');
             const stillCountRef = useRef(0);
@@ -1875,9 +2168,16 @@
 
             useEffect(() => {
                 const handleDeviceOrientation = (event) => {
-                    orientRef.current.beta = event.beta || 0;
-                    orientRef.current.gamma = event.gamma || 0;
-                    setDisplayAngle(Math.round(event.beta || 0));
+                    const o = {
+                        beta: event.beta || 0,
+                        gamma: event.gamma || 0,
+                        alpha: event.alpha || 0,
+                    };
+                    orientRef.current = o;
+                    if (!handleDeviceOrientation._last || Date.now() - handleDeviceOrientation._last > 66) {
+                        handleDeviceOrientation._last = Date.now();
+                        setOrient({ ...o });
+                    }
                 };
 
                 const handleDeviceMotion = (event) => {
@@ -1891,11 +2191,11 @@
 
                     const now = Date.now();
                     const curState = stateRef.current;
+                    const o = orientRef.current;
 
                     sensorHistoryRef.current.push({
                         time: now,
-                        beta: orientRef.current.beta,
-                        gamma: orientRef.current.gamma,
+                        beta: o.beta, gamma: o.gamma, alpha: o.alpha,
                         rotX, rotY, rotZ, rotMag, jerk
                     });
                     if (sensorHistoryRef.current.length > 500) {
@@ -1903,39 +2203,28 @@
                     }
 
                     if (curState === 'waiting') {
-                        if (jerk < 2.5 && rotMag < 30) {
-                            stillCountRef.current++;
-                            if (stillCountRef.current > 50) {
-                                baselineRef.current = {
-                                    beta: orientRef.current.beta,
-                                    gamma: orientRef.current.gamma
-                                };
-                                setState('ready');
-                                readyTimeRef.current = now;
-                                readyStableCountRef.current = 0;
-                                AudioUtils.beep(800, 150);
-                            }
-                        } else {
-                            stillCountRef.current = 0;
+                        if (SensorUtils.detectStillness(sensorHistoryRef.current)) {
+                            baselineRef.current = { beta: o.beta, gamma: o.gamma, alpha: o.alpha };
+                            setState('ready');
+                            readyTimeRef.current = now;
+                            readyStableCountRef.current = 0;
+                            AudioUtils.beep(800, 150);
                         }
                     }
 
                     if (curState === 'ready') {
-                        // Count stable samples after entering ready state
-                        if (jerk < 2.5 && rotMag < 30) {
+                        if (jerk < 2.0 && rotMag < 25) {
                             readyStableCountRef.current++;
                         } else {
                             readyStableCountRef.current = 0;
                         }
-                        // Only start recording after 0.8s stability in ready state
                         const readyElapsed = now - readyTimeRef.current;
-                        if (readyElapsed > 800 && readyStableCountRef.current > 10 &&
-                            (jerk > 3 || rotMag > 50)) {
+                        if (readyElapsed > 600 && readyStableCountRef.current > 8 &&
+                            SensorUtils.detectSwingStart(sensorHistoryRef.current)) {
                             sensorHistoryRef.current = [];
                             sensorHistoryRef.current.push({
                                 time: now,
-                                beta: orientRef.current.beta,
-                                gamma: orientRef.current.gamma,
+                                beta: o.beta, gamma: o.gamma, alpha: o.alpha,
                                 rotX, rotY, rotZ, rotMag, jerk
                             });
                             recordStartRef.current = now;
@@ -1945,17 +2234,13 @@
                     }
 
                     if (curState === 'recording') {
-                        if (jerk < 4 && rotMag < 20 && (now - recordStartRef.current) > 300) {
-                            stillCountRef.current++;
-                            if (stillCountRef.current > 30) {
-                                const allData = sensorHistoryRef.current;
-                                const calcMetrics = SensorUtils.calculateMetrics(allData, baselineRef.current);
-                                setState('stopped');
-                                AudioUtils.success();
-                                if (calcMetrics) setMetrics(calcMetrics);
-                            }
-                        } else {
-                            stillCountRef.current = 0;
+                        if (SensorUtils.detectStop(sensorHistoryRef.current) &&
+                            (now - recordStartRef.current) > 300) {
+                            const allData = sensorHistoryRef.current;
+                            const calcMetrics = SensorUtils.calculateMetrics(allData, baselineRef.current);
+                            setState('stopped');
+                            AudioUtils.success();
+                            if (calcMetrics) setMetrics(calcMetrics);
                         }
                         if ((now - recordStartRef.current) > 5000) {
                             const allData = sensorHistoryRef.current;
@@ -2004,10 +2289,13 @@
                                     {state === 'recording' && 'スイングを記録しています。フィニッシュで止まってください'}
                                 </div>
                             </div>
-                            <div className={`metric-circle ${state === 'recording' ? 'waiting' : ''}`}>
-                                <div className="metric-value">{displayAngle}°</div>
-                                <div className="metric-label">腕の角度</div>
-                            </div>
+                            <SwingCompass
+                                beta={orient.beta}
+                                gamma={orient.gamma}
+                                alpha={orient.alpha}
+                                baseline={baselineRef.current}
+                                state={state}
+                            />
                         </div>
                     </div>
                 );
@@ -2025,15 +2313,25 @@
                         <div className="content">
                             <div className="expandable-section">
                                 <div className="expandable-header" onClick={() => setOpenSection(openSection === 'basic' ? '' : 'basic')}>
-                                    <span>基本データ</span>
+                                    <span>振り幅（2軸）</span>
                                     <span className={`expandable-icon ${openSection === 'basic' ? 'open' : ''}`}>▼</span>
                                 </div>
                                 {openSection === 'basic' && (
                                     <div className="expandable-content">
                                         <div className="range-info">
                                             <div className="range-box">
-                                                <div className="range-label">振り幅</div>
-                                                <div className="range-value">{metrics.betaDelta.toFixed(1)}°</div>
+                                                <div className="range-label">垂直面角度</div>
+                                                <div className="range-value" style={{color: '#C8956C'}}>{metrics.verticalAngle.toFixed(1)}°</div>
+                                            </div>
+                                            <div className="range-box">
+                                                <div className="range-label">水平面角度</div>
+                                                <div className="range-value">{metrics.horizontalAngle.toFixed(1)}°</div>
+                                            </div>
+                                        </div>
+                                        <div className="range-info" style={{marginTop: '0.5rem'}}>
+                                            <div className="range-box">
+                                                <div className="range-label">合成振り幅</div>
+                                                <div className="range-value success">{metrics.combinedAngle.toFixed(1)}°</div>
                                             </div>
                                             <div className="range-box">
                                                 <div className="range-label">スムーズさ</div>
@@ -2078,8 +2376,18 @@
                                                 <div className="range-value">{metrics.vfa.toFixed(1)}°</div>
                                             </div>
                                             <div className="range-box">
+                                                <div className="range-label">ピーク回転速度</div>
+                                                <div className="range-value">{metrics.peakRotVel}°/s</div>
+                                            </div>
+                                        </div>
+                                        <div className="range-info" style={{marginTop: '0.5rem'}}>
+                                            <div className="range-box">
                                                 <div className="range-label">バックスイング</div>
                                                 <div className="range-value">{metrics.backswingTime.toFixed(0)}ms</div>
+                                            </div>
+                                            <div className="range-box">
+                                                <div className="range-label">データ数</div>
+                                                <div className="range-value">{metrics.dataPoints}点</div>
                                             </div>
                                         </div>
                                     </div>
