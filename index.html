@@ -9,8 +9,12 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
         * {
-            margin: 0;         margpadding: 0;         margbox-sizing: border-box;         }
-         :root {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
             --color-bg-main: #0A0A0A;
             --color-bg-card: #1A1A1A;
             --color-bg-secondary: #242424;
@@ -22,60 +26,84 @@
             --color-accent-text: #00E676;
             --color-success: #00E676;
             --color-warning: #FFD600;
-            --color-error: #FF5252;         }
-         html, body {
+            --color-error: #FF5252;
+        }
+
+        html, body {
             width: 100%;
             height: 100%;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;         margbackground-color: var(--color-bg-main);         margcolor: var(--color-text);         margoverflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background-color: var(--color-bg-main);
+            color: var(--color-text);
+            overflow: hidden;
             -webkit-user-select: none;
             user-select: none;
         }
-         #root {
+
+        #root {
             width: 100%;
             height: 100%;
             display: flex;
-            flex-direction:gcolumn;
+            flex-direction: column;
         }
-         .container {
+
+        .container {
             width: 100%;
             height: 100%;
             display: flex;
-            flex-direction:gcolumn;
+            flex-direction: column;
             overflow-y: auto;
-            -webkit-overflow-scrolling: touch;         margpadding-bottom: env(safe-area-inset-bottom, 0);         margpadding-top: env(safe-area-inset-top, 0);         }
-         .container::-webkit-scrollbar {
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: env(safe-area-inset-bottom, 0);
+            padding-top: env(safe-area-inset-top, 0);
+        }
+
+        .container::-webkit-scrollbar {
             display: none;
         }
-         /* TYPOGRAPHY */         h1 {
+
+        /* TYPOGRAPHY */
+        h1 {
             font-size: 3.5rem;
             font-weight: 800;
             letter-spacing: 0.05em;
-            color: var(--color-text);         }
-         h2 {
+            color: var(--color-text);
+        }
+
+        h2 {
             font-size: 1.75rem;
             font-weight: 700;
             letter-spacing: 0.02em;
-            color: var(--color-text);             margin: 1rem 0;         }
-         h3 {
+            color: var(--color-text);
+            margin: 1rem 0;
+        }
+
+        h3 {
             font-size: 1.25rem;
             font-weight: 600;
             letter-spacing: 0.01em;
-            color: var(--color-text);         }
-         .subtitle {
+            color: var(--color-text);
+        }
+
+        .subtitle {
             font-size: 0.95rem;
             color: var(--color-text-secondary);
             font-weight: 400;
             letter-spacing: 0.05em;
         }
-         .text-sm {
+
+        .text-sm {
             font-size: 0.875rem;
             color: var(--color-text-secondary);
         }
-         .text-tiny {
+
+        .text-tiny {
             font-size: 0.75rem;
             color: var(--color-text-secondary);
         }
-         /* BUTTONS */         .btn {
+
+        /* BUTTONS */
+        .btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -86,240 +114,379 @@
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            transition:gall 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
             letter-spacing: 0.02em;
-            text-decoration:gnone;
+            text-decoration: none;
             -webkit-tap-highlight-color: transparent;
         }
-         .btn:active {
+
+        .btn:active {
             transform: scale(0.97);
         }
-         .btn-primary {
-            background: var(--color-accent);         margcolor: var(--color-bg-main);         margbox-shadow: 0 0 20px rgba(0, 230, 118, 0.3);
+
+        .btn-primary {
+            background: var(--color-accent);
+            color: var(--color-bg-main);
+            box-shadow: 0 0 20px rgba(0, 230, 118, 0.3);
         }
-         .btn-primary:active {
+
+        .btn-primary:active {
             box-shadow: 0 0 24px rgba(0, 230, 118, 0.5);
         }
-         .btn-secondary {
+
+        .btn-secondary {
             background: transparent;
-        margcolor: var(--color-accent);         margborder: 1px solid var(--color-accent);         }
-         .btn-secondary:active {
-            background: rgba(0, 230, 118, 0.1);         }
-         .btn-success {
-            background: var(--color-success);         margcolor: var(--color-bg-main);         }
-         .btn-danger {
-            background: var(--color-error);         margcolor: white;         }
-         .btn-ghost {
+            color: var(--color-accent);
+            border: 1px solid var(--color-accent);
+        }
+
+        .btn-secondary:active {
+            background: rgba(0, 230, 118, 0.1);
+        }
+
+        .btn-success {
+            background: var(--color-success);
+            color: var(--color-bg-main);
+        }
+
+        .btn-danger {
+            background: var(--color-error);
+            color: white;
+        }
+
+        .btn-ghost {
             background: transparent;
-        margcolor: var(--color-text-secondary);
+            color: var(--color-text-secondary);
             border: none;
         }
-         .btn-sm {
+
+        .btn-sm {
             padding: 0.625rem 1rem;
             font-size: 0.875rem;
         }
-         .btn-lg {
+
+        .btn-lg {
             padding: 1.25rem 2rem;
             font-size: 1.125rem;
             height: 56px;
         }
-         .btn-block {
+
+        .btn-block {
             display: flex;
             width: 100%;
         }
-         /* CARDS */         .card {
+
+        /* CARDS */
+        .card {
             background: var(--color-bg-card);
             border-radius: 20px;
             padding: 1.5rem;
-            transition:gall 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 1px solid var(--color-bg-secondary);         }
-         .card:hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid var(--color-bg-secondary);
+        }
+
+        .card:hover {
             transform: translateY(-2px);
-            border-color: var(--color-accent);         }
-         .card-clickable {
+            border-color: var(--color-accent);
+        }
+
+        .card-clickable {
             cursor: pointer;
             user-select: none;
         }
-         /* LAYOUT */         .header {
+
+        /* LAYOUT */
+        .header {
             padding: 2rem 1.5rem 1.5rem;
             text-align: center;
-            background: var(--color-bg-main);         }
-         .content {
+            background: var(--color-bg-main);
+        }
+
+        .content {
             flex: 1;
             padding: 0 1.5rem 1.5rem;
             overflow-y: auto;
-            -webkit-overflow-scrolling: touch;         }
-         .footer {
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .footer {
             padding: 1rem 1.5rem;
             display: flex;
             gap: 1rem;
-            background: var(--color-bg-main);             border-top: 1px solid var(--color-bg-secondary);         }
-         .grid-2 {
+            background: var(--color-bg-main);
+            border-top: 1px solid var(--color-bg-secondary);
+        }
+
+        .grid-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1rem;
         }
-         .grid-2-tall {
+
+        .grid-2-tall {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1rem;
         }
-         .grid-2-tall .card {
+
+        .grid-2-tall .card {
             min-height: 200px;
         }
-         .stack-v {
+
+        .stack-v {
             display: flex;
-            flex-direction:gcolumn;
+            flex-direction: column;
             gap: 1rem;
         }
-         .stack-h {
+
+        .stack-h {
             display: flex;
-            flex-direction:grow;
+            flex-direction: row;
             gap: 1rem;
             align-items: center;
         }
-         /* LOGO */         .logo {
+
+        /* LOGO */
+        .logo {
             font-size: 3.5rem;
             font-weight: 800;
             letter-spacing: 0.05em;
-            color: var(--color-accent);         margmargin-bottom: 0.5rem;
+            color: var(--color-accent);
+            margin-bottom: 0.5rem;
         }
-         /* BADGE */         .badge {
+
+        /* BADGE */
+        .badge {
             display: inline-block;
             padding: 0.25rem 0.75rem;
-            background: rgba(0, 230, 118, 0.15);         margcolor: var(--color-accent);         margborder-radius: 20px;
+            background: rgba(0, 230, 118, 0.15);
+            color: var(--color-accent);
+            border-radius: 20px;
             font-size: 0.75rem;
             font-weight: 600;
             letter-spacing: 0.05em;
             margin-top: 0.5rem;
         }
-         /* CARD TITLE AREA */         .card-title-area {
+
+        /* CARD TITLE AREA */
+        .card-title-area {
             display: flex;
             align-items: flex-start;
-        margjustify-content: space-between;
+            justify-content: space-between;
             margin-bottom: 1rem;
         }
-         .card-icon {
+
+        .card-icon {
             font-size: 2.5rem;
         }
-         .card-progress {
+
+        .card-progress {
             display: flex;
             align-items: center;
             gap: 0.5rem;
             padding: 0.5rem 0.75rem;
-            background: rgba(0, 230, 118, 0.15);         margborder-radius: 8px;
+            background: rgba(0, 230, 118, 0.15);
+            border-radius: 8px;
             font-size: 0.875rem;
             font-weight: 600;
-            color: var(--color-accent);         }
-         /* ANIMATIONS */         @keyframes fadeIn {
-            from {
-                opacity: 0;         margggggtransform: translateY(20px);         marg}
-            to {
-                opacity: 1;         margggggtransform: translateY(0);         marg}         }
-         @keyframes slideInLeft {
-            from {
-                opacity: 0;         margggggtransform: translateX(-30px);         marg}
-            to {
-                opacity: 1;         margggggtransform: translateX(0);         marg}         }
-         @keyframes slideInRight {
-            from {
-                opacity: 0;         margggggtransform: translateX(30px);         marg}
-            to {
-                opacity: 1;         margggggtransform: translateX(0);         marg}         }
-         @keyframes pulse {
-            0%, 100% {
-                opacity: 0.4;         marg}
-            50% {
-                opacity: 1;         marg}         }
-         @keyframes pulseGlow {
-            0%, 100% {
-                opacity: 0.5;         margggggbox-shadow: 0 0 20px rgba(0, 230, 118, 0.3);
-        marg}
-            50% {
-                opacity: 1;         margggggbox-shadow: 0 0 40px rgba(0, 230, 118, 0.6);         marg}         }
-         @keyframes confetti {
-            0% {
-                transform: translate(var(--tx), var(--ty))grotate(0deg);         margggggopacity: 1;         marg}             100% {
-                transform: translate(calc(var(--tx) + 100px), calc(var(--ty) + 100px))grotate(360deg);         margggggopacity: 0;         marg}         }
-         @keyframes bounce {
-            0%, 100% {
-                transform: translateY(0);         marg}             50% {
-                transform: translateY(-20px);         marg}
+            color: var(--color-accent);
         }
-         @keyframes successPulse {
+
+        /* ANIMATIONS */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 0.4;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% {
+                opacity: 0.5;
+                box-shadow: 0 0 20px rgba(0, 230, 118, 0.3);
+            }
+            50% {
+                opacity: 1;
+                box-shadow: 0 0 40px rgba(0, 230, 118, 0.6);
+            }
+        }
+
+        @keyframes confetti {
             0% {
-                transform: scale(0.8);         margggggopacity: 0;         marg}             50% {
+                transform: translate(var(--tx), var(--ty)) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(calc(var(--tx) + 100px), calc(var(--ty) + 100px)) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        @keyframes successPulse {
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            50% {
                 transform: scale(1.1);
-            }             100% {
-                transform: scale(1);         margggggopacity: 1;         marg}         }
-         @keyframes countUp {
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes countUp {
             from {
-                opacity: 0;         margggggtransform: scale(0.5);         marg}
+                opacity: 0;
+                transform: scale(0.5);
+            }
             to {
-                opacity: 1;         margggggtransform: scale(1);         marg}         }
-         .screen {
-            animation:gfadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+                opacity: 1;
+                transform: scale(1);
+            }
         }
-         .drill-card {
-            animation:gslideInLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+        .screen {
+            animation: fadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
-         /* GAUGE/CIRCLE */         .metric-circle {
+
+        .drill-card {
+            animation: slideInLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* GAUGE/CIRCLE */
+        .metric-circle {
             width: 240px;
             height: 240px;
             border-radius: 50%;
-            background: radial-gradient(circle, var(--color-bg-secondary), var(--color-bg-card));         margdisplay: flex;
-            flex-direction:gcolumn;
+            background: radial-gradient(circle, var(--color-bg-secondary), var(--color-bg-card));
+            display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             margin: 2rem auto;
-            border: 2px solid var(--color-accent);             position:grelative;
+            border: 2px solid var(--color-accent);
+            position: relative;
             font-weight: 700;
         }
-         .metric-circle.success {
-            border-color: var(--color-success);         marganimation:gsuccessPulse 0.6s cubic-bezier(0.4, 0, 0.2, 1), pulseGlow 2s infinite;
+
+        .metric-circle.success {
+            border-color: var(--color-success);
+            animation: successPulse 0.6s cubic-bezier(0.4, 0, 0.2, 1), pulseGlow 2s infinite;
         }
-         .metric-circle.fail {
-            border-color: var(--color-error);         }
-         .metric-circle.waiting {
-            animation:gpulseGlow 1.5s infinite;
+
+        .metric-circle.fail {
+            border-color: var(--color-error);
         }
-         .metric-value {
+
+        .metric-circle.waiting {
+            animation: pulseGlow 1.5s infinite;
+        }
+
+        .metric-value {
             font-size: 4rem;
-            color: var(--color-accent);             font-weight: 800;
+            color: var(--color-accent);
+            font-weight: 800;
             letter-spacing: 0.02em;
         }
-         .metric-circle.success .metric-value {
-            color: var(--color-success);         }
-         .metric-circle.fail .metric-value {
-            color: var(--color-error);         }
-         .metric-label {
+
+        .metric-circle.success .metric-value {
+            color: var(--color-success);
+        }
+
+        .metric-circle.fail .metric-value {
+            color: var(--color-error);
+        }
+
+        .metric-label {
             font-size: 0.875rem;
             color: var(--color-text-secondary);
             margin-top: 0.5rem;
             letter-spacing: 0.02em;
         }
-         .metric-unit {
+
+        .metric-unit {
             font-size: 1rem;
             color: var(--color-text-secondary);
         }
-         /* STATE INDICATORS */         .state-badge {
+
+        /* STATE INDICATORS */
+        .state-badge {
             padding: 0.75rem 1.25rem;
             border-radius: 20px;
             font-weight: 600;
             text-align: center;
-            margin: 1rem 0;             letter-spacing: 0.02em;
-            background: rgba(0, 230, 118, 0.15);         margcolor: var(--color-accent);         }
-         .state-ready {
-            background: rgba(0, 230, 118, 0.15);         margcolor: var(--color-success);         }
-         .state-recording {
-            background: rgba(0, 230, 118, 0.15);         margcolor: var(--color-accent);         marganimation:gpulse 1s infinite;
+            margin: 1rem 0;
+            letter-spacing: 0.02em;
+            background: rgba(0, 230, 118, 0.15);
+            color: var(--color-accent);
         }
-         .state-waiting {
+
+        .state-ready {
+            background: rgba(0, 230, 118, 0.15);
+            color: var(--color-success);
+        }
+
+        .state-recording {
+            background: rgba(0, 230, 118, 0.15);
+            color: var(--color-accent);
+            animation: pulse 1s infinite;
+        }
+
+        .state-waiting {
             background: rgba(158, 158, 158, 0.1);
             color: var(--color-text-secondary);
         }
-         /* BACK BUTTON */         .back-btn {
-            padding: 0;         margwidth: 44px;
+
+        /* BACK BUTTON */
+        .back-btn {
+            padding: 0;
+            width: 44px;
             height: 44px;
             border-radius: 12px;
             display: flex;
@@ -327,254 +494,395 @@
             justify-content: center;
             font-size: 1.25rem;
             background: var(--color-bg-secondary);
-            color: var(--color-accent);         margmargin-bottom: 1rem;
+            color: var(--color-accent);
+            margin-bottom: 1rem;
         }
-         /* DIFFICULTY CARD */         .difficulty-card {
+
+        /* DIFFICULTY CARD */
+        .difficulty-card {
             padding: 1.25rem;
-            border: 1px solid var(--color-bg-secondary);             border-radius: 16px;
+            border: 1px solid var(--color-bg-secondary);
+            border-radius: 16px;
             text-align: center;
             cursor: pointer;
-            transition:gall 0.2s;
+            transition: all 0.2s;
             background: var(--color-bg-card);
         }
-         .difficulty-card:active {
-            border-color: var(--color-accent);             background: rgba(0, 230, 118, 0.1);         }
-         .difficulty-card.selected {
-            border-color: var(--color-accent);             background: rgba(0, 230, 118, 0.1);             box-shadow: 0 0 20px rgba(0, 230, 118, 0.2);         }
-         .difficulty-name {
+
+        .difficulty-card:active {
+            border-color: var(--color-accent);
+            background: rgba(0, 230, 118, 0.1);
+        }
+
+        .difficulty-card.selected {
+            border-color: var(--color-accent);
+            background: rgba(0, 230, 118, 0.1);
+            box-shadow: 0 0 20px rgba(0, 230, 118, 0.2);
+        }
+
+        .difficulty-name {
             font-size: 1.25rem;
             font-weight: 700;
             margin-bottom: 0.5rem;
-            color: var(--color-text);         }
-         .difficulty-spec {
+            color: var(--color-text);
+        }
+
+        .difficulty-spec {
             font-size: 0.875rem;
             color: var(--color-text-secondary);
         }
-         /* SUCCESS/FAIL MESSAGE */         .result-message {
+
+        /* SUCCESS/FAIL MESSAGE */
+        .result-message {
             font-size: 1.75rem;
             font-weight: 700;
             text-align: center;
-            margin: 1.5rem 0;             letter-spacing: 0.02em;
-            animation:gcountUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            margin: 1.5rem 0;
+            letter-spacing: 0.02em;
+            animation: countUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
-         .result-success {
-            color: var(--color-success);         }
-         .result-fail {
-            color: var(--color-error);         }
-         .result-tip {
-            padding: 1rem;             background: rgba(0, 230, 118, 0.1);             border-radius: 12px;
-            color: var(--color-text);             font-size: 0.95rem;
+
+        .result-success {
+            color: var(--color-success);
+        }
+
+        .result-fail {
+            color: var(--color-error);
+        }
+
+        .result-tip {
+            padding: 1rem;
+            background: rgba(0, 230, 118, 0.1);
+            border-radius: 12px;
+            color: var(--color-text);
+            font-size: 0.95rem;
             line-height: 1.6;
-            margin: 1rem 0;             border-left: 3px solid var(--color-accent);         }
-         /* METRIC EXPLANATION */         .metric-explanation {
-            padding: 1rem;             background: var(--color-bg-secondary);             border-radius: 12px;
+            margin: 1rem 0;
+            border-left: 3px solid var(--color-accent);
+        }
+
+        /* METRIC EXPLANATION */
+        .metric-explanation {
+            padding: 1rem;
+            background: var(--color-bg-secondary);
+            border-radius: 12px;
             font-size: 0.95rem;
             line-height: 1.6;
             color: var(--color-text-secondary);
-            margin: 1rem 0;         }
-         /* COUNTER */         .success-counter {
+            margin: 1rem 0;
+        }
+
+        /* COUNTER */
+        .success-counter {
             display: inline-block;
             padding: 0.5rem 1rem;
-            background: rgba(0, 230, 118, 0.15);         margcolor: var(--color-success);             border-radius: 8px;
+            background: rgba(0, 230, 118, 0.15);
+            color: var(--color-success);
+            border-radius: 8px;
             font-weight: 700;
             font-size: 0.95rem;
             margin-top: 1rem;
         }
-         /* RANGE INFO */         .range-info {
+
+        /* RANGE INFO */
+        .range-info {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1rem;
-            margin: 1.5rem 0;         }
-         .range-box {
-            padding: 1rem;             background: var(--color-bg-secondary);             border-radius: 12px;
+            margin: 1.5rem 0;
+        }
+
+        .range-box {
+            padding: 1rem;
+            background: var(--color-bg-secondary);
+            border-radius: 12px;
             text-align: center;
-            border: 1px solid var(--color-bg-secondary);         }
-         .range-label {
+            border: 1px solid var(--color-bg-secondary);
+        }
+
+        .range-label {
             font-size: 0.75rem;
             color: var(--color-text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 0.5rem;
         }
-         .range-value {
+
+        .range-value {
             font-size: 1.5rem;
             font-weight: 700;
-            color: var(--color-accent);         }
-         .range-value.success {
-            color: var(--color-success);         }
-         .range-value.danger {
-            color: var(--color-error);         }
-         /* EXPANDABLE SECTION */         .expandable-section {
-            margin: 1rem 0;             border-radius: 12px;
+            color: var(--color-accent);
+        }
+
+        .range-value.success {
+            color: var(--color-success);
+        }
+
+        .range-value.danger {
+            color: var(--color-error);
+        }
+
+        /* EXPANDABLE SECTION */
+        .expandable-section {
+            margin: 1rem 0;
+            border-radius: 12px;
             overflow: hidden;
             background: var(--color-bg-card);
-            border: 1px solid var(--color-bg-secondary);         }
-         .expandable-header {
-            padding: 1rem;             background: var(--color-bg-card);
+            border: 1px solid var(--color-bg-secondary);
+        }
+
+        .expandable-header {
+            padding: 1rem;
+            background: var(--color-bg-card);
             cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
             font-weight: 600;
             user-select: none;
-            color: var(--color-text);         }
-         .expandable-header:active {
+            color: var(--color-text);
+        }
+
+        .expandable-header:active {
             background: rgba(0, 230, 118, 0.05);
         }
-         .expandable-icon {
+
+        .expandable-icon {
             display: inline-block;
-            transition:gtransform 0.3s;
+            transition: transform 0.3s;
             font-size: 1.25rem;
-            color: var(--color-accent);         }
-         .expandable-icon.open {
-            transform: rotate(180deg);         }
-         .expandable-content {
-            padding: 1rem;             background: var(--color-bg-secondary);             border-top: 1px solid var(--color-bg-secondary);             font-size: 0.95rem;
+            color: var(--color-accent);
+        }
+
+        .expandable-icon.open {
+            transform: rotate(180deg);
+        }
+
+        .expandable-content {
+            padding: 1rem;
+            background: var(--color-bg-secondary);
+            border-top: 1px solid var(--color-bg-secondary);
+            font-size: 0.95rem;
             color: var(--color-text-secondary);
         }
-         /* CALIBRATION STEP */         .calibration-step {
+
+        /* CALIBRATION STEP */
+        .calibration-step {
             padding: 1.5rem;
             background: var(--color-bg-card);
             border-radius: 12px;
             text-align: center;
-            margin: 1.5rem 0;             border: 1px solid var(--color-bg-secondary);         }
-         .step-number {
+            margin: 1.5rem 0;
+            border: 1px solid var(--color-bg-secondary);
+        }
+
+        .step-number {
             display: inline-flex;
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: var(--color-accent);         margcolor: var(--color-bg-main);         margfont-weight: 700;
+            background: var(--color-accent);
+            color: var(--color-bg-main);
+            font-weight: 700;
             align-items: center;
             justify-content: center;
             margin-bottom: 1rem;
         }
-         .step-title {
+
+        .step-title {
             font-size: 1.125rem;
             font-weight: 700;
             margin-bottom: 0.5rem;
-            color: var(--color-text);         }
-         .step-desc {
+            color: var(--color-text);
+        }
+
+        .step-desc {
             font-size: 0.95rem;
             color: var(--color-text-secondary);
         }
-         /* GRIP GUIDE */         .grip-guide {
+
+        /* GRIP GUIDE */
+        .grip-guide {
             padding: 1.5rem;
             background: rgba(0, 230, 118, 0.05);
             border-radius: 12px;
-            border: 2px solid var(--color-accent);             text-align: center;
-            margin: 1.5rem 0;         }
-         .grip-icon {
+            border: 2px solid var(--color-accent);
+            text-align: center;
+            margin: 1.5rem 0;
+        }
+
+        .grip-icon {
             font-size: 3rem;
             margin-bottom: 1rem;
         }
-         .grip-text {
+
+        .grip-text {
             font-size: 1rem;
             color: var(--color-text);
             line-height: 1.6;
         }
-         /* HOME CARD SECTION */         .mode-card {
+
+        /* HOME CARD SECTION */
+        .mode-card {
             display: flex;
-            flex-direction:gcolumn;
+            flex-direction: column;
             gap: 0.75rem;
         }
-         .mode-card-icon {
+
+        .mode-card-icon {
             font-size: 2.5rem;
         }
-         .mode-card-title {
+
+        .mode-card-title {
             font-size: 1.125rem;
             font-weight: 700;
-            color: var(--color-text);         }
-         .mode-card-desc {
+            color: var(--color-text);
+        }
+
+        .mode-card-desc {
             font-size: 0.875rem;
             color: var(--color-text-secondary);
         }
-         /* CONFETTI PARTICLE */         .confetti-particle {
-            position:gfixed;
+
+        /* CONFETTI PARTICLE */
+        .confetti-particle {
+            position: fixed;
             pointer-events: none;
             z-index: 9999;
         }
-         /* SAFE AREA */         @supports (padding: max(0px))g{
+
+        /* SAFE AREA */
+        @supports (padding: max(0px)) {
             .container {
-                padding-left: max(1.5rem, env(safe-area-inset-left));         marg    padding-right: max(1.5rem, env(safe-area-inset-right));         marg}
-             .header, .content, .footer {
-                padding-left: max(1.5rem, env(safe-area-inset-left));         marg    padding-right: max(1.5rem, env(safe-area-inset-right));         marg}
+                padding-left: max(1.5rem, env(safe-area-inset-left));
+                padding-right: max(1.5rem, env(safe-area-inset-right));
+            }
+
+            .header, .content, .footer {
+                padding-left: max(1.5rem, env(safe-area-inset-left));
+                padding-right: max(1.5rem, env(safe-area-inset-right));
+            }
         }
-         /* DRILL CATEGORY GRID */         .drill-grid {
+
+        /* DRILL CATEGORY GRID */
+        .drill-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1rem;
             margin-bottom: 1rem;
         }
-         .drill-category-title {
+
+        .drill-category-title {
             grid-column: 1 / -1;
             font-size: 1.125rem;
             font-weight: 700;
             margin-top: 1.5rem;
             margin-bottom: 0.5rem;
-            color: var(--color-text);             letter-spacing: 0.02em;
+            color: var(--color-text);
+            letter-spacing: 0.02em;
         }
-         .drill-category-title:first-child {
+
+        .drill-category-title:first-child {
             margin-top: 0;
         }
     </style>
 </head>
 <body>
     <div id="root"></div>
-     <script type="text/babel">
+
+    <script type="text/babel">
         const { useState, useEffect, useRef, useCallback } = React;
-         // iOS SENSOR PERMISSION
+
+        // iOS SENSOR PERMISSION
         const requestSensorPermission = async () => {
-            if (typeof DeviceOrientationEvent !== 'undefined' &&         marg    typeof DeviceOrientationEvent.requestPermission === 'function')g{
+            if (typeof DeviceOrientationEvent !== 'undefined' &&
+                typeof DeviceOrientationEvent.requestPermission === 'function') {
                 try {
-                    const perm = await DeviceOrientationEvent.requestPermission();         marg        if (perm !== 'granted')g{
-                        alert("センサーの許可が必要です。設定からモーションセンサーを許可してください。");         marg            return false;
+                    const perm = await DeviceOrientationEvent.requestPermission();
+                    if (perm !== 'granted') {
+                        alert("ã»ã³ãµã¼ã®è¨±å¯ãå¿è¦ã§ããè¨­å®ããã¢ã¼ã·ã§ã³ã»ã³ãµã¼ãè¨±å¯ãã¦ãã ããã");
+                        return false;
                     }
-                } catch(e)g{
-                    alert("センサー許可エラー: " + e.message);         marg        return false;
+                } catch(e) {
+                    alert("ã»ã³ãµã¼è¨±å¯ã¨ã©ã¼: " + e.message);
+                    return false;
                 }
             }
-            if (typeof DeviceMotionEvent !== 'undefined' &&         marg    typeof DeviceMotionEvent.requestPermission === 'function')g{
-                try { await DeviceMotionEvent.requestPermission(); } catch(e)g{}
+            if (typeof DeviceMotionEvent !== 'undefined' &&
+                typeof DeviceMotionEvent.requestPermission === 'function') {
+                try { await DeviceMotionEvent.requestPermission(); } catch(e) {}
             }
-            return tr"e;
+            return true;
         };
-         // AUDIO UTILS         let _audioCtx = null;
+
+        // AUDIO UTILS
+        let _audioCtx = null;
         const getAudioCtx = () => {
-            if (!_audioCtx)g{
-                _audioCtx = new (window.AudioContext || window.webkitAudioContext)();         marg}
-            if (_audioCtx.state === 'suspended')g_audioCtx.resume();         margreturn _audioCtx;
+            if (!_audioCtx) {
+                _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (_audioCtx.state === 'suspended') _audioCtx.resume();
+            return _audioCtx;
         };
         const AudioUtils = {
             beep: (freq = 800, duration = 150) => {
                 try {
-                    const ctx = getAudioCtx();         marg        const osc = ctx.createOscillator();         marg        const gain = ctx.createGain();         marg        osc.connect(gain);         marggggggggggain.connect(ctx.destination);         marg        osc.frequency.value = freq;         marg        osc.type = 'sine';         marggggggggggain.gain.setValueAtTime(0.3, ctx.currentTime);         marggggggggggain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration / 1000);         marg        osc.start(ctx.currentTime);         margggggggggosc.stop(ctx.currentTime + duration / 1000);         marg    } catch (e)g{}
+                    const ctx = getAudioCtx();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.frequency.value = freq;
+                    osc.type = 'sine';
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration / 1000);
+                    osc.start(ctx.currentTime);
+                    osc.stop(ctx.currentTime + duration / 1000);
+                } catch (e) {}
             },
             success: () => {
-                AudioUtils.beep(1000, 200);         marg    setTimeout(() => AudioUtils.beep(1200, 200), 150);
+                AudioUtils.beep(1000, 200);
+                setTimeout(() => AudioUtils.beep(1200, 200), 150);
             },
             fail: () => { AudioUtils.beep(400, 300); },
             click: () => { AudioUtils.beep(600, 100); },
             ready: () => {
-                AudioUtils.beep(660, 120);         marg    setTimeout(() => AudioUtils.beep(880, 150), 150);
-                if (navigator.vibrate)gnavigator.vibrate([100, 50, 100]);
+                AudioUtils.beep(660, 120);
+                setTimeout(() => AudioUtils.beep(880, 150), 150);
+                if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
             },
             perfect: () => {
                 try {
-                    const ctx = getAudioCtx();         marg        const t = ctx.currentTime;         marg        [880, 1108, 1318].forEach((f, i) => {
-                        const o = ctx.createOscillator();         marg            const g = ctx.createGain();         marg            o.connect(g); g.connect(ctx.destination);         marg            o.frequency.value = f; o.type = "sine";         marg            g.gain.setValueAtTime(0, t + i * 0.1);                         g.gain.linearRampToValueAtTime(0.4, t + i * 0.1 + 0.05);
+                    const ctx = getAudioCtx();
+                    const t = ctx.currentTime;
+                    [880, 1108, 1318].forEach((f, i) => {
+                        const o = ctx.createOscillator();
+                        const g = ctx.createGain();
+                        o.connect(g); g.connect(ctx.destination);
+                        o.frequency.value = f; o.type = "sine";
+                        g.gain.setValueAtTime(0, t + i * 0.1);
+                        g.gain.linearRampToValueAtTime(0.4, t + i * 0.1 + 0.05);
                         g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.1 + 0.5);
                         o.start(t + i * 0.1); o.stop(t + i * 0.1 + 0.5);
-                    });         marg    } catch(e)g{}
+                    });
+                } catch(e) {}
             }
         };
-         // SENSOR UTILS (v7.4 proven logic)
+
+        // SENSOR UTILS (v7.4 proven logic)
         const _prevAcc = { x: 0, y: 0, z: 0 };
         const calcJerk = (ax, ay, az) => {
-            const j = Math.sqrt(         marg    (ax - _prevAcc.x)g** 2 + (ay - _prevAcc.y)g** 2 + (az - _prevAcc.z)g** 2         marg);         marg_prevAcc.x = ax; _prevAcc.y = ay; _prevAcc.z = az;         margreturn j;
+            const j = Math.sqrt(
+                (ax - _prevAcc.x) ** 2 + (ay - _prevAcc.y) ** 2 + (az - _prevAcc.z) ** 2
+            );
+            _prevAcc.x = ax; _prevAcc.y = ay; _prevAcc.z = az;
+            return j;
         };
-         const SensorUtils = {
+
+        const SensorUtils = {
             detectStillness: (history, threshold = 2.5, duration = 800) => {
-                const now = Date.now();         marg    const recentData = history.filter(d => now - d.time < duration);
+                const now = Date.now();
+                const recentData = history.filter(d => now - d.time < duration);
                 if (recentData.length < 5) return false;
                 const avgJerk = recentData.reduce((sum, d) => sum + (d.jerk || 0), 0) / recentData.length;
                 const avgRot = recentData.reduce((sum, d) => sum + (d.rotMag || 0), 0) / recentData.length;
@@ -588,7 +896,8 @@
             },
 
             detectStop: (history, jerkThreshold = 4, rotThreshold = 20, duration = 500) => {
-                const now = Date.now();         marg    const recentData = history.filter(d => now - d.time < duration);
+                const now = Date.now();
+                const recentData = history.filter(d => now - d.time < duration);
                 if (recentData.length < 3) return false;
                 return recentData.every(d =>
                     (d.jerk <= jerkThreshold) && (d.rotMag <= rotThreshold)
@@ -597,14 +906,29 @@
 
             calculateMetrics: (allData, baseline) => {
                 if (!allData || allData.length < 10) return null;
-        marg    const bl = baseline || { beta: allData[0].beta,ggamma: allData[0].gamma };
-                 // Find top of backswing (max beta delta from baseline)                 let maxDelta = -Infinity, topIdx = 0;         margggggfor (let i = 5; i < allData.length - 5; i++)g{
-                    const delta = Math.abs(allData[i].beta - bl.beta);         marg        if (delta > maxDelta)g{ maxDelta = delta; topIdx = i; }
-                }
-                 const betaDelta = maxDelta;
-        marg    const backswingTime = allData[topIdx].time - allData[0].time;         marg    const downswingTime = allData[allData.length - 1].time - allData[topIdx].time;         marg    const tempo = downswingTime > 10 ? backswingTime / downswingTime : 0;
+                const bl = baseline || { beta: allData[0].beta, gamma: allData[0].gamma };
 
-                const avgJerk = allData.reduce((sum, d) => sum + (d.jerk || 0), 0) / allData.length;         marg    const smoothness = Math.max(0, Math.min(100, Math.round(100 - avgJerk * 3)));                  // VFA at top (relative to baseline)                 const dGamma = allData[topIdx].gamma - bl.gamma;         marg    const dBeta = allData[topIdx].beta - bl.beta;         marg    const vfa = dGamma * Math.cos(dBeta * Math.PI / 180) + 0.2 * dBeta;                  return {
+                // Find top of backswing (max beta delta from baseline)
+                let maxDelta = -Infinity, topIdx = 0;
+                for (let i = 5; i < allData.length - 5; i++) {
+                    const delta = Math.abs(allData[i].beta - bl.beta);
+                    if (delta > maxDelta) { maxDelta = delta; topIdx = i; }
+                }
+
+                const betaDelta = maxDelta;
+                const backswingTime = allData[topIdx].time - allData[0].time;
+                const downswingTime = allData[allData.length - 1].time - allData[topIdx].time;
+                const tempo = downswingTime > 10 ? backswingTime / downswingTime : 0;
+
+                const avgJerk = allData.reduce((sum, d) => sum + (d.jerk || 0), 0) / allData.length;
+                const smoothness = Math.max(0, Math.min(100, Math.round(100 - avgJerk * 3)));
+
+                // VFA at top (relative to baseline)
+                const dGamma = allData[topIdx].gamma - bl.gamma;
+                const dBeta = allData[topIdx].beta - bl.beta;
+                const vfa = dGamma * Math.cos(dBeta * Math.PI / 180) + 0.2 * dBeta;
+
+                return {
                     betaDelta: Math.round(betaDelta * 10) / 10,
                     tempo: Math.round(tempo * 10) / 10,
                     smoothness,
@@ -614,34 +938,57 @@
                     topIdx,
                     dataPoints: allData.length,
                     durationMs: allData[allData.length - 1].time - allData[0].time
-                };         marg}
+                };
+            }
         };
-         // CONFETTI EFFECT         const Confetti = ({gcount = 50 }) => {
+
+        // CONFETTI EFFECT
+        const Confetti = ({ count = 50 }) => {
             useEffect(() => {
-                for (let i = 0; i < count; i++)g{
-                    const particle = document.createElement('div');         marg        particle.className = 'confetti-particle';         margggggggggparticle.innerHTML = ['🎉', '⭐', '✨', '🌟'][Math.floor(Math.random() * 4)];
-                ggggparticle.style.fontSize = (Math.random() * 1.5 + 1) + 'rem';         margggggggggparticle.style.left = Math.random() * window.innerWidth + 'px';         margggggggggparticle.style.top = '-20px';         margggggggggparticle.style.setProperty('--tx', (Math.random() - 0.5) * 200 + 'px');         marg        particle.style.setProperty('--ty', window.innerHeight + 'px');         marg        particle.style.animation = `confetti ${1.5 + Math.random() * 0.5}s ease-out forwards`;         marg        document.body.appendChild(particle);         marg        setTimeout(() => particle.remove(), 2000);         marg    }
+                for (let i = 0; i < count; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'confetti-particle';
+                    particle.innerHTML = ['ð', 'â­', 'â¨', 'ð'][Math.floor(Math.random() * 4)];
+                    particle.style.fontSize = (Math.random() * 1.5 + 1) + 'rem';
+                    particle.style.left = Math.random() * window.innerWidth + 'px';
+                    particle.style.top = '-20px';
+                    particle.style.setProperty('--tx', (Math.random() - 0.5) * 200 + 'px');
+                    particle.style.setProperty('--ty', window.innerHeight + 'px');
+                    particle.style.animation = `confetti ${1.5 + Math.random() * 0.5}s ease-out forwards`;
+                    document.body.appendChild(particle);
+                    setTimeout(() => particle.remove(), 2000);
+                }
             }, [count]);
             return null;
         };
-         // COUNT UP NUMBER HOOK         const useCountUp = (end, duration = 800) => {
-            const [value, setValue] = useState(0);         marguseEffect(() => {
-                let startTime = Date.now();         marg    const tick = () => {
-            marg    const elapsed = Date.now() - startTime;         marg        const progress = Math.min(elapsed / duration, 1);
-                    setValue(Math.floor(end * progress));         marg        if (progress < 1) {
+
+        // COUNT UP NUMBER HOOK
+        const useCountUp = (end, duration = 800) => {
+            const [value, setValue] = useState(0);
+            useEffect(() => {
+                let startTime = Date.now();
+                const tick = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    setValue(Math.floor(end * progress));
+                    if (progress < 1) {
                         requestAnimationFrame(tick);
                     } else {
                         setValue(end);
                     }
-                };         margggggtick();         marg}, [end, duration]);
+                };
+                tick();
+            }, [end, duration]);
             return value;
         };
-         // HOME SCREEN
-        const HomeScreen = ({gonSelectMode }) => {
-            return (         marggggg<div className="screen">
+
+        // HOME SCREEN
+        const HomeScreen = ({ onSelectMode }) => {
+            return (
+                <div className="screen">
                     <div className="header">
                         <div className="logo">GOLFLEV</div>
-                        <p className="subtitle">v9.0 — Smart Swing Trainer</p>
+                        <p className="subtitle">v9.0 â Smart Swing Trainer</p>
                     </div>
                     <div className="content">
                         <div className="stack-v">
@@ -650,7 +997,7 @@
                                 onClick={() => { AudioUtils.click(); onSelectMode('drill'); }}
                                 style={{ height: '56px', marginBottom: '1rem' }}
                             >
-                                練習を始める
+                                ç·´ç¿ãå§ãã
                             </button>
                             <div className="grid-2">
                                 <div
@@ -658,11 +1005,11 @@
                                     onClick={() => { AudioUtils.click(); onSelectMode('drill'); }}
                                 >
                                     <div className="card-title-area">
-                                        <div className="card-icon">🎯</div>
+                                        <div className="card-icon">ð¯</div>
                                     </div>
                                     <div className="mode-card">
-                                        <div className="mode-card-title">ドリル</div>
-                                        <div className="mode-card-desc">1つずつマスター</div>
+                                        <div className="mode-card-title">ããªã«</div>
+                                        <div className="mode-card-desc">1ã¤ãã¤ãã¹ã¿ã¼</div>
                                     </div>
                                 </div>
                                 <div
@@ -670,11 +1017,11 @@
                                     onClick={() => { AudioUtils.click(); onSelectMode('free'); }}
                                 >
                                     <div className="card-title-area">
-                                        <div className="card-icon">📊</div>
+                                        <div className="card-icon">ð</div>
                                     </div>
                                     <div className="mode-card">
-                                        <div className="mode-card-title">計滬</div>
-                                        <div className="mode-card-desc">全データを分析</div>
+                                        <div className="mode-card-title">è¨æ¸¬</div>
+                                        <div className="mode-card-desc">å¨ãã¼ã¿ãåæ</div>
                                     </div>
                                 </div>
                             </div>
@@ -683,22 +1030,27 @@
                 </div>
             );
         };
-         // DRILL CATEGORY SELECTION
-        const DrillCategoryScreen = ({gonSelectDrill,gonBack }) => {
+
+        // DRILL CATEGORY SELECTION
+        const DrillCategoryScreen = ({ onSelectDrill, onBack }) => {
             const drills = [
-                { id: 'width', name: 'ふり幅', icon: '📐', jp: 'Swing Width' },
-                { id: 'smoothness', name: 'スムーズさ', icon: '🌊', jp: 'Smoothness' },
-                { id: 'tempo', name: 'テンポ', icon: '🎵', jp: 'Tempo' },
-                { id: 'face', name: 'フェース管理', icon: '🎯', jp: 'Face Control' }
-            ];              return (         marggggg<div className="screen">
+                { id: 'width', name: 'ãµãå¹', icon: 'ð', jp: 'Swing Width' },
+                { id: 'smoothness', name: 'ã¹ã ã¼ãºã', icon: 'ð', jp: 'Smoothness' },
+                { id: 'tempo', name: 'ãã³ã', icon: 'ðµ', jp: 'Tempo' },
+                { id: 'face', name: 'ãã§ã¼ã¹ç®¡ç', icon: 'ð¯', jp: 'Face Control' }
+            ];
+
+            return (
+                <div className="screen">
                     <div className="header">
-                        <button className="btn btn-ghost back-btn" onClick={onBack}>←</button>
-                        <h2>ドリルを選択</h2>
+                        <button className="btn btn-ghost back-btn" onClick={onBack}>â</button>
+                        <h2>ããªã«ãé¸æ</h2>
                     </div>
                     <div className="content">
                         <div className="drill-grid">
-                            <div className="drill-category-title">ビジネスゾーン</div>
-                            {drills.map(drill => (         marggggg                <div
+                            <div className="drill-category-title">ãã¸ãã¹ã¾ã¼ã³</div>
+                            {drills.map(drill => (
+                                <div
                                     key={`bz-${drill.id}`}
                                     className="card card-clickable drill-card"
                                     onClick={() => { AudioUtils.click(); onSelectDrill('business', drill.id); }}
@@ -706,15 +1058,17 @@
                                     <div className="card-title-area">
                                         <div className="card-icon">{drill.icon}</div>
                                         <div className="card-progress">
-                                            <span>✓ 0</span>
+                                            <span>â 0</span>
                                         </div>
                                     </div>
                                     <h3>{drill.name}</h3>
                                     <p className="text-sm">{drill.jp}</p>
                                 </div>
                             ))}
-                             <div className="drill-category-title">ハーフスイング</div>
-                            {drills.map(drill => (         marggggg                <div
+
+                            <div className="drill-category-title">ãã¼ãã¹ã¤ã³ã°</div>
+                            {drills.map(drill => (
+                                <div
                                     key={`hs-${drill.id}`}
                                     className="card card-clickable drill-card"
                                     onClick={() => { AudioUtils.click(); onSelectDrill('half', drill.id); }}
@@ -722,7 +1076,7 @@
                                     <div className="card-title-area">
                                         <div className="card-icon">{drill.icon}</div>
                                         <div className="card-progress">
-                                            <span>✓ 0</span>
+                                            <span>â 0</span>
                                         </div>
                                     </div>
                                     <h3>{drill.name}</h3>
@@ -734,66 +1088,73 @@
                 </div>
             );
         };
-         // DIFFICULTY SELECTION
-        const DifficultyScreen = ({gzone, drillId, onSelectDifficulty,gonBack }) => {
+
+        // DIFFICULTY SELECTION
+        const DifficultyScreen = ({ zone, drillId, onSelectDifficulty, onBack }) => {
             const difficultyData = {
                 width: {
                     business: {
-                        easy: { name: 'やさしい', spec: '15° 〜 45°' },
-                        normal: { name: 'ふつう', spec: '18° 〜 38°' },
-                        hard: { name: 'きびしい', spec: '20° 〜 35°' }
+                        easy: { name: 'ãããã', spec: '15Â° ã 45Â°' },
+                        normal: { name: 'ãµã¤ã', spec: '18Â° ã 38Â°' },
+                        hard: { name: 'ãã³ãã', spec: '20Â° ã 35Â°' }
                     },
                     half: {
-                        easy: { name: 'やさしい', spec: '35° 〜 75°' },
-                        normal: { name: 'ふつう', spec: '40° 〜 65°' },
-                        hard: { name: 'きびしい', spec: '45° 〜 60°' }
+                        easy: { name: 'ãããã', spec: '35Â° ã 75Â°' },
+                        normal: { name: 'ãµã¤ã', spec: '40Â° ã 65Â°' },
+                        hard: { name: 'ãã³ãã', spec: '45Â° ã 60Â°' }
                     }
                 },
                 smoothness: {
                     business: {
-                        easy: { name: 'やさしい', spec: '≥50%' },
-                        normal: { name: 'ふつう', spec: '≥65%' },
-                        hard: { name: 'きびしい', spec: '≥80%' }
+                        easy: { name: 'ãããã', spec: 'â¥50%' },
+                        normal: { name: 'ãµã¤ã', spec: 'â¥65%' },
+                        hard: { name: 'ãã³ãã', spec: 'â¥80%' }
                     },
                     half: {
-                        easy: { name: 'やさしい', spec: '≥50%' },
-                        normal: { name: 'ふつう', spec: '≥65%' },
-                        hard: { name: 'きびしい', spec: '≥80%' }
+                        easy: { name: 'ãããã', spec: 'â¥50%' },
+                        normal: { name: 'ãµã¤ã', spec: 'â¥65%' },
+                        hard: { name: 'ãã³ãã', spec: 'â¥80%' }
                     }
                 },
                 tempo: {
                     business: {
-                        easy: { name: 'やさしい', spec: '1.5:1 〜 5.0:1' },
-                        normal: { name: 'ふつう', spec: '2.0:1 〜 4.0:1' },
-                        hard: { name: 'きびしい', spec: '2.5:1 〜 3.5:1' }
+                        easy: { name: 'ãããã', spec: '1.5:1 ã 5.0:1' },
+                        normal: { name: 'ãµã¤ã', spec: '2.0:1 ã 4.0:1' },
+                        hard: { name: 'ãã³ãã', spec: '2.5:1 ã 3.5:1' }
                     },
                     half: {
-                        easy: { name: 'やさしい', spec: '1.5:1 〜 5.0:1' },
-                        normal: { name: 'ふつう', spec: '2.0:1 〜 4.0:1' },
-                        hard: { name: 'きびしい', spec: '2.5:1 〜 3.5:1' }
+                        easy: { name: 'ãããã', spec: '1.5:1 ã 5.0:1' },
+                        normal: { name: 'ãµã¤ã', spec: '2.0:1 ã 4.0:1' },
+                        hard: { name: 'ãã³ãã', spec: '2.5:1 ã 3.5:1' }
                     }
                 },
                 face: {
                     business: {
-                        easy: { name: 'やさしい', spec: '±20°' },
-                        normal: { name: 'ふつう', spec: '±12°' },
-                        hard: { name: 'きびしい', spec: '±6°' }
+                        easy: { name: 'ãããã', spec: 'Â±20Â°' },
+                        normal: { name: 'ãµã¤ã', spec: 'Â±12Â°' },
+                        hard: { name: 'ãã³ãã', spec: 'Â±6Â°' }
                     },
                     half: {
-                        easy: { name: 'やさしい', spec: '±18°' },
-                        normal: { name: 'ふつう', spec: '±10°' },
-                        hard: { name: 'きびしい', spec: '±5°' }
+                        easy: { name: 'ãããã', spec: 'Â±18Â°' },
+                        normal: { name: 'ãµã¤ã', spec: 'Â±10Â°' },
+                        hard: { name: 'ãã³ãã', spec: 'Â±5Â°' }
                     }
                 }
             };
-             const [selected, setSelected] = useState(null);         margconst config = difficultyData[drillId][zone];              return (         marggggg<div className="screen">
+
+            const [selected, setSelected] = useState(null);
+            const config = difficultyData[drillId][zone];
+
+            return (
+                <div className="screen">
                     <div className="header">
-                        <button className="btn btn-ghost back-btn" onClick={onBack}>←</button>
-                        <h2>難易度を選択</h2>
+                        <button className="btn btn-ghost back-btn" onClick={onBack}>â</button>
+                        <h2>é£æåº¦ãé¸æ</h2>
                     </div>
                     <div className="content">
                         <div className="stack-v">
-                            {['easy', 'normal', 'hard'].map(level => (         marggggg                <div
+                            {['easy', 'normal', 'hard'].map(level => (
+                                <div
                                     key={level}
                                     className={`difficulty-card ${selected === level ? 'selected' : ''}`}
                                     onClick={() => { AudioUtils.click(); setSelected(level); }}
@@ -814,17 +1175,23 @@
                             disabled={!selected}
                             style={{ marginTop: '2rem', opacity: selected ? 1 : 0.5 }}
                         >
-                            開始する
+                            éå§ãã
                         </button>
                     </div>
                 </div>
             );
         };
-         // DRILL EXECUTION
-        const DrillExecutionScreen = ({gzone, drillId, difficulty,gonComplete, onBack }) => {
-            const [state, setState] = useState('grip');         margconst [metrics, setMetrics] = useState(null);         margconst [displayAngle, setDisplayAngle] = useState(0);         margconst sensorHistoryRef = useRef([]);
-            const orientRef = useRef({ beta: 0,ggamma: 0,galpha: 0 });
-            const baselineRef = useRef(null);         margconst stateRef = useRef('grip');         margconst recordingDataRef = useRef([]);
+
+        // DRILL EXECUTION
+        const DrillExecutionScreen = ({ zone, drillId, difficulty, onComplete, onBack }) => {
+            const [state, setState] = useState('grip');
+            const [metrics, setMetrics] = useState(null);
+            const [displayAngle, setDisplayAngle] = useState(0);
+            const sensorHistoryRef = useRef([]);
+            const orientRef = useRef({ beta: 0, gamma: 0, alpha: 0 });
+            const baselineRef = useRef(null);
+            const stateRef = useRef('grip');
+            const recordingDataRef = useRef([]);
 
             const drillConfig = {
                 width: {
@@ -844,140 +1211,220 @@
                     half: { easy: 18, normal: 10, hard: 5 }
                 }
             };
-             const config = drillConfig[drillId][zone][difficulty];              // Single unified sensor effect             useEffect(() => {
-                if (stateRef.current === 'grip' || stateRef.current === 'stopped')greturn;
+
+            const config = drillConfig[drillId][zone][difficulty];
+
+            // Single unified sensor effect
+            useEffect(() => {
+                if (stateRef.current === 'grip' || stateRef.current === 'stopped') return;
 
                 const handleDeviceOrientation = (event) => {
                     orientRef.current = {
                         beta: event.beta || 0,
                         gamma: event.gamma || 0,
                         alpha: event.alpha || 0,
-                    };         margggggggggsetDisplayAngle(Math.round(event.beta || 0));         marg    };
-                 const handleDeviceMotion = (event) => {
-                    const rr = event.rotationRate || {};         margggggggggconst rotX = rr.beta || 0;         margggggggggconst rotY = rr.gamma || 0;         margggggggggconst rotZ = rr.alpha || 0;         margggggggggconst rotMag = Math.sqrt(rotX * rotX + rotY * rotY + rotZ * rotZ);         marg        const a = event.accelerationIncludingGravity || event.acceleration || {};         margggggggggconst jerk = calcJerk(a.x || 0, a.y || 0, a.z || 0);         margggggggggconst now = Date.now();         marg    ggggconst o = orientRef.current;
-                     sensorHistoryRef.current.push({
+                    };
+                    setDisplayAngle(Math.round(event.beta || 0));
+                };
+
+                const handleDeviceMotion = (event) => {
+                    const rr = event.rotationRate || {};
+                    const rotX = rr.beta || 0;
+                    const rotY = rr.gamma || 0;
+                    const rotZ = rr.alpha || 0;
+                    const rotMag = Math.sqrt(rotX * rotX + rotY * rotY + rotZ * rotZ);
+                    const a = event.accelerationIncludingGravity || event.acceleration || {};
+                    const jerk = calcJerk(a.x || 0, a.y || 0, a.z || 0);
+                    const now = Date.now();
+                    const o = orientRef.current;
+
+                    sensorHistoryRef.current.push({
                         time: now,
-                        beta: o.beta,ggamma: o.gamma,galpha: o.alpha,
+                        beta: o.beta, gamma: o.gamma, alpha: o.alpha,
                         rotX, rotY, rotZ, rotMag, jerk
-                    });         marg        if (sensorHistoryRef.current.length > 500) sensorHistoryRef.current.shift();                      // State machine         marg        if (stateRef.current === 'waiting')g{
-                        if (SensorUtils.detectStillness(sensorHistoryRef.current))g{
-                            baselineRef.current = { beta: o.beta,ggamma: o.gamma,galpha: o.alpha };         margggggggggggggggggstateRef.current = 'ready';         margggggggggggggggggsetState('ready');
+                    });
+                    if (sensorHistoryRef.current.length > 500) sensorHistoryRef.current.shift();
+
+                    // State machine
+                    if (stateRef.current === 'waiting') {
+                        if (SensorUtils.detectStillness(sensorHistoryRef.current)) {
+                            baselineRef.current = { beta: o.beta, gamma: o.gamma, alpha: o.alpha };
+                            stateRef.current = 'ready';
+                            setState('ready');
                             AudioUtils.ready();
                         }
-                    } else if (stateRef.current === 'ready')g{
-                        if (SensorUtils.detectMovement(sensorHistoryRef.current))g{
-                            stateRef.current = 'recording';         margggggggggggggggggsetState('recording');
+                    } else if (stateRef.current === 'ready') {
+                        if (SensorUtils.detectMovement(sensorHistoryRef.current)) {
+                            stateRef.current = 'recording';
+                            setState('recording');
                             recordingDataRef.current = [];
-                ggggggggggggAudioUtils.beep(1000, 100);         marg            }
+                            AudioUtils.beep(1000, 100);
+                        }
                     } else if (stateRef.current === 'recording') {
                         recordingDataRef.current.push({
                             time: now,
-                            beta: o.beta,ggamma: o.gamma,galpha: o.alpha,
+                            beta: o.beta, gamma: o.gamma, alpha: o.alpha,
                             rotX, rotY, rotZ, rotMag, jerk
-                        });                          // Update display angle
-                        if (baselineRef.current)g{
-                            const dBeta = Math.abs(o.beta - baselineRef.current.beta);         marg                setDisplayAngle(Math.round(dBeta));         marg            }                          if (SensorUtils.detectStop(sensorHistoryRef.current))g{
-                            stateRef.current = 'stopped';         margggggggggggggggggsetState('stopped');         margggggggggggggggggconst calcMetrics = SensorUtils.calculateMetrics(         marggggg                recordingDataRef.current, baselineRef.current
-                            );         margggggggggggggggggsetMetrics(calcMetrics);         margggggggggggggggggif (calcMetrics)gAudioUtils.success();
+                        });
+
+                        // Update display angle
+                        if (baselineRef.current) {
+                            const dBeta = Math.abs(o.beta - baselineRef.current.beta);
+                            setDisplayAngle(Math.round(dBeta));
+                        }
+
+                        if (SensorUtils.detectStop(sensorHistoryRef.current)) {
+                            stateRef.current = 'stopped';
+                            setState('stopped');
+                            const calcMetrics = SensorUtils.calculateMetrics(
+                                recordingDataRef.current, baselineRef.current
+                            );
+                            setMetrics(calcMetrics);
+                            if (calcMetrics) AudioUtils.success();
                             else AudioUtils.fail();
                         }
-                         // Timeout after 5 seconds                         if (recordingDataRef.current.length > 0 &&         marg                now - recordingDataRef.current[0].time > 5000)g{
-                            stateRef.current = 'stopped';         margggggggggggggggggsetState('stopped');         margggggggggggggggggconst calcMetrics = SensorUtils.calculateMetrics(         marggggg                recordingDataRef.current, baselineRef.current
-                            );         margggggggggggggggggsetMetrics(calcMetrics);         marggggggggggggg}
+
+                        // Timeout after 5 seconds
+                        if (recordingDataRef.current.length > 0 &&
+                            now - recordingDataRef.current[0].time > 5000) {
+                            stateRef.current = 'stopped';
+                            setState('stopped');
+                            const calcMetrics = SensorUtils.calculateMetrics(
+                                recordingDataRef.current, baselineRef.current
+                            );
+                            setMetrics(calcMetrics);
+                        }
                     }
-                };                  window.addEventListener('deviceorientation', handleDeviceOrientation);         margggggwindow.addEventListener('devicemotion', handleDeviceMotion);                  return () => {
-                    window.removeEventListener('deviceorientation', handleDeviceOrientation);         marggggg    window.removeEventListener('devicemotion', handleDeviceMotion);                 };             }, [state]);
+                };
+
+                window.addEventListener('deviceorientation', handleDeviceOrientation);
+                window.addEventListener('devicemotion', handleDeviceMotion);
+
+                return () => {
+                    window.removeEventListener('deviceorientation', handleDeviceOrientation);
+                    window.removeEventListener('devicemotion', handleDeviceMotion);
+                };
+            }, [state]);
 
             const handleGripConfirm = async () => {
                 AudioUtils.click();
                 const ok = await requestSensorPermission();
-                if (!ok)greturn;
+                if (!ok) return;
                 sensorHistoryRef.current = [];
                 recordingDataRef.current = [];
                 baselineRef.current = null;
-        marg    stateRef.current = 'waiting';
-                setState('waiting');             };
+                stateRef.current = 'waiting';
+                setState('waiting');
+            };
 
-            if (state === 'grip')g{
-                return (         marggggggggg<div className="screen">
-                    gggg<div className="header">
-                        gggg<button className="btn btn-ghost back-btn" onClick={onBack}>←</button>
-                        gggg<h2>握り方の確認</h2>
-                    gggg</div>
+            if (state === 'grip') {
+                return (
+                    <div className="screen">
+                        <div className="header">
+                            <button className="btn btn-ghost back-btn" onClick={onBack}>â</button>
+                            <h2>æ¡ãæ¹ã®ç¢ºèª</h2>
+                        </div>
                         <div className="content">
                             <div className="grip-guide">
-                                <div className="grip-icon">📱</div>
+                                <div className="grip-icon">ð±</div>
                                 <div className="grip-text">
-                                    スマートフォンを握ってください。<br/>
-                                    カメラは左を向いてください。
+                                    ã¹ãã¼ããã©ã³ãæ¡ã£ã¦ãã ããã<br/>
+                                    ã«ã¡ã©ã¯å·¦ãåãã¦ãã ããã
                                 </div>
                             </div>
                             <button className="btn btn-primary btn-lg btn-block" onClick={handleGripConfirm}>
-                                準備完了
+                                æºåå®äº
                             </button>
                         </div>
                     </div>
-                );         marg}
-             if (state === 'ready' || state === 'waiting' || state === 'recording') {
+                );
+            }
+
+            if (state === 'ready' || state === 'waiting' || state === 'recording') {
                 const stateLabels = {
-                    waiting: 'スイングしてください',
-                    ready: 'スイング準備完了',
-                    recording: '記録中...'
-                };                  return (         marggggggggg<div className="screen">
-                    gggg<div className="header">
-                        gggg<h2>ドリル実行中</h2>
-                    gggg</div>
+                    waiting: 'ã¹ã¤ã³ã°ãã¦ãã ãã',
+                    ready: 'ã¹ã¤ã³ã°æºåå®äº',
+                    recording: 'è¨é²ä¸­...'
+                };
+
+                return (
+                    <div className="screen">
+                        <div className="header">
+                            <h2>ããªã«å®è¡ä¸­</h2>
+                        </div>
                         <div className="content">
                             <div className={`state-badge state-${state === 'ready' ? 'ready' : state === 'recording' ? 'recording' : 'waiting'}`}>
                                 {stateLabels[state]}
                             </div>
                             <div className={`metric-circle ${state === 'recording' ? 'waiting' : ''}`}>
-                                <div className="metric-value">{displayAngle}°</div>
-                                <div className="metric-label">腕の角度</div>
+                                <div className="metric-value">{displayAngle}Â°</div>
+                                <div className="metric-label">èã®è§åº¦</div>
                             </div>
                         </div>
                     </div>
-                );         marg}
-             if (state === 'stopped' && metrics)g{
+                );
+            }
+
+            if (state === 'stopped' && metrics) {
                 let success = false;
-                let value = 0;         marggggglet target = '';
-                let displayValue = 0; 
-                if (drillId === 'width')g{
-                    value = metrics.betaDelta;         marg        displayValue = Math.round(value);         marg        if (Array.isArray(config))g{
+                let value = 0;
+                let target = '';
+                let displayValue = 0;
+
+                if (drillId === 'width') {
+                    value = metrics.betaDelta;
+                    displayValue = Math.round(value);
+                    if (Array.isArray(config)) {
                         success = value >= config[0] && value <= config[1];
-                        target = `${config[0]}° 〜 ${config[1]}°`;         marg        }
-                } else if (drillId === 'smoothness')g{
-                    value = metrics.smoothness;         marg        displayValue = Math.round(value);         marg        success = value >= config;         marg        target = `${config}% 以上`;         marg    } else if (drillId === 'tempo')g{
-                    value = metrics.tempo;         marg        displayValue = Math.round(value * 100) / 100;         margggggggggif (Array.isArray(config))g{
+                        target = `${config[0]}Â° ã ${config[1]}Â°`;
+                    }
+                } else if (drillId === 'smoothness') {
+                    value = metrics.smoothness;
+                    displayValue = Math.round(value);
+                    success = value >= config;
+                    target = `${config}% ä»¥ä¸`;
+                } else if (drillId === 'tempo') {
+                    value = metrics.tempo;
+                    displayValue = Math.round(value * 100) / 100;
+                    if (Array.isArray(config)) {
                         success = value >= config[0] && value <= config[1];
-                        target = `${config[0].toFixed(1)}:1 〜 ${config[1].toFixed(1)}:1`;         marg        }
-                } else if (drillId === 'face')g{
-                    value = Math.abs(metrics.vfa);         marg        displayValue = Math.round(value * 10) / 10;         marg        success = value <= config;         marg        target = `±${config}°`;         marg    }
-                 const countUpValue = useCountUp(displayValue, 800);                  return (         marggggggggg<div className="screen">
-                    gggg{success && <Confetti count={30} />}
+                        target = `${config[0].toFixed(1)}:1 ã ${config[1].toFixed(1)}:1`;
+                    }
+                } else if (drillId === 'face') {
+                    value = Math.abs(metrics.vfa);
+                    displayValue = Math.round(value * 10) / 10;
+                    success = value <= config;
+                    target = `Â±${config}Â°`;
+                }
+
+                const countUpValue = useCountUp(displayValue, 800);
+
+                return (
+                    <div className="screen">
+                        {success && <Confetti count={30} />}
                         <div className="header">
-                        gggg<h2>{success ? '完成！' : 'あと少し'}</h2>
-                    gggg</div>
+                            <h2>{success ? 'å®æï¼' : 'ãã¨å°ã'}</h2>
+                        </div>
                         <div className="content">
                             <div className={`metric-circle ${success ? 'success' : 'fail'}`}>
                                 <div className="metric-value">
                                     {drillId === 'tempo' ? countUpValue.toFixed(2) : countUpValue}
                                 </div>
                                 <div className="metric-label">
-                                    {drillId === 'width' && '°'}
+                                    {drillId === 'width' && 'Â°'}
                                     {drillId === 'smoothness' && '%'}
                                     {drillId === 'tempo' && ':1'}
-                                    {drillId === 'face' && '°'}
+                                    {drillId === 'face' && 'Â°'}
                                 </div>
                             </div>
 
                             <div className="range-info">
                                 <div className="range-box">
-                                    <div className="range-label">目標値</div>
+                                    <div className="range-label">ç®æ¨å¤</div>
                                     <div className="range-value">{target}</div>
                                 </div>
                                 <div className="range-box">
-                                    <div className="range-label">あなたの値</div>
+                                    <div className="range-label">ããªãã®å¤</div>
                                     <div className={`range-value ${success ? 'success' : 'danger'}`}>
                                         {drillId === 'tempo' ? value.toFixed(2) : value.toFixed(1)}
                                     </div>
@@ -985,82 +1432,99 @@
                             </div>
 
                             <div className="result-tip">
-                                {drillId === 'width' && '適切な振り幅を保つことで、安定したスイングが実現します。'}
-                                {drillId === 'smoothness' && 'より滑らかな動きを意識して、緊張を取り除きましょう。'}
-                                {drillId === 'tempo' && 'テンポが一定することで、リズム感のあるスイングになります。'}
-                                {drillId === 'face' && 'フェース角を安定させることが、方向性の鍵になります。'}
+                                {drillId === 'width' && 'é©åãªæ¯ãå¹ãä¿ã¤ãã¨ã§ãå®å®ããã¹ã¤ã³ã°ãå®ç¾ãã¾ãã'}
+                                {drillId === 'smoothness' && 'ããæ»ãããªåããæè­ãã¦ãç·å¼µãåãé¤ãã¾ãããã'}
+                                {drillId === 'tempo' && 'ãã³ããä¸å®ãããã¨ã§ããªãºã æã®ããã¹ã¤ã³ã°ã«ãªãã¾ãã'}
+                                {drillId === 'face' && 'ãã§ã¼ã¹è§ãå®å®ããããã¨ããæ¹åæ§ã®éµã«ãªãã¾ãã'}
                             </div>
 
-                            {success && <div className="success-counter">✓ 成功回数: 1</div>}
-                             <div style={{ marginTop: '2rem' }} className="stack-v">
+                            {success && <div className="success-counter">â æååæ°: 1</div>}
+
+                            <div style={{ marginTop: '2rem' }} className="stack-v">
                                 <button className="btn btn-primary btn-lg btn-block" onClick={() => {
                                     AudioUtils.click();
-                                    setState('grip');         marg                        setMetrics(null);         marg                        sensorHistoryRef.current = [];
+                                    setState('grip');
+                                    setMetrics(null);
+                                    sensorHistoryRef.current = [];
                                 }}>
-                                    もう一度
+                                    ããä¸åº¦
                                 </button>
-                        gggg    <button className="btn btn-secondary btn-lg btn-block" onClick={onBack}>
-                                    別のドリル
+                                <button className="btn btn-secondary btn-lg btn-block" onClick={onBack}>
+                                    å¥ã®ããªã«
                                 </button>
-                        gggg</div>
+                            </div>
                         </div>
                     </div>
-                );         marg}
-             return null;
+                );
+            }
+
+            return null;
         };
-         // FREE MODE - GRIP GUIDE         const FreeGripGuideScreen = ({gonComplete, onBack }) => {
+
+        // FREE MODE - GRIP GUIDE
+        const FreeGripGuideScreen = ({ onComplete, onBack }) => {
             const handleGripConfirm = async () => {
                 AudioUtils.click();
                 const ok = await requestSensorPermission();
-                if (!ok)greturn;
-                onComplete();         marg};             return (         marggggg<div className="screen">
+                if (!ok) return;
+                onComplete();
+            };
+            return (
+                <div className="screen">
                     <div className="header">
-                        <button className="btn btn-ghost back-btn" onClick={onBack}>←</button>
-                        <h2>握り方の確認</h2>
+                        <button className="btn btn-ghost back-btn" onClick={onBack}>â</button>
+                        <h2>æ¡ãæ¹ã®ç¢ºèª</h2>
                     </div>
                     <div className="content">
                         <div className="grip-guide">
-                            <div className="grip-icon">📱</div>
+                            <div className="grip-icon">ð±</div>
                             <div className="grip-text">
-                                スマートフォンを握ってください。<br/>
-                                カメラは左を向いてください。
+                                ã¹ãã¼ããã©ã³ãæ¡ã£ã¦ãã ããã<br/>
+                                ã«ã¡ã©ã¯å·¦ãåãã¦ãã ããã
                             </div>
                         </div>
                         <button className="btn btn-primary btn-lg btn-block" onClick={handleGripConfirm}>
-                            準備完了
+                            æºåå®äº
                         </button>
                     </div>
                 </div>
             );
         };
-         // FREE MODE - CALIBRATION
-        const FreeCalibrationScreen = ({gonComplete, onBack }) => {
+
+        // FREE MODE - CALIBRATION
+        const FreeCalibrationScreen = ({ onComplete, onBack }) => {
             const [step, setStep] = useState(1);
             const [calibrationReady, setCalibrationReady] = useState(false);
 
             const handleStartCalibration = () => {
-            margAudioUtils.beep(1000, 150);
-                setCalibrationReady(true);         marg};              return (         marggggg<div className="screen">
+                AudioUtils.beep(1000, 150);
+                setCalibrationReady(true);
+            };
+
+            return (
+                <div className="screen">
                     <div className="header">
-                        <button className="btn btn-ghost back-btn" onClick={onBack}>←</button>
-                        <h2>キャリブレーション</h2>
+                        <button className="btn btn-ghost back-btn" onClick={onBack}>â</button>
+                        <h2>ã­ã£ãªãã¬ã¼ã·ã§ã³</h2>
                     </div>
                     <div className="content">
                         <p className="subtitle" style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                            3回のスイングで調整します
+                            3åã®ã¹ã¤ã³ã°ã§èª¿æ´ãã¾ã
                         </p>
 
-                        {[1, 2, 3].map(i => (         marggggg            <div key={i} className={`calibration-step ${step >= i ? '' : ''}`} style={{ opacity: step >= i ? 1 : 0.5 }}>
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className={`calibration-step ${step >= i ? '' : ''}`} style={{ opacity: step >= i ? 1 : 0.5 }}>
                                 <div className="step-number">{i}</div>
-                                <div className="step-title">スイング {i}</div>
+                                <div className="step-title">ã¹ã¤ã³ã° {i}</div>
                                 <div className="step-desc">
-                                    {step === i && '下のボタンを押してから、いつものペースでスイングしてください。'}
-                                    {step > i && '完了しました ✓'}
-                                    {step < i && '前のステップを完了してください。'}
+                                    {step === i && 'ä¸ã®ãã¿ã³ãæ¼ãã¦ããããã¤ãã®ãã¼ã¹ã§ã¹ã¤ã³ã°ãã¦ãã ããã'}
+                                    {step > i && 'å®äºãã¾ãã â'}
+                                    {step < i && 'åã®ã¹ããããå®äºãã¦ãã ããã'}
                                 </div>
                             </div>
                         ))}
-                         {step <= 3 && (
+
+                        {step <= 3 && (
                             <button className="btn btn-primary btn-lg btn-block" onClick={() => {
                                 AudioUtils.click();
                                 handleStartCalibration();
@@ -1070,47 +1534,81 @@
                                         setCalibrationReady(false);
                                     } else {
                                         AudioUtils.success();
-                                        onComplete();         marg                        }
-                                }, 2000);         marg                }} style={{ marginTop: '2rem' }}>
-                                {step === 3 ? 'キャリブレーション完了' : `スイング ${step} を実行`}
+                                        onComplete();
+                                    }
+                                }, 2000);
+                            }} style={{ marginTop: '2rem' }}>
+                                {step === 3 ? 'ã­ã£ãªãã¬ã¼ã·ã§ã³å®äº' : `ã¹ã¤ã³ã° ${step} ãå®è¡`}
                             </button>
                         )}
                     </div>
                 </div>
             );
         };
-         // FREE MODE - EXECUTION
-        const FreeExecutionScreen = ({gonComplete, onBack }) => {
-            const [state, setState] = useState('waiting');             const [displayAngle, setDisplayAngle] = useState(0);         margconst [metrics, setMetrics] = useState(null);         margconst [openSection, setOpenSection] = useState('basic');             const sensorHistoryRef = useRef([]);
-            const orientRef = useRef({ beta: 0,ggamma: 0 });
-            const baselineRef = useRef(null);         margconst stateRef = useRef('waiting');             const stillCountRef = useRef(0);         margconst recordStartRef = useRef(0);          marguseEffect(() => {
-                stateRef.current = state;             }, [state]);
+
+        // FREE MODE - EXECUTION
+        const FreeExecutionScreen = ({ onComplete, onBack }) => {
+            const [state, setState] = useState('waiting');
+            const [displayAngle, setDisplayAngle] = useState(0);
+            const [metrics, setMetrics] = useState(null);
+            const [openSection, setOpenSection] = useState('basic');
+            const sensorHistoryRef = useRef([]);
+            const orientRef = useRef({ beta: 0, gamma: 0 });
+            const baselineRef = useRef(null);
+            const stateRef = useRef('waiting');
+            const stillCountRef = useRef(0);
+            const recordStartRef = useRef(0);
+
+            useEffect(() => {
+                stateRef.current = state;
+            }, [state]);
 
             useEffect(() => {
                 const handleDeviceOrientation = (event) => {
-                    orientRef.current.beta = event.beta || 0;         marg        orientRef.current.gamma = event.gamma || 0;         marg        setDisplayAngle(Math.round(event.beta || 0));         marg    };
-                 const handleDeviceMotion = (event) => {
-                    const rr = event.rotationRate || {};         margggggggggconst rotX = rr.beta || 0;         margggggggggconst rotY = rr.gamma || 0;         margggggggggconst rotZ = rr.alpha || 0;         margggggggggconst rotMag = Math.sqrt(rotX * rotX + rotY * rotY + rotZ * rotZ);         marg        const a = event.accelerationIncludingGravity || event.acceleration || {};         marggg      const jerk = calcJerk(a.x || 0, a.y || 0, a.z || 0);          marggg      const now = Date.now();         marg    ggggconst curState = stateRef.current;
-                     sensorHistoryRef.current.push({
+                    orientRef.current.beta = event.beta || 0;
+                    orientRef.current.gamma = event.gamma || 0;
+                    setDisplayAngle(Math.round(event.beta || 0));
+                };
+
+                const handleDeviceMotion = (event) => {
+                    const rr = event.rotationRate || {};
+                    const rotX = rr.beta || 0;
+                    const rotY = rr.gamma || 0;
+                    const rotZ = rr.alpha || 0;
+                    const rotMag = Math.sqrt(rotX * rotX + rotY * rotY + rotZ * rotZ);
+                    const a = event.accelerationIncludingGravity || event.acceleration || {};
+                    const jerk = calcJerk(a.x || 0, a.y || 0, a.z || 0);
+
+                    const now = Date.now();
+                    const curState = stateRef.current;
+
+                    sensorHistoryRef.current.push({
                         time: now,
                         beta: orientRef.current.beta,
                         gamma: orientRef.current.gamma,
                         rotX, rotY, rotZ, rotMag, jerk
-                    });         marg        if (sensorHistoryRef.current.length > 500) {
-                        sensorHistoryRef.current.shift();                     }
-                     if (curState === 'waiting')g{
-                        if (jerk < 2.5 && rotMag < 30)g{
-                            stillCountRef.current++;         margggggggggggggggggif (stillCountRef.current > 50) {
-                                baselineRef.current = {         marg                        beta: orientRef.current.beta,
+                    });
+                    if (sensorHistoryRef.current.length > 500) {
+                        sensorHistoryRef.current.shift();
+                    }
+
+                    if (curState === 'waiting') {
+                        if (jerk < 2.5 && rotMag < 30) {
+                            stillCountRef.current++;
+                            if (stillCountRef.current > 50) {
+                                baselineRef.current = {
+                                    beta: orientRef.current.beta,
                                     gamma: orientRef.current.gamma
                                 };
                                 setState('ready');
                                 AudioUtils.beep(800, 150);
                             }
                         } else {
-                            stillCountRef.current = 0;         marggggg        }
+                            stillCountRef.current = 0;
+                        }
                     }
-                     if (curState === 'ready')g{
+
+                    if (curState === 'ready') {
                         if (jerk > 3 || rotMag > 50) {
                             sensorHistoryRef.current = [];
                             sensorHistoryRef.current.push({
@@ -1118,65 +1616,87 @@
                                 beta: orientRef.current.beta,
                                 gamma: orientRef.current.gamma,
                                 rotX, rotY, rotZ, rotMag, jerk
-                            });         marg                recordStartRef.current = now;         margggggggggggggggggsetState('recording');
-                            AudioUtils.beep(1000, 100);         marg            }
+                            });
+                            recordStartRef.current = now;
+                            setState('recording');
+                            AudioUtils.beep(1000, 100);
+                        }
                     }
-                     if (curState === 'recording') {
-                        if (jerk < 4 && rotMag < 20 && (now - recordStartRef.current) > 300)g{
-                            stillCountRef.current++;         margggggggggggggggggif (stillCountRef.current > 30)g{
+
+                    if (curState === 'recording') {
+                        if (jerk < 4 && rotMag < 20 && (now - recordStartRef.current) > 300) {
+                            stillCountRef.current++;
+                            if (stillCountRef.current > 30) {
                                 const allData = sensorHistoryRef.current;
                                 const calcMetrics = SensorUtils.calculateMetrics(allData, baselineRef.current);
-                                setState('stopped');         margggggggggggggggggggggAudioUtils.success();
-                                if (calcMetrics)gsetMetrics(calcMetrics);         marggggggggggggggggg}
+                                setState('stopped');
+                                AudioUtils.success();
+                                if (calcMetrics) setMetrics(calcMetrics);
+                            }
                         } else {
-                            stillCountRef.current = 0;         marggggg        }
-                        if ((now - recordStartRef.current) > 5000)g{
+                            stillCountRef.current = 0;
+                        }
+                        if ((now - recordStartRef.current) > 5000) {
                             const allData = sensorHistoryRef.current;
                             const calcMetrics = SensorUtils.calculateMetrics(allData, baselineRef.current);
-                            setState('stopped');         margggggggggggggggggAudioUtils.success();
-                            if (calcMetrics)gsetMetrics(calcMetrics);         marggggggggggggg}
+                            setState('stopped');
+                            AudioUtils.success();
+                            if (calcMetrics) setMetrics(calcMetrics);
+                        }
                     }
-                };                  window.addEventListener('deviceorientation', handleDeviceOrientation);         margggggwindow.addEventListener('devicemotion', handleDeviceMotion);                  return () => {
-                    window.removeEventListener('deviceorientation', handleDeviceOrientation);         marggggg    window.removeEventListener('devicemotion', handleDeviceMotion);                 };             }, []);
+                };
+
+                window.addEventListener('deviceorientation', handleDeviceOrientation);
+                window.addEventListener('devicemotion', handleDeviceMotion);
+
+                return () => {
+                    window.removeEventListener('deviceorientation', handleDeviceOrientation);
+                    window.removeEventListener('devicemotion', handleDeviceMotion);
+                };
+            }, []);
 
             if (state === 'waiting' || state === 'ready' || state === 'recording') {
-                return (         marggggggggg<div className="screen">
-                    gggg<div className="header">
-                        gggg<h2>計滬中</h2>
-                    gggg</div>
+                return (
+                    <div className="screen">
+                        <div className="header">
+                            <h2>è¨æ¸¬ä¸­</h2>
+                        </div>
                         <div className="content">
                             <div className={`state-badge state-${state === 'ready' ? 'ready' : state === 'recording' ? 'recording' : 'waiting'}`}>
-                                {state === 'waiting' && 'スイングしてください'}
-                                {state === 'ready' && 'スイング準備完了'}
-                                {state === 'recording' && '記録中...'}
+                                {state === 'waiting' && 'ã¹ã¤ã³ã°ãã¦ãã ãã'}
+                                {state === 'ready' && 'ã¹ã¤ã³ã°æºåå®äº'}
+                                {state === 'recording' && 'è¨é²ä¸­...'}
                             </div>
                             <div className={`metric-circle ${state === 'recording' ? 'waiting' : ''}`}>
-                                <div className="metric-value">{displayAngle}°</div>
-                                <div className="metric-label">腕の角度</div>
+                                <div className="metric-value">{displayAngle}Â°</div>
+                                <div className="metric-label">èã®è§åº¦</div>
                             </div>
                         </div>
                     </div>
-                );         marg}
-             if (state === 'stopped' && metrics)g{
-                return (         marggggggggg<div className="screen">
-                    gggg<div className="header">
-                        gggg<h2>計滬結果</h2>
-                    gggg</div>
+                );
+            }
+
+            if (state === 'stopped' && metrics) {
+                return (
+                    <div className="screen">
+                        <div className="header">
+                            <h2>è¨æ¸¬çµæ</h2>
+                        </div>
                         <div className="content">
                             <div className="expandable-section">
                                 <div className="expandable-header" onClick={() => setOpenSection(openSection === 'basic' ? '' : 'basic')}>
-                                    <span>基本データ</span>
-                                    <span className={`expandable-icon ${openSection === 'basic' ? 'open' : ''}`}>▼</span>
+                                    <span>åºæ¬ãã¼ã¿</span>
+                                    <span className={`expandable-icon ${openSection === 'basic' ? 'open' : ''}`}>â¼</span>
                                 </div>
                                 {openSection === 'basic' && (
                                     <div className="expandable-content">
                                         <div className="range-info">
                                             <div className="range-box">
-                                                <div className="range-label">振り幅</div>
-                                                <div className="range-value">{metrics.betaDelta.toFixed(1)}°</div>
+                                                <div className="range-label">æ¯ãå¹</div>
+                                                <div className="range-value">{metrics.betaDelta.toFixed(1)}Â°</div>
                                             </div>
                                             <div className="range-box">
-                                                <div className="range-label">スムーズさ</div>
+                                                <div className="range-label">ã¹ã ã¼ãºã</div>
                                                 <div className="range-value">{metrics.smoothness.toFixed(0)}%</div>
                                             </div>
                                         </div>
@@ -1186,18 +1706,18 @@
 
                             <div className="expandable-section">
                                 <div className="expandable-header" onClick={() => setOpenSection(openSection === 'tempo' ? '' : 'tempo')}>
-                                    <span>テンポ・タイミング</span>
-                                    <span className={`expandable-icon ${openSection === 'tempo' ? 'open' : ''}`}>▼</span>
+                                    <span>ãã³ãã»ã¿ã¤ãã³ã°</span>
+                                    <span className={`expandable-icon ${openSection === 'tempo' ? 'open' : ''}`}>â¼</span>
                                 </div>
                                 {openSection === 'tempo' && (
                                     <div className="expandable-content">
                                         <div className="range-info">
                                             <div className="range-box">
-                                                <div className="range-label">テンポ比率</div>
+                                                <div className="range-label">ãã³ãæ¯ç</div>
                                                 <div className="range-value">{metrics.tempo.toFixed(2)}:1</div>
                                             </div>
                                             <div className="range-box">
-                                                <div className="range-label">ダウン時間</div>
+                                                <div className="range-label">ãã¦ã³æé</div>
                                                 <div className="range-value">{metrics.downswingTime.toFixed(0)}ms</div>
                                             </div>
                                         </div>
@@ -1207,18 +1727,18 @@
 
                             <div className="expandable-section">
                                 <div className="expandable-header" onClick={() => setOpenSection(openSection === 'mechanics' ? '' : 'mechanics')}>
-                                    <span>スイング解析</span>
-                                    <span className={`expandable-icon ${openSection === 'mechanics' ? 'open' : ''}`}>▼</span>
+                                    <span>ã¹ã¤ã³ã°è§£æ</span>
+                                    <span className={`expandable-icon ${openSection === 'mechanics' ? 'open' : ''}`}>â¼</span>
                                 </div>
                                 {openSection === 'mechanics' && (
                                     <div className="expandable-content">
                                         <div className="range-info">
                                             <div className="range-box">
-                                                <div className="range-label">フェース角</div>
-                                                <div className="range-value">{metrics.vfa.toFixed(1)}°</div>
+                                                <div className="range-label">ãã§ã¼ã¹è§</div>
+                                                <div className="range-value">{metrics.vfa.toFixed(1)}Â°</div>
                                             </div>
                                             <div className="range-box">
-                                                <div className="range-label">バックスイング</div>
+                                                <div className="range-label">ããã¯ã¹ã¤ã³ã°</div>
                                                 <div className="range-value">{metrics.backswingTime.toFixed(0)}ms</div>
                                             </div>
                                         </div>
@@ -1229,71 +1749,123 @@
                             <div style={{ marginTop: '2rem' }} className="stack-v">
                                 <button className="btn btn-primary btn-lg btn-block" onClick={() => {
                                     AudioUtils.click();
-                                    setState('waiting');                                     setMetrics(null);         marg                        setOpenSection('basic');                                     sensorHistoryRef.current = [];
-                                    stillCountRef.current = 0;         marggggg                    baselineRef.current = null;
-        marg                    }}>
-                                    もう一度計滬
+                                    setState('waiting');
+                                    setMetrics(null);
+                                    setOpenSection('basic');
+                                    sensorHistoryRef.current = [];
+                                    stillCountRef.current = 0;
+                                    baselineRef.current = null;
+                                }}>
+                                    ããä¸åº¦è¨æ¸¬
                                 </button>
-                        gggg    <button className="btn btn-secondary btn-lg btn-block" onClick={onBack}>
-                                    ホームに戻る
+                                <button className="btn btn-secondary btn-lg btn-block" onClick={onBack}>
+                                    ãã¼ã ã«æ»ã
                                 </button>
-                        gggg</div>
+                            </div>
                         </div>
                     </div>
-                );         marg}
-             return null;
+                );
+            }
+
+            return null;
         };
-         // MAIN APP         const App = () => {
-            const [screen, setScreen] = useState('home');         margconst [mode, setMode] = useState(null);         margconst [zone, setZone] = useState(null);         margconst [drill, setDrill] = useState(null);         margconst [difficulty,gsetDifficulty] = useState(null);         margconst [freeStep, setFreeStep] = useState('grip');          margconst navigateTo = (newScreen) => {
+
+        // MAIN APP
+        const App = () => {
+            const [screen, setScreen] = useState('home');
+            const [mode, setMode] = useState(null);
+            const [zone, setZone] = useState(null);
+            const [drill, setDrill] = useState(null);
+            const [difficulty, setDifficulty] = useState(null);
+            const [freeStep, setFreeStep] = useState('grip');
+
+            const navigateTo = (newScreen) => {
                 AudioUtils.click();
-                setScreen(newScreen);         marg};              const goHome = () => {
-            margAudioUtils.click();
-                setScreen('home');         marg    setMode(null);         marg    setZone(null);         marg    setDrill(null);         marg    setDifficulty(null);         marg    setFreeStep('grip');         marg};              return (         marggggg<div className="container">
+                setScreen(newScreen);
+            };
+
+            const goHome = () => {
+                AudioUtils.click();
+                setScreen('home');
+                setMode(null);
+                setZone(null);
+                setDrill(null);
+                setDifficulty(null);
+                setFreeStep('grip');
+            };
+
+            return (
+                <div className="container">
                     {screen === 'home' && (
                         <HomeScreen onSelectMode={(m) => {
                             setMode(m);
                             if (m === 'drill') {
-                                setScreen('drill-category');                             } else {
-                                setScreen('free-grip');         marg                    setFreeStep('grip');         marg                }         marg            }} />         marg        )}
-                     {screen === 'drill-category' && mode === 'drill' && (
-                        <DrillCategoryScreen         marg                onSelectDrill={(z, d) => {
-                                setZone(z);         marg                    setDrill(d);
-                                setScreen('drill-difficulty');         marg                }}
+                                setScreen('drill-category');
+                            } else {
+                                setScreen('free-grip');
+                                setFreeStep('grip');
+                            }
+                        }} />
+                    )}
+
+                    {screen === 'drill-category' && mode === 'drill' && (
+                        <DrillCategoryScreen
+                            onSelectDrill={(z, d) => {
+                                setZone(z);
+                                setDrill(d);
+                                setScreen('drill-difficulty');
+                            }}
                             onBack={goHome}
-                        />         marg        )}
-                     {screen === 'drill-difficulty' && (
-                        <DifficultyScreen         marg                zone={zone}
+                        />
+                    )}
+
+                    {screen === 'drill-difficulty' && (
+                        <DifficultyScreen
+                            zone={zone}
                             drillId={drill}
                             onSelectDifficulty={(diff) => {
                                 setDifficulty(diff);
-                                setScreen('drill-execution');         marg                }}
+                                setScreen('drill-execution');
+                            }}
                             onBack={() => setScreen('drill-category')}
-                        />         marg        )}
-                     {screen === 'drill-execution' && (
-                        <DrillExecutionScreen         marg                zone={zone}
+                        />
+                    )}
+
+                    {screen === 'drill-execution' && (
+                        <DrillExecutionScreen
+                            zone={zone}
                             drillId={drill}
                             difficulty={difficulty}
                             onComplete={() => setScreen('drill-category')}
                             onBack={goHome}
-                        />         marg        )}
-                     {screen === 'free-grip' && (
+                        />
+                    )}
+
+                    {screen === 'free-grip' && (
                         <FreeGripGuideScreen
                             onComplete={() => setScreen('free-calibration')}
                             onBack={goHome}
-                        />         marg        )}
-                     {screen === 'free-calibration' && (
+                        />
+                    )}
+
+                    {screen === 'free-calibration' && (
                         <FreeCalibrationScreen
                             onComplete={() => setScreen('free-execution')}
                             onBack={goHome}
-                        />         marg        )}
-                     {screen === 'free-execution' && (
+                        />
+                    )}
+
+                    {screen === 'free-execution' && (
                         <FreeExecutionScreen
                             onComplete={() => setScreen('home')}
                             onBack={goHome}
-                        />         marg        )}
+                        />
+                    )}
                 </div>
             );
         };
-         ReactDOM.render(<App />, document.getElementById('root'));     </script>
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
 </body>
 </html>
