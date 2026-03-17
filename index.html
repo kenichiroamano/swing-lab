@@ -298,6 +298,165 @@
             margin-top: 0.5rem;
         }
 
+        /* TODAY'S STATS */
+        .stats-card {
+            background: linear-gradient(135deg, var(--color-primary) 0%, #3A4D3A 100%);
+            border-radius: 20px;
+            padding: 1.25rem 1.5rem;
+            color: white;
+            margin-top: 0.75rem;
+        }
+
+        .stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .stats-header-title {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .stats-header-link {
+            font-size: 0.75rem;
+            color: var(--color-gold-light);
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 0.5rem;
+            text-align: center;
+        }
+
+        .stat-item-value {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: white;
+            line-height: 1;
+        }
+
+        .stat-item-unit {
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.6);
+            vertical-align: super;
+            margin-left: 2px;
+        }
+
+        .stat-item-label {
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.5);
+            margin-top: 0.25rem;
+        }
+
+        /* WEEKLY PROGRESS */
+        .weekly-card {
+            background: var(--color-bg-card);
+            border-radius: 16px;
+            padding: 1rem 1.25rem;
+            margin-top: 0.75rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+
+        .weekly-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .weekly-title {
+            font-family: 'Noto Serif JP', serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        .weekly-percent {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--color-gold);
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 6px;
+            background: var(--color-bg-secondary);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: linear-gradient(90deg, var(--color-primary), var(--color-gold));
+            transition: width 1s ease;
+        }
+
+        /* SENSOR STATE PHASE INDICATOR */
+        .phase-indicator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .phase-steps {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .phase-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(200,149,108,0.2);
+            transition: all 0.3s;
+        }
+
+        .phase-dot.active {
+            background: var(--color-gold);
+            box-shadow: 0 0 8px rgba(200,149,108,0.4);
+        }
+
+        .phase-dot.done {
+            background: var(--color-success);
+        }
+
+        .phase-line {
+            width: 24px;
+            height: 2px;
+            background: rgba(200,149,108,0.2);
+        }
+
+        .phase-line.done {
+            background: var(--color-success);
+        }
+
+        .phase-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        .phase-sublabel {
+            font-size: 0.7rem;
+            color: var(--color-text-secondary);
+            text-align: center;
+            line-height: 1.4;
+        }
+
         /* CARD TITLE AREA */
         .card-title-area {
             display: flex;
@@ -1030,8 +1189,45 @@
             return value;
         };
 
+        // SESSION STATS (in-memory, resets each page load)
+        const SessionStats = {
+            _swings: 0,
+            _accuracy: 0,
+            _successCount: 0,
+            _startTime: Date.now(),
+            addSwing: (success) => {
+                SessionStats._swings++;
+                if (success) SessionStats._successCount++;
+                SessionStats._accuracy = SessionStats._swings > 0
+                    ? Math.round((SessionStats._successCount / SessionStats._swings) * 100) : 0;
+            },
+            getSwings: () => SessionStats._swings,
+            getAccuracy: () => SessionStats._accuracy,
+            getMinutes: () => Math.round((Date.now() - SessionStats._startTime) / 60000),
+        };
+
         // HOME SCREEN
         const HomeScreen = ({ onSelectMode }) => {
+            const [swings, setSwings] = useState(SessionStats.getSwings());
+            const [accuracy, setAccuracy] = useState(SessionStats.getAccuracy());
+            const [minutes, setMinutes] = useState(SessionStats.getMinutes());
+
+            useEffect(() => {
+                const timer = setInterval(() => {
+                    setSwings(SessionStats.getSwings());
+                    setAccuracy(SessionStats.getAccuracy());
+                    setMinutes(SessionStats.getMinutes());
+                }, 5000);
+                // Also refresh immediately on mount
+                setSwings(SessionStats.getSwings());
+                setAccuracy(SessionStats.getAccuracy());
+                setMinutes(SessionStats.getMinutes());
+                return () => clearInterval(timer);
+            }, []);
+
+            const weeklyTarget = 50;
+            const weeklyPercent = Math.min(100, Math.round((swings / weeklyTarget) * 100));
+
             return (
                 <div className="screen">
                     <div className="header">
@@ -1073,6 +1269,39 @@
                                         <div className="mode-card-title" style={{ fontFamily: "'Playfair Display', 'Noto Serif JP', Georgia, serif" }}>計測</div>
                                         <div className="mode-card-desc">全データを分析</div>
                                     </div>
+                                </div>
+                            </div>
+
+                            {/* TODAY'S STATS */}
+                            <div className="stats-card">
+                                <div className="stats-header">
+                                    <span className="stats-header-title">TODAY'S STATS</span>
+                                    <span className="stats-header-link">詳細 →</span>
+                                </div>
+                                <div className="stats-grid">
+                                    <div>
+                                        <div className="stat-item-value">{swings}<span className="stat-item-unit">回</span></div>
+                                        <div className="stat-item-label">スイング</div>
+                                    </div>
+                                    <div>
+                                        <div className="stat-item-value">{accuracy}<span className="stat-item-unit">%</span></div>
+                                        <div className="stat-item-label">精度</div>
+                                    </div>
+                                    <div>
+                                        <div className="stat-item-value">{minutes}<span className="stat-item-unit">min</span></div>
+                                        <div className="stat-item-label">練習時間</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* WEEKLY PROGRESS */}
+                            <div className="weekly-card">
+                                <div className="weekly-header">
+                                    <span className="weekly-title">週間目標</span>
+                                    <span className="weekly-percent">{weeklyPercent}%</span>
+                                </div>
+                                <div className="progress-bar-bg">
+                                    <div className="progress-bar-fill" style={{ width: `${weeklyPercent}%` }}></div>
                                 </div>
                             </div>
                         </div>
@@ -1242,6 +1471,8 @@
             const baselineRef = useRef(null);
             const stateRef = useRef('grip');
             const recordingDataRef = useRef([]);
+            const readyTimeRef = useRef(0);
+            const readyStableCountRef = useRef(0);
 
             const drillConfig = {
                 width: {
@@ -1301,10 +1532,22 @@
                             baselineRef.current = { beta: o.beta, gamma: o.gamma, alpha: o.alpha };
                             stateRef.current = 'ready';
                             setState('ready');
+                            readyTimeRef.current = now;
+                            readyStableCountRef.current = 0;
                             AudioUtils.ready();
                         }
                     } else if (stateRef.current === 'ready') {
-                        if (SensorUtils.detectMovement(sensorHistoryRef.current)) {
+                        // Count stable samples in ready state
+                        if (jerk < 2.5 && rotMag < 30) {
+                            readyStableCountRef.current++;
+                        } else {
+                            readyStableCountRef.current = 0;
+                        }
+                        // Only start recording after 0.8s of stability in ready state
+                        // This prevents triggering from arm-lowering motion
+                        const readyElapsed = now - readyTimeRef.current;
+                        if (readyElapsed > 800 && readyStableCountRef.current > 10 &&
+                            SensorUtils.detectMovement(sensorHistoryRef.current)) {
                             stateRef.current = 'recording';
                             setState('recording');
                             recordingDataRef.current = [];
@@ -1391,11 +1634,7 @@
             }
 
             if (state === 'ready' || state === 'waiting' || state === 'recording') {
-                const stateLabels = {
-                    waiting: 'スイングしてください',
-                    ready: 'スイング準備完了',
-                    recording: '記録中...'
-                };
+                const phaseIdx = state === 'waiting' ? 0 : state === 'ready' ? 1 : 2;
 
                 return (
                     <div className="screen">
@@ -1403,8 +1642,24 @@
                             <h2>ドリル実行中</h2>
                         </div>
                         <div className="content">
-                            <div className={`state-badge state-${state === 'ready' ? 'ready' : state === 'recording' ? 'recording' : 'waiting'}`}>
-                                {stateLabels[state]}
+                            <div className="phase-indicator">
+                                <div className="phase-steps">
+                                    <div className={`phase-dot ${phaseIdx === 0 ? 'active' : phaseIdx > 0 ? 'done' : ''}`}></div>
+                                    <div className={`phase-line ${phaseIdx > 0 ? 'done' : ''}`}></div>
+                                    <div className={`phase-dot ${phaseIdx === 1 ? 'active' : phaseIdx > 1 ? 'done' : ''}`}></div>
+                                    <div className={`phase-line ${phaseIdx > 1 ? 'done' : ''}`}></div>
+                                    <div className={`phase-dot ${phaseIdx === 2 ? 'active' : ''}`}></div>
+                                </div>
+                                <div className="phase-label">
+                                    {state === 'waiting' && '① 静止してください'}
+                                    {state === 'ready' && '② アドレスOK → スイング！'}
+                                    {state === 'recording' && '③ 計測中...'}
+                                </div>
+                                <div className="phase-sublabel">
+                                    {state === 'waiting' && 'スマホを持って構え、動きを止めてください'}
+                                    {state === 'ready' && '安定を確認しました。準備ができたらスイングしてください'}
+                                    {state === 'recording' && 'スイングを記録しています。フィニッシュで止まってください'}
+                                </div>
                             </div>
                             <div className={`metric-circle ${state === 'recording' ? 'waiting' : ''}`}>
                                 <div className="metric-value">{displayAngle}°</div>
@@ -1448,6 +1703,9 @@
                 }
 
                 const countUpValue = useCountUp(displayValue, 800);
+
+                // Record swing to session stats (only once per result render)
+                useEffect(() => { SessionStats.addSwing(success); }, []);
 
                 return (
                     <div className="screen">
@@ -1608,6 +1866,8 @@
             const stateRef = useRef('waiting');
             const stillCountRef = useRef(0);
             const recordStartRef = useRef(0);
+            const readyTimeRef = useRef(0);
+            const readyStableCountRef = useRef(0);
 
             useEffect(() => {
                 stateRef.current = state;
@@ -1651,6 +1911,8 @@
                                     gamma: orientRef.current.gamma
                                 };
                                 setState('ready');
+                                readyTimeRef.current = now;
+                                readyStableCountRef.current = 0;
                                 AudioUtils.beep(800, 150);
                             }
                         } else {
@@ -1659,7 +1921,16 @@
                     }
 
                     if (curState === 'ready') {
-                        if (jerk > 3 || rotMag > 50) {
+                        // Count stable samples after entering ready state
+                        if (jerk < 2.5 && rotMag < 30) {
+                            readyStableCountRef.current++;
+                        } else {
+                            readyStableCountRef.current = 0;
+                        }
+                        // Only start recording after 0.8s stability in ready state
+                        const readyElapsed = now - readyTimeRef.current;
+                        if (readyElapsed > 800 && readyStableCountRef.current > 10 &&
+                            (jerk > 3 || rotMag > 50)) {
                             sensorHistoryRef.current = [];
                             sensorHistoryRef.current.push({
                                 time: now,
@@ -1706,16 +1977,32 @@
             }, []);
 
             if (state === 'waiting' || state === 'ready' || state === 'recording') {
+                const phaseIdx = state === 'waiting' ? 0 : state === 'ready' ? 1 : 2;
+
                 return (
                     <div className="screen">
                         <div className="header">
                             <h2>計測中</h2>
                         </div>
                         <div className="content">
-                            <div className={`state-badge state-${state === 'ready' ? 'ready' : state === 'recording' ? 'recording' : 'waiting'}`}>
-                                {state === 'waiting' && 'スイングしてください'}
-                                {state === 'ready' && 'スイング準備完了'}
-                                {state === 'recording' && '記録中...'}
+                            <div className="phase-indicator">
+                                <div className="phase-steps">
+                                    <div className={`phase-dot ${phaseIdx === 0 ? 'active' : phaseIdx > 0 ? 'done' : ''}`}></div>
+                                    <div className={`phase-line ${phaseIdx > 0 ? 'done' : ''}`}></div>
+                                    <div className={`phase-dot ${phaseIdx === 1 ? 'active' : phaseIdx > 1 ? 'done' : ''}`}></div>
+                                    <div className={`phase-line ${phaseIdx > 1 ? 'done' : ''}`}></div>
+                                    <div className={`phase-dot ${phaseIdx === 2 ? 'active' : ''}`}></div>
+                                </div>
+                                <div className="phase-label">
+                                    {state === 'waiting' && '① 静止してください'}
+                                    {state === 'ready' && '② アドレスOK → スイング！'}
+                                    {state === 'recording' && '③ 計測中...'}
+                                </div>
+                                <div className="phase-sublabel">
+                                    {state === 'waiting' && 'スマホを持って構え、動きを止めてください'}
+                                    {state === 'ready' && '安定を確認しました。準備ができたらスイングしてください'}
+                                    {state === 'recording' && 'スイングを記録しています。フィニッシュで止まってください'}
+                                </div>
                             </div>
                             <div className={`metric-circle ${state === 'recording' ? 'waiting' : ''}`}>
                                 <div className="metric-value">{displayAngle}°</div>
@@ -1727,6 +2014,9 @@
             }
 
             if (state === 'stopped' && metrics) {
+                // Record swing to session stats (free measurement always counted as success)
+                useEffect(() => { SessionStats.addSwing(true); }, []);
+
                 return (
                     <div className="screen">
                         <div className="header">
