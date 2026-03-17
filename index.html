@@ -458,68 +458,39 @@
         }
 
         /* 3D SWING COMPASS */
-        .compass-wrapper {
+        .golfer-wrapper {
             display: flex;
             flex-direction: column;
             align-items: center;
             margin: 0.5rem 0;
         }
 
-        .compass-container {
+        .golfer-container {
             position: relative;
-            width: 220px;
-            height: 220px;
-            perspective: 600px;
+            width: 260px;
+            height: 240px;
         }
 
-        .compass-svg {
+        .golfer-svg {
             width: 100%;
             height: 100%;
-            position: relative;
-            z-index: 2;
         }
 
-        .compass-disc {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            width: 200px;
-            height: 200px;
-            border-radius: 50%;
-            border: 2px solid rgba(45, 59, 45, 0.15);
-            background: radial-gradient(circle at 40% 40%, rgba(200,149,108,0.08), rgba(45,59,45,0.05));
-            transform-style: preserve-3d;
-            transition: transform 0.08s linear;
-            z-index: 1;
-        }
-
-        .compass-disc::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--color-primary);
-            transform: translate(-50%, -50%);
-        }
-
-        .compass-values {
+        .golfer-values {
             display: flex;
             justify-content: center;
             gap: 2rem;
-            margin-top: 0.75rem;
+            margin-top: 0.5rem;
         }
 
-        .compass-axis {
+        .golfer-axis {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 0.15rem;
         }
 
-        .compass-axis-num {
+        .golfer-axis-num {
             font-family: 'Inter', 'Noto Serif JP', sans-serif;
             font-size: 1.6rem;
             font-weight: 700;
@@ -527,11 +498,11 @@
             line-height: 1;
         }
 
-        .compass-axis-num.gold {
+        .golfer-axis-num.gold {
             color: var(--color-gold);
         }
 
-        .compass-axis-unit {
+        .golfer-axis-unit {
             font-size: 0.65rem;
             font-weight: 600;
             color: var(--color-text-secondary);
@@ -539,7 +510,7 @@
             text-transform: uppercase;
         }
 
-        .compass-total {
+        .golfer-total {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -550,14 +521,14 @@
             color: white;
         }
 
-        .compass-total-num {
+        .golfer-total-num {
             font-family: 'Playfair Display', serif;
             font-size: 2rem;
             font-weight: 800;
             line-height: 1;
         }
 
-        .compass-total-label {
+        .golfer-total-label {
             font-size: 0.6rem;
             font-weight: 600;
             opacity: 0.8;
@@ -565,18 +536,13 @@
             text-transform: uppercase;
         }
 
-        .compass-recording .compass-disc {
-            border-color: rgba(200, 149, 108, 0.4);
-            box-shadow: 0 0 20px rgba(200, 149, 108, 0.15);
-        }
-
-        @keyframes compass-pulse {
+        @keyframes golfer-pulse {
             0%, 100% { opacity: 0.6; }
             50% { opacity: 1; }
         }
 
-        .compass-recording .compass-total {
-            animation: compass-pulse 1s ease-in-out infinite;
+        .golfer-recording .golfer-total {
+            animation: golfer-pulse 1s ease-in-out infinite;
         }
 
         /* CARD TITLE AREA */
@@ -1336,108 +1302,274 @@
             return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
         };
 
-        // 3D SWING COMPASS COMPONENT
+        // GOLFER STICK FIGURE ANIMATION (rear view)
         const SwingCompass = ({ beta, gamma, alpha, baseline, state }) => {
             const angles = SensorUtils.calcAngles(
                 { beta: beta || 0, gamma: gamma || 0, alpha: alpha || 0 },
                 baseline
             );
-            const v = angles.vertical;
-            const h = angles.horizontal;
+            const v = angles.vertical;   // backswing height (beta)
+            const h = angles.horizontal; // rotation around body (alpha)
             const c = angles.combined;
-
-            // Clamp arcs to reasonable range for SVG drawing
-            const vArc = Math.min(Math.max(Math.abs(v), 0), 170);
-            const hArc = Math.min(Math.max(Math.abs(h), 0), 170);
-
-            // 3D disc tilt CSS
-            const discStyle = {
-                transform: `rotateX(${Math.max(-45, Math.min(45, -v * 0.3))}deg) rotateY(${Math.max(-45, Math.min(45, h * 0.3))}deg)`
-            };
 
             const isRecording = state === 'recording';
 
+            // Golfer body constants (rear view, centered)
+            const cx = 130; // center x of golfer body
+            const headY = 50;
+            const shoulderY = 75;
+            const hipY = 130;
+            const kneeY = 170;
+            const footY = 205;
+            const shoulderW = 28;
+
+            // Arms pivot from shoulder center
+            // Map sensor angles to arm+club swing angle
+            // At address (0°): arms hang down → angle ~0 from vertical downward
+            // Backswing: v increases → club goes up and behind → rotate clockwise (rear view)
+            // h gives lateral shift
+            const swingAngle = Math.max(-200, Math.min(200, -v * 1.2 + h * 0.4));
+            const swingRad = swingAngle * Math.PI / 180;
+
+            // Arm length + club length
+            const armLen = 45;
+            const clubLen = 55;
+
+            // Hands position (end of arms)
+            const handX = cx + armLen * Math.sin(swingRad);
+            const handY = shoulderY + armLen * Math.cos(swingRad);
+
+            // Club head position (end of club from hands)
+            const clubX = handX + clubLen * Math.sin(swingRad);
+            const clubY = handY + clubLen * Math.cos(swingRad);
+
+            // Swing trail: show arc path of club head
+            const trailPoints = [];
+            const trailStart = 0;
+            const trailEnd = swingAngle;
+            const steps = Math.max(2, Math.abs(Math.round(trailEnd / 5)));
+            for (let i = 0; i <= steps; i++) {
+                const a = (trailStart + (trailEnd - trailStart) * i / steps) * Math.PI / 180;
+                const hx = cx + armLen * Math.sin(a);
+                const hy = shoulderY + armLen * Math.cos(a);
+                const chx = hx + clubLen * Math.sin(a);
+                const chy = hy + clubLen * Math.cos(a);
+                trailPoints.push(`${i === 0 ? 'M' : 'L'} ${chx.toFixed(1)} ${chy.toFixed(1)}`);
+            }
+            const trailPath = trailPoints.join(' ');
+
+            // Body slight rotation based on horizontal angle
+            const bodyTilt = Math.max(-12, Math.min(12, h * 0.15));
+            const headTilt = Math.max(-8, Math.min(8, h * 0.1));
+
+            // Ground line
+            const groundY = 210;
+
+            // Color scheme
+            const bodyColor = '#2D3B2D';
+            const clubColor = isRecording ? '#C8956C' : '#5A7A5A';
+            const trailColor = '#C8956C';
+            const ghostColor = 'rgba(200,149,108,0.15)';
+
             return React.createElement('div', {
-                className: `compass-wrapper ${isRecording ? 'compass-recording' : ''}`
+                className: `golfer-wrapper ${isRecording ? 'golfer-recording' : ''}`
             },
-                React.createElement('div', { className: 'compass-container' },
-                    // 3D tilting disc
-                    React.createElement('div', { className: 'compass-disc', style: discStyle }),
-                    // SVG overlay
+                React.createElement('div', { className: 'golfer-container' },
                     React.createElement('svg', {
-                        className: 'compass-svg',
-                        viewBox: '0 0 220 220'
+                        className: 'golfer-svg',
+                        viewBox: '0 0 260 230'
                     },
-                        // Outer reference ring
-                        React.createElement('circle', {
-                            cx: 110, cy: 110, r: 95,
-                            fill: 'none', stroke: '#2D3B2D', strokeWidth: 1.5, opacity: 0.15
+                        // Ground shadow
+                        React.createElement('ellipse', {
+                            cx: cx, cy: groundY, rx: 40, ry: 5,
+                            fill: 'rgba(45,59,45,0.08)'
                         }),
-                        // Tick marks every 30 degrees
-                        ...[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((a, i) => {
-                            const r1 = 90, r2 = 96;
-                            const rad = (a - 90) * Math.PI / 180;
-                            return React.createElement('line', {
-                                key: `tick-${i}`,
-                                x1: 110 + r1 * Math.cos(rad), y1: 110 + r1 * Math.sin(rad),
-                                x2: 110 + r2 * Math.cos(rad), y2: 110 + r2 * Math.sin(rad),
-                                stroke: '#2D3B2D', strokeWidth: a % 90 === 0 ? 2 : 1,
-                                opacity: a % 90 === 0 ? 0.4 : 0.2
-                            });
-                        }),
-                        // Vertical arc (gold) - from top, clockwise = positive beta
-                        vArc > 1 ? React.createElement('path', {
-                            d: describeArc(110, 110, 75, 0, v > 0 ? vArc : -vArc),
-                            fill: 'none', stroke: '#C8956C', strokeWidth: 5,
-                            strokeLinecap: 'round', opacity: 0.9
-                        }) : null,
-                        // Horizontal arc (deep green) - from right, counter-clockwise = positive alpha
-                        hArc > 1 ? React.createElement('path', {
-                            d: describeArc(110, 110, 60, 90, 90 + (h > 0 ? hArc : -hArc)),
-                            fill: 'none', stroke: '#2D3B2D', strokeWidth: 5,
-                            strokeLinecap: 'round', opacity: 0.9
-                        }) : null,
-                        // Direction needle
+                        // Ground line
                         React.createElement('line', {
-                            x1: 110, y1: 110,
-                            x2: 110 + 50 * Math.sin((h) * Math.PI / 180),
-                            y2: 110 - 50 * Math.cos((v) * Math.PI / 180),
-                            stroke: isRecording ? '#C8956C' : '#2D3B2D',
-                            strokeWidth: 2.5, strokeLinecap: 'round', opacity: 0.7
+                            x1: 30, y1: groundY, x2: 230, y2: groundY,
+                            stroke: bodyColor, strokeWidth: 1, opacity: 0.15
                         }),
-                        // Center dot
+                        // Ghost address position (faint)
+                        Math.abs(swingAngle) > 5 ? React.createElement('g', { opacity: 0.2 },
+                            // Ghost arms
+                            React.createElement('line', {
+                                x1: cx, y1: shoulderY,
+                                x2: cx, y2: shoulderY + armLen,
+                                stroke: bodyColor, strokeWidth: 2.5, strokeLinecap: 'round'
+                            }),
+                            // Ghost club
+                            React.createElement('line', {
+                                x1: cx, y1: shoulderY + armLen,
+                                x2: cx, y2: shoulderY + armLen + clubLen,
+                                stroke: '#8A8A82', strokeWidth: 2, strokeLinecap: 'round'
+                            }),
+                            // Ghost clubhead
+                            React.createElement('rect', {
+                                x: cx - 4, y: shoulderY + armLen + clubLen - 2,
+                                width: 8, height: 6, rx: 1.5,
+                                fill: '#8A8A82', opacity: 0.6
+                            })
+                        ) : null,
+                        // Swing arc trail (gold)
+                        Math.abs(swingAngle) > 3 ? React.createElement('path', {
+                            d: trailPath,
+                            fill: 'none',
+                            stroke: trailColor,
+                            strokeWidth: 2,
+                            strokeDasharray: '4 3',
+                            opacity: 0.5,
+                            strokeLinecap: 'round'
+                        }) : null,
+                        // Angle arc at shoulder
+                        Math.abs(swingAngle) > 5 ? React.createElement('path', {
+                            d: describeArc(cx, shoulderY, 25, 180, 180 + Math.min(170, Math.max(-170, swingAngle))),
+                            fill: 'none',
+                            stroke: trailColor,
+                            strokeWidth: 2,
+                            opacity: 0.6,
+                            strokeLinecap: 'round'
+                        }) : null,
+                        // Angle label at arc
+                        Math.abs(c) > 3 ? React.createElement('text', {
+                            x: cx + 32 * Math.sin(swingRad * 0.5),
+                            y: shoulderY + 32 * Math.cos(swingRad * 0.5),
+                            textAnchor: 'middle',
+                            fill: trailColor,
+                            fontSize: '11',
+                            fontWeight: 700,
+                            fontFamily: 'Inter, sans-serif'
+                        }, `${Math.round(c)}\u00B0`) : null,
+                        // === BODY (rear view) ===
+                        // Head
                         React.createElement('circle', {
-                            cx: 110, cy: 110, r: 4, fill: '#2D3B2D'
+                            cx: cx + headTilt, cy: headY, r: 14,
+                            fill: 'none', stroke: bodyColor, strokeWidth: 3
                         }),
-                        // Labels
+                        // Neck
+                        React.createElement('line', {
+                            x1: cx + headTilt, y1: headY + 14,
+                            x2: cx + bodyTilt * 0.3, y2: shoulderY,
+                            stroke: bodyColor, strokeWidth: 3, strokeLinecap: 'round'
+                        }),
+                        // Spine (slight lean)
+                        React.createElement('line', {
+                            x1: cx + bodyTilt * 0.3, y1: shoulderY,
+                            x2: cx + bodyTilt, y2: hipY,
+                            stroke: bodyColor, strokeWidth: 3.5, strokeLinecap: 'round'
+                        }),
+                        // Shoulders
+                        React.createElement('line', {
+                            x1: cx - shoulderW + bodyTilt * 0.3, y1: shoulderY,
+                            x2: cx + shoulderW + bodyTilt * 0.3, y2: shoulderY,
+                            stroke: bodyColor, strokeWidth: 3, strokeLinecap: 'round'
+                        }),
+                        // Hips
+                        React.createElement('line', {
+                            x1: cx - 16 + bodyTilt, y1: hipY,
+                            x2: cx + 16 + bodyTilt, y2: hipY,
+                            stroke: bodyColor, strokeWidth: 3, strokeLinecap: 'round'
+                        }),
+                        // Left leg
+                        React.createElement('line', {
+                            x1: cx - 16 + bodyTilt, y1: hipY,
+                            x2: cx - 14, y2: kneeY,
+                            stroke: bodyColor, strokeWidth: 2.5, strokeLinecap: 'round'
+                        }),
+                        React.createElement('line', {
+                            x1: cx - 14, y1: kneeY,
+                            x2: cx - 16, y2: footY,
+                            stroke: bodyColor, strokeWidth: 2.5, strokeLinecap: 'round'
+                        }),
+                        // Right leg
+                        React.createElement('line', {
+                            x1: cx + 16 + bodyTilt, y1: hipY,
+                            x2: cx + 14, y2: kneeY,
+                            stroke: bodyColor, strokeWidth: 2.5, strokeLinecap: 'round'
+                        }),
+                        React.createElement('line', {
+                            x1: cx + 14, y1: kneeY,
+                            x2: cx + 16, y2: footY,
+                            stroke: bodyColor, strokeWidth: 2.5, strokeLinecap: 'round'
+                        }),
+                        // Feet
+                        React.createElement('line', {
+                            x1: cx - 22, y1: footY, x2: cx - 10, y2: footY,
+                            stroke: bodyColor, strokeWidth: 2.5, strokeLinecap: 'round'
+                        }),
+                        React.createElement('line', {
+                            x1: cx + 10, y1: footY, x2: cx + 22, y2: footY,
+                            stroke: bodyColor, strokeWidth: 2.5, strokeLinecap: 'round'
+                        }),
+                        // === ARMS + CLUB (animated) ===
+                        // Arms (shoulder to hands)
+                        React.createElement('line', {
+                            x1: cx, y1: shoulderY,
+                            x2: handX, y2: handY,
+                            stroke: bodyColor, strokeWidth: 3, strokeLinecap: 'round'
+                        }),
+                        // Club shaft (hands to near club head)
+                        React.createElement('line', {
+                            x1: handX, y1: handY,
+                            x2: clubX, y2: clubY,
+                            stroke: clubColor, strokeWidth: 2.5, strokeLinecap: 'round'
+                        }),
+                        // Club head (small rectangle at end)
+                        React.createElement('rect', {
+                            x: clubX - 5, y: clubY - 2,
+                            width: 10, height: 7, rx: 2,
+                            fill: clubColor,
+                            transform: `rotate(${swingAngle}, ${clubX}, ${clubY})`
+                        }),
+                        // Hand grip dot
+                        React.createElement('circle', {
+                            cx: handX, cy: handY, r: 3.5,
+                            fill: bodyColor
+                        }),
+                        // Target line arrow (right side)
+                        React.createElement('line', {
+                            x1: 195, y1: groundY, x2: 240, y2: groundY,
+                            stroke: '#C8956C', strokeWidth: 1.5, opacity: 0.4,
+                            strokeDasharray: '4 3'
+                        }),
+                        React.createElement('polygon', {
+                            points: `240,${groundY - 4} 248,${groundY} 240,${groundY + 4}`,
+                            fill: '#C8956C', opacity: 0.4
+                        }),
                         React.createElement('text', {
-                            x: 110, y: 22, textAnchor: 'middle',
-                            fill: '#C8956C', fontSize: '9', fontWeight: 600, opacity: 0.7
-                        }, '\u5782\u76F4'),
-                        React.createElement('text', {
-                            x: 205, y: 114, textAnchor: 'middle',
-                            fill: '#2D3B2D', fontSize: '9', fontWeight: 600, opacity: 0.7
-                        }, '\u6C34\u5E73')
+                            x: 244, y: groundY - 8, textAnchor: 'middle',
+                            fill: '#C8956C', fontSize: '8', fontWeight: 500, opacity: 0.5,
+                            fontFamily: 'Inter, sans-serif'
+                        }, '\u98DB\u7403\u7DDA'),
+                        // Recording indicator
+                        isRecording ? React.createElement('circle', {
+                            cx: 20, cy: 20, r: 5,
+                            fill: '#C45B4A'
+                        }) : null,
+                        isRecording ? React.createElement('text', {
+                            x: 30, y: 24,
+                            fill: '#C45B4A', fontSize: '10', fontWeight: 600,
+                            fontFamily: 'Inter, sans-serif'
+                        }, 'REC') : null
                     )
                 ),
                 // Numeric values
-                React.createElement('div', { className: 'compass-values' },
-                    React.createElement('div', { className: 'compass-axis' },
-                        React.createElement('span', { className: 'compass-axis-num gold' },
+                React.createElement('div', { className: 'golfer-values' },
+                    React.createElement('div', { className: 'golfer-axis' },
+                        React.createElement('span', { className: 'golfer-axis-num gold' },
                             `${Math.abs(Math.round(v))}\u00B0`),
-                        React.createElement('span', { className: 'compass-axis-unit' }, '\u5782\u76F4\u9762\u89D2\u5EA6')
+                        React.createElement('span', { className: 'golfer-axis-unit' }, '\u30D0\u30C3\u30AF\u30B9\u30A4\u30F3\u30B0')
                     ),
-                    React.createElement('div', { className: 'compass-axis' },
-                        React.createElement('span', { className: 'compass-axis-num' },
+                    React.createElement('div', { className: 'golfer-axis' },
+                        React.createElement('span', { className: 'golfer-axis-num' },
                             `${Math.abs(Math.round(h))}\u00B0`),
-                        React.createElement('span', { className: 'compass-axis-unit' }, '\u6C34\u5E73\u9762\u89D2\u5EA6')
+                        React.createElement('span', { className: 'golfer-axis-unit' }, '\u56DE\u8EE2\u89D2\u5EA6')
                     )
                 ),
-                // Combined total (only during recording or when there's movement)
-                c > 2 ? React.createElement('div', { className: 'compass-total' },
-                    React.createElement('span', { className: 'compass-total-num' },
+                // Combined total
+                c > 2 ? React.createElement('div', { className: 'golfer-total' },
+                    React.createElement('span', { className: 'golfer-total-num' },
                         `${Math.round(c)}\u00B0`),
-                    React.createElement('span', { className: 'compass-total-label' }, '\u5408\u6210\u632F\u308A\u5E45')
+                    React.createElement('span', { className: 'golfer-total-label' }, '\u5408\u6210\u632F\u308A\u5E45')
                 ) : null
             );
         };
