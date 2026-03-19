@@ -231,6 +231,42 @@
             background: transparent;
         }
 
+        .hero-header {
+            padding: 2.5rem 1.5rem 1.8rem;
+            text-align: center;
+            background: transparent;
+            position: relative;
+        }
+        .hero-header .logo {
+            color: var(--color-primary);
+            margin-bottom: 0.4rem;
+        }
+        .hero-header .logo span {
+            color: #C8956C !important;
+        }
+        .hero-ornament {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 14px;
+        }
+        .hero-ornament-line {
+            width: 40px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(200,149,108,0.5));
+        }
+        .hero-ornament-line:last-child {
+            background: linear-gradient(90deg, rgba(200,149,108,0.5), transparent);
+        }
+        .hero-ornament-diamond {
+            width: 6px;
+            height: 6px;
+            background: #C8956C;
+            transform: rotate(45deg);
+            opacity: 0.6;
+        }
+
         .content {
             flex: 1;
             padding: 0 1.5rem 1.5rem;
@@ -528,12 +564,39 @@
             letter-spacing: 0.1em;
             text-transform: uppercase;
         }
+        /* Club head glow pulse */
+        @keyframes club-glow {
+            0%, 100% { filter: drop-shadow(0 0 3px rgba(200,149,108,0.3)); }
+            50% { filter: drop-shadow(0 0 10px rgba(200,149,108,0.7)); }
+        }
+        @keyframes club-glow-idle {
+            0%, 100% { filter: drop-shadow(0 0 2px rgba(90,122,90,0.2)); }
+            50% { filter: drop-shadow(0 0 6px rgba(90,122,90,0.4)); }
+        }
+        /* Trail shimmer */
+        @keyframes trail-dash {
+            0% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: -14; }
+        }
+        /* REC blink */
+        @keyframes rec-blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        /* Pivot ring pulse */
+        @keyframes pivot-ring {
+            0%, 100% { r: 5; opacity: 0.6; }
+            50% { r: 7; opacity: 0.3; }
+        }
         @keyframes golfer-pulse {
             0%, 100% { opacity: 0.6; }
             50% { opacity: 1; }
         }
         .golfer-recording .golfer-total {
             animation: golfer-pulse 1s ease-in-out infinite;
+        }
+        .golfer-svg {
+            overflow: visible;
         }
 
         /* CARD TITLE AREA */
@@ -545,7 +608,18 @@
         }
 
         .card-icon {
-            font-size: 2.5rem;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--color-primary) 0%, #4A6B4A 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
         }
 
         .card-progress {
@@ -662,6 +736,15 @@
         .screen {
             animation: fadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
+        /* Staggered entrance for home screen */
+        @keyframes riseIn {
+            from { opacity: 0; transform: translateY(24px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .home-stagger-1 { animation: riseIn 0.5s 0.1s cubic-bezier(0.25,0.46,0.45,0.94) both; }
+        .home-stagger-2 { animation: riseIn 0.5s 0.25s cubic-bezier(0.25,0.46,0.45,0.94) both; }
+        .home-stagger-3 { animation: riseIn 0.5s 0.4s cubic-bezier(0.25,0.46,0.45,0.94) both; }
 
         .drill-card {
             animation: slideInLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -986,24 +1069,59 @@
 
         /* GRIP GUIDE */
         .grip-guide {
-            padding: 1.5rem;
-            background: rgba(200, 149, 108, 0.06);
-            border-radius: 12px;
-            border: 2px solid var(--color-gold);
+            padding: 1.25rem;
+            background: rgba(200, 149, 108, 0.04);
+            border-radius: 16px;
+            border: 1.5px solid rgba(200, 149, 108, 0.25);
             text-align: center;
-            margin: 1.5rem 0;
+            margin: 1rem 0;
         }
-
-        .grip-icon {
-            font-size: 3rem;
+        .grip-steps {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
             margin-bottom: 1rem;
         }
-
+        .grip-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            gap: 0.4rem;
+        }
+        .grip-step-num {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #C8956C, #A87A56);
+            color: white;
+            font-size: 0.6rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Playfair Display', serif;
+        }
+        .grip-step-label {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: var(--color-text-secondary);
+            letter-spacing: 0.03em;
+        }
+        .grip-step-arrow {
+            display: flex;
+            align-items: center;
+            color: var(--color-gold);
+            font-size: 0.7rem;
+            opacity: 0.4;
+            padding-top: 1.2rem;
+        }
         .grip-text {
             font-family: 'Noto Serif JP', serif;
-            font-size: 1rem;
-            color: var(--color-text);
+            font-size: 0.85rem;
+            color: var(--color-text-secondary);
             line-height: 1.6;
+            margin-top: 0.5rem;
         }
 
         /* HOME CARD SECTION */
@@ -1052,8 +1170,8 @@
         /* DRILL CATEGORY GRID */
         .drill-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
             margin-bottom: 1rem;
         }
 
@@ -1155,7 +1273,92 @@
             }
         };
 
-        // SENSOR UTILS v11 - 2-axis measurement, improved accuracy
+        // ============================================================
+        // QUATERNION MATH UTILITIES
+        // For physically correct rotation computation.
+        // Euler angle subtraction is only accurate for small rotations (<15°).
+        // For half swings (60-90°), quaternions eliminate:
+        //   - Gimbal lock (gamma clamped to ±90°)
+        //   - Non-linear coupling between alpha/beta/gamma
+        //   - ~25% error in angle computation at large rotations
+        // ============================================================
+        const QuatUtils = {
+            // Convert W3C DeviceOrientation Euler angles (degrees) → unit quaternion
+            // W3C convention: intrinsic ZXY rotation (alpha=Z, beta=X, gamma=Y)
+            // R = Rz(alpha) · Rx(beta) · Ry(gamma)
+            fromEuler: (alphaDeg, betaDeg, gammaDeg) => {
+                const d2r = Math.PI / 360; // half-angle: deg → rad/2
+                const a = (alphaDeg || 0) * d2r;
+                const b = (betaDeg  || 0) * d2r;
+                const g = (gammaDeg || 0) * d2r;
+                const ca = Math.cos(a), sa = Math.sin(a);
+                const cb = Math.cos(b), sb = Math.sin(b);
+                const cg = Math.cos(g), sg = Math.sin(g);
+                return {
+                    w: ca*cb*cg - sa*sb*sg,
+                    x: ca*sb*cg - sa*cb*sg,
+                    y: ca*cb*sg + sa*sb*cg,
+                    z: ca*sb*sg + sa*cb*cg
+                };
+            },
+
+            // Quaternion conjugate (= inverse for unit quaternions)
+            conj: q => ({ w: q.w, x: -q.x, y: -q.y, z: -q.z }),
+
+            // Hamilton product: a ⊗ b
+            mul: (a, b) => ({
+                w: a.w*b.w - a.x*b.x - a.y*b.y - a.z*b.z,
+                x: a.w*b.x + a.x*b.w + a.y*b.z - a.z*b.y,
+                y: a.w*b.y - a.x*b.z + a.y*b.w + a.z*b.x,
+                z: a.w*b.z + a.x*b.y - a.y*b.x + a.z*b.w
+            }),
+
+            // Rotate vector v by quaternion q: v' = q ⊗ v ⊗ q*
+            // Optimized direct computation (no intermediate quaternion objects)
+            rotVec: (q, v) => {
+                const qw = q.w, qx = q.x, qy = q.y, qz = q.z;
+                const vx = v.x, vy = v.y, vz = v.z;
+                // t = 2 × (q_vec × v)
+                const tx = 2 * (qy * vz - qz * vy);
+                const ty = 2 * (qz * vx - qx * vz);
+                const tz = 2 * (qx * vy - qy * vx);
+                return {
+                    x: vx + qw * tx + (qy * tz - qz * ty),
+                    y: vy + qw * ty + (qz * tx - qx * tz),
+                    z: vz + qw * tz + (qx * ty - qy * tx)
+                };
+            },
+
+            // Total rotation angle of quaternion (degrees, 0 to 180)
+            angle: q => {
+                const w = Math.min(1, Math.max(-1, q.w));
+                return 2 * Math.acos(Math.abs(w)) * 180 / Math.PI;
+            },
+
+            // Swing-Twist decomposition around Y-axis (shaft axis at address)
+            // Separates:
+            //   twist = rotation AROUND the shaft (wrist roll/cock)
+            //   swing = rotation that MOVES the shaft to new direction
+            // Physically: q_rel = swing ⊗ twist  (twist first, then swing)
+            decomposeSwingTwist: q => {
+                // Project q onto Y-axis (keep w and y components only)
+                const len = Math.sqrt(q.w * q.w + q.y * q.y);
+                if (len < 1e-6) {
+                    // Degenerate: 180° swing perpendicular to shaft
+                    return {
+                        twist: { w: 1, x: 0, y: 0, z: 0 },
+                        swing: { w: q.w, x: q.x, y: q.y, z: q.z },
+                        twistAngle: 0
+                    };
+                }
+                const twist = { w: q.w / len, x: 0, y: q.y / len, z: 0 };
+                const swing = QuatUtils.mul(q, QuatUtils.conj(twist));
+                const twistAngle = 2 * Math.atan2(twist.y, twist.w) * 180 / Math.PI;
+                return { swing, twist, twistAngle };
+            }
+        };
+
+        // SENSOR UTILS v12 - Quaternion-based measurement
         const _prevAcc = { x: 0, y: 0, z: 0 };
         const calcJerk = (ax, ay, az) => {
             const j = Math.sqrt(
@@ -1204,24 +1407,61 @@
                 return recent.every(d => d.rotMag < 15 && d.jerk < 3);
             },
 
-            // 3-axis angle calculation from baseline
+            // ============================================================
+            // QUATERNION-BASED ANGLE CALCULATION
+            // No manual axis mapping needed — quaternion math automatically
+            // separates shaft movement from wrist roll via swing-twist decomposition.
+            // This eliminates the gamma/beta/alpha mapping problem entirely.
+            // ============================================================
             calcAngles: (orient, baseline) => {
-                if (!baseline) return { vertical: 0, horizontal: 0, wristCock: 0, combined: 0, signedHorizontal: 0 };
-                // Vertical plane: beta measures front-back tilt of the club
-                const dBeta = normAngle(orient.beta - baseline.beta);
-                // Horizontal plane: alpha measures rotation around vertical axis (body rotation)
-                const dAlpha = normAngle(orient.alpha - baseline.alpha);
-                // Wrist cock: estimated from gamma (left-right tilt corresponds to wrist cock/uncock)
-                const dGamma = normAngle(orient.gamma - baseline.gamma);
-                const wristCock = clamp(dGamma * 1.2, -90, 90);
-                // Combined swing arc = geometric sum of vertical and horizontal
-                const combined = Math.sqrt(dBeta * dBeta + dAlpha * dAlpha);
+                if (!baseline) return { vertical: 0, horizontal: 0, wristCock: 0, combined: 0, signedHorizontal: 0, deviation: 0 };
+
+                // Step 1: Convert both orientations to quaternions
+                const qC = QuatUtils.fromEuler(orient.alpha, orient.beta, orient.gamma);
+                const qB = QuatUtils.fromEuler(baseline.alpha, baseline.beta, baseline.gamma);
+
+                // Step 2: Compute relative rotation in baseline device frame
+                // qRel represents: "how has the phone rotated FROM address TO current?"
+                // Formula: qRel = qBaseline⁻¹ ⊗ qCurrent
+                const qRel = QuatUtils.mul(QuatUtils.conj(qB), qC);
+
+                // Step 3: Total angular deviation from baseline (degrees)
+                // Used for ③ return accuracy — exact measure of "how far from address"
+                const deviation = QuatUtils.angle(qRel);
+
+                // Step 4: Swing-Twist decomposition around Y-axis (shaft direction)
+                // At address, phone Y-axis points UP along the "shaft"
+                // twist = wrist roll/cock (rotation AROUND the shaft)
+                // swing = club movement (rotation that MOVES the shaft)
+                const { swing, twistAngle } = QuatUtils.decomposeSwingTwist(qRel);
+
+                // Step 5: Track where the shaft is pointing now
+                // At address: shaft = [0, 1, 0] (up)
+                // After swing: shaft has moved to a new direction
+                const shaft = QuatUtils.rotVec(swing, { x: 0, y: 1, z: 0 });
+
+                // Step 6: Decompose shaft direction into vertical + horizontal
+                // vertical = angle from UP (0° at address, increases during swing)
+                const shaftY = Math.min(1, Math.max(-1, shaft.y));
+                const vertical = Math.acos(shaftY) * 180 / Math.PI;
+
+                // horizontal = direction of shaft in horizontal plane (signed, degrees)
+                // Only meaningful when shaft has tilted enough (vertical > 3°)
+                // This is the KEY metric for ② takeaway direction and ④ path type
+                const horizontal = vertical > 3
+                    ? Math.atan2(shaft.x, shaft.z) * 180 / Math.PI
+                    : 0;
+
+                // Step 7: Wrist roll from twist component
+                const wristCock = clamp(twistAngle, -180, 180);
+
                 return {
-                    vertical: dBeta,
-                    horizontal: dAlpha,
-                    wristCock,
-                    combined,
-                    signedHorizontal: dAlpha
+                    vertical,              // shaft tilt from UP (≥ 0, degrees)
+                    horizontal,            // direction in horizontal plane (signed, degrees)
+                    wristCock,             // twist around shaft axis (signed, degrees)
+                    combined: vertical,    // swing arc ≈ shaft tilt (compatible with old code)
+                    signedHorizontal: horizontal,  // same as horizontal (compatible)
+                    deviation              // total rotation from baseline (degrees)
                 };
             },
 
@@ -1233,10 +1473,12 @@
                     alpha: allData[0].alpha
                 };
 
-                // For each data point, calc 3-axis angles
+                // For each data point, calc 3-axis angles from baseline
                 const angles = allData.map(d => SensorUtils.calcAngles(d, bl));
 
-                // Find top of backswing: max combined angle
+                // ============================================================
+                // PHASE 1: Find top of backswing (max combined angle)
+                // ============================================================
                 let maxCombined = 0, topIdx = 0;
                 for (let i = 2; i < allData.length - 2; i++) {
                     if (angles[i].combined > maxCombined) {
@@ -1248,22 +1490,146 @@
                 const verticalMax = Math.abs(angles[topIdx].vertical);
                 const horizontalMax = Math.abs(angles[topIdx].horizontal);
 
-                // Follow-through detection: find impact (signedHorizontal crosses zero after topIdx)
-                let followThroughIdx = topIdx;
+                // ============================================================
+                // PHASE 2: Impact detection (improved)
+                // Find the point in downswing where vertical (gamma) comes
+                // closest to zero = hand returns to address height
+                // ============================================================
+                let impactIdx = topIdx;
+                let minVerticalAtImpact = Math.abs(angles[topIdx].vertical);
+                for (let i = topIdx + 1; i < allData.length - 1; i++) {
+                    const absV = Math.abs(angles[i].vertical);
+                    if (absV < minVerticalAtImpact) {
+                        minVerticalAtImpact = absV;
+                        impactIdx = i;
+                    }
+                    // Once vertical starts increasing again (follow-through), stop
+                    if (i > impactIdx + 2 && absV > minVerticalAtImpact + 5) break;
+                }
+
+                // ============================================================
+                // PHASE 3: Follow-through detection (max combined after impact)
+                // ============================================================
+                let followThroughIdx = impactIdx;
                 let followThroughAngle = 0;
-                for (let i = topIdx + 1; i < allData.length - 2; i++) {
-                    if (angles[i].signedHorizontal * angles[topIdx].signedHorizontal < 0 ||
-                        (i > topIdx + 3 && Math.abs(angles[i].signedHorizontal) < Math.abs(angles[topIdx].signedHorizontal) * 0.3)) {
-                        // Impact found, now find max combined angle after impact
-                        for (let j = i; j < allData.length - 1; j++) {
-                            if (angles[j].combined > followThroughAngle) {
-                                followThroughAngle = angles[j].combined;
-                                followThroughIdx = j;
-                            }
-                        }
-                        break;
+                for (let j = impactIdx; j < allData.length - 1; j++) {
+                    if (angles[j].combined > followThroughAngle) {
+                        followThroughAngle = angles[j].combined;
+                        followThroughIdx = j;
                     }
                 }
+
+                // ============================================================
+                // ② TAKEAWAY DIRECTION (テイクバック方向)
+                // How the hands move during takeaway in the horizontal-vertical plane
+                // takeawayDirection = atan2(horizontal, vertical) at top
+                //   ~0° = straight up (ideal for small swings)
+                //   positive = hands went outward (前に出すぎ)
+                //   negative = hands went inward (背中側に引きすぎ)
+                // ============================================================
+                const takeawayH = angles[topIdx].horizontal;
+                const takeawayV = angles[topIdx].vertical;
+                const takeawayDirection = Math.atan2(takeawayH, Math.abs(takeawayV)) * 180 / Math.PI;
+                // Also track the ratio: how much horizontal relative to vertical
+                // Ideal ratio depends on swing size, but extreme values indicate problems
+                const takeawayHVRatio = Math.abs(takeawayV) > 3
+                    ? Math.abs(takeawayH) / Math.abs(takeawayV)
+                    : 0;
+
+                // ============================================================
+                // ③ RETURN ACCURACY (アドレス位置への戻し / 再現度)
+                // Uses quaternion deviation: the EXACT total angular distance
+                // from current orientation to baseline orientation.
+                // This is mathematically superior to sqrt(v² + h²) which
+                // ignores wrist roll and has nonlinear errors at large angles.
+                // ============================================================
+                const impactV = angles[impactIdx].vertical;
+                const impactH = angles[impactIdx].horizontal;
+                // Use quaternion-based deviation (exact, includes all rotation components)
+                const impactDeviation = angles[impactIdx].deviation;
+                // Scale: 0° deviation = 100%, 30°+ deviation = 0%
+                const returnAccuracy = Math.max(0, Math.min(100,
+                    Math.round(100 - (impactDeviation / 30) * 100)
+                ));
+
+                // ============================================================
+                // ④ SWING PATH TYPE (スイング軌道タイプ判定)
+                // Compare takeaway curve vs downswing curve in horizontal (beta)
+                // at equivalent vertical (gamma) positions
+                //
+                // Method: sample beta at several gamma checkpoints during
+                // takeaway and downswing, then compute average difference
+                // ============================================================
+                let pathDifference = 0;
+                let pathType = 'inside-in';
+                if (topIdx > 3 && impactIdx > topIdx + 2) {
+                    // Build takeaway curve: gamma -> beta mapping (0 to topIdx)
+                    const takeawayCurve = [];
+                    for (let i = 0; i <= topIdx; i++) {
+                        takeawayCurve.push({ v: angles[i].vertical, h: angles[i].horizontal });
+                    }
+                    // Build downswing curve: gamma -> beta mapping (topIdx to impactIdx)
+                    const downswingCurve = [];
+                    for (let i = topIdx; i <= impactIdx; i++) {
+                        downswingCurve.push({ v: angles[i].vertical, h: angles[i].horizontal });
+                    }
+
+                    // Sample at several vertical checkpoints (e.g., 25%, 50%, 75% of max vertical)
+                    const maxV = Math.abs(takeawayV);
+                    const checkpoints = [0.25, 0.50, 0.75];
+                    let totalDiff = 0;
+                    let validCheckpoints = 0;
+
+                    for (const frac of checkpoints) {
+                        const targetV = maxV * frac;
+
+                        // Find closest point in takeaway curve to this vertical level
+                        let bestTakeaway = null;
+                        let bestTakeawayDist = Infinity;
+                        for (const pt of takeawayCurve) {
+                            const dist = Math.abs(Math.abs(pt.v) - targetV);
+                            if (dist < bestTakeawayDist) {
+                                bestTakeawayDist = dist;
+                                bestTakeaway = pt;
+                            }
+                        }
+
+                        // Find closest point in downswing curve to this vertical level
+                        let bestDownswing = null;
+                        let bestDownswingDist = Infinity;
+                        for (const pt of downswingCurve) {
+                            const dist = Math.abs(Math.abs(pt.v) - targetV);
+                            if (dist < bestDownswingDist) {
+                                bestDownswingDist = dist;
+                                bestDownswing = pt;
+                            }
+                        }
+
+                        if (bestTakeaway && bestDownswing &&
+                            bestTakeawayDist < maxV * 0.2 && bestDownswingDist < maxV * 0.2) {
+                            // Positive diff = downswing is more outward than takeaway
+                            totalDiff += (bestDownswing.h - bestTakeaway.h);
+                            validCheckpoints++;
+                        }
+                    }
+
+                    if (validCheckpoints > 0) {
+                        pathDifference = totalDiff / validCheckpoints;
+                        // Classification thresholds (degrees)
+                        const PATH_THRESHOLD = 4;
+                        if (pathDifference > PATH_THRESHOLD) {
+                            pathType = 'outside-in';
+                        } else if (pathDifference < -PATH_THRESHOLD) {
+                            pathType = 'inside-out';
+                        } else {
+                            pathType = 'inside-in';
+                        }
+                    }
+                }
+
+                // ============================================================
+                // EXISTING METRICS (retained for compatibility)
+                // ============================================================
 
                 // Max wrist cock during backswing (0 to topIdx)
                 let maxWristCock = 0;
@@ -1287,21 +1653,20 @@
                 ));
 
                 // VFA (Vertical Face Angle) at top of backswing
-                // gamma = side-to-side tilt = face angle relative to swing plane
-                // Corrected for beta tilt: project gamma onto the horizontal plane
-                const dGammaTop = normAngle(allData[topIdx].gamma - bl.gamma);
-                const betaRadTop = angles[topIdx].vertical * Math.PI / 180;
-                // Face angle = gamma component projected onto plane perpendicular to swing direction
-                const vfa = dGammaTop * Math.cos(betaRadTop);
+                // With quaternion swing-twist decomposition, the twist component
+                // IS the face angle — it's the rotation around the shaft axis,
+                // which is exactly what "face angle relative to swing plane" means.
+                // No projection approximation needed.
+                const vfa = angles[topIdx].wristCock;
 
                 // Peak rotational velocity (deg/s) - indicator of swing speed
                 const peakRotVel = Math.max(...allData.map(d => d.rotMag));
 
                 return {
+                    // Legacy metrics
                     verticalAngle: Math.round(verticalMax * 10) / 10,
                     horizontalAngle: Math.round(horizontalMax * 10) / 10,
                     combinedAngle: Math.round(maxCombined * 10) / 10,
-                    // Legacy compatibility
                     betaDelta: Math.round(maxCombined * 10) / 10,
                     tempo: Math.round(tempo * 10) / 10,
                     smoothness,
@@ -1314,7 +1679,24 @@
                     durationMs: allData[allData.length - 1].time - allData[0].time,
                     followThroughAngle: Math.round(followThroughAngle * 10) / 10,
                     followThroughIdx,
-                    maxWristCock: Math.round(maxWristCock * 10) / 10
+                    maxWristCock: Math.round(maxWristCock * 10) / 10,
+
+                    // ② Takeaway direction metrics
+                    takeawayDirection: Math.round(takeawayDirection * 10) / 10,
+                    takeawayHVRatio: Math.round(takeawayHVRatio * 100) / 100,
+                    takeawayVertical: Math.round(takeawayV * 10) / 10,
+                    takeawayHorizontal: Math.round(takeawayH * 10) / 10,
+
+                    // ③ Return accuracy metrics
+                    impactIdx,
+                    impactDeviation: Math.round(impactDeviation * 10) / 10,
+                    impactVertical: Math.round(impactV * 10) / 10,
+                    impactHorizontal: Math.round(impactH * 10) / 10,
+                    returnAccuracy,
+
+                    // ④ Swing path metrics
+                    pathDifference: Math.round(pathDifference * 10) / 10,
+                    pathType
                 };
             }
         };
@@ -1329,140 +1711,52 @@
             return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
         };
 
-        // GOLFER TOP-DOWN VIEW ANIMATION (bird's eye)
+        // CLUB PATH ARC VISUALIZATION (top-down, minimal)
         const SwingCompass = ({ beta, gamma, alpha, baseline, state }) => {
             const angles = SensorUtils.calcAngles(
                 { beta: beta || 0, gamma: gamma || 0, alpha: alpha || 0 },
                 baseline
             );
-            const v = angles.vertical;      // elevation / swing plane angle
-            const h = angles.horizontal;    // body rotation (signed)
-            const wc = angles.wristCock;    // wrist cock angle from gamma
+            const v = angles.vertical;
+            const h = angles.horizontal;
+            const wc = angles.wristCock;
             const c = angles.combined;
 
             const isRecording = state === 'recording';
 
-            // Top-down view constants
-            const cx = 140;   // center of golfer body
-            const cy = 140;
-            const bodyR = 18; // torso radius (oval)
-            const headR = 10; // head radius
+            const cx = 140, cy = 100;  // pivot point (shoulder)
+            const radius = 100;        // club reach (arm + club)
 
-            // === SWING ANGLE MAPPING (top-down view) ===
-            // Address position: arms point DOWN (toward ball, 6 o'clock = 180°)
-            // Backswing: rotate RIGHT (clockwise from above = increasing angle toward 90°=3 o'clock)
-            // Follow-through: rotate LEFT (toward 270°=9 o'clock)
-            //
-            // For a right-handed golfer from above:
-            //   h > 0 → backswing (arms rotate to player's right = clockwise)
-            //   h < 0 → follow-through (arms rotate to player's left = counterclockwise)
-            //   v contributes to backswing height (more lift = more rotation)
-            //
-            // Primary driver: horizontal rotation (alpha = body rotation visible from above)
-            // Secondary: vertical (beta) adds to backswing arc
-            const armAngleDeg = clamp(h * 1.0 + (h > 0 ? v * 0.3 : -Math.abs(v) * 0.15), -160, 160);
-            const armAngleRad = armAngleDeg * Math.PI / 180;
+            // Swing angle: horizontal rotation + vertical contribution
+            const swingDeg = clamp(h * 1.0 + (h > 0 ? v * 0.3 : -Math.abs(v) * 0.15), -160, 160);
+            const swingRad = swingDeg * Math.PI / 180;
 
-            // Address direction: straight down (toward ball)
-            const addressAngle = Math.PI; // 180° = pointing down
+            // Address = straight down (6 o'clock)
+            const addrAngle = Math.PI;
+            const curAngle = addrAngle - swingRad;
 
-            // Actual arm direction = address + swing rotation
-            const armDir = addressAngle - armAngleRad;
+            // Club head current position
+            const chX = cx + radius * Math.cos(curAngle);
+            const chY = cy + radius * Math.sin(curAngle);
 
-            // Arm + club geometry
-            const armLen = 40;
-            const clubLen = 50;
-
-            // Wrist cock: angle BETWEEN forearm and club shaft
-            // At address: ~0° (straight line)
-            // During backswing: increases (club lags behind arm)
-            // At top: max cock (~60-90°)
-            // During downswing: decreases (uncocking / release)
-            // Follow-through: slight re-cock
-            //
-            // The cock angle creates a bend at the wrist:
-            // - Positive cock: club head lags (rotated further back than arm direction)
-            // - This creates the "L" shape at the top of backswing
-            const cockAngleRad = wc * Math.PI / 180;
-
-            // Shoulder position (slightly offset from body center toward arm direction)
-            const shoulderX = cx;
-            const shoulderY = cy;
-
-            // Hand position (end of arm from shoulder)
-            const handX = shoulderX + armLen * Math.cos(armDir);
-            const handY = shoulderY + armLen * Math.sin(armDir);
-
-            // Club head position (from hand, with wrist cock offset)
-            // Club direction = arm direction + cock angle
-            const clubDir = armDir + cockAngleRad;
-            const clubHeadX = handX + clubLen * Math.cos(clubDir);
-            const clubHeadY = handY + clubLen * Math.sin(clubDir);
-
-            // Ball position (where the club hits at address)
+            // Ball position
             const ballX = cx;
-            const ballY = cy + armLen + clubLen - 5;
+            const ballY = cy + radius + 5;
 
-            // Target line direction: LEFT (9 o'clock direction = toward target)
-            const targetLineY = ballY;
-
-            // Swing trail arc (club head path from address through current position)
-            const trailPoints = [];
-            const trailSteps = Math.max(3, Math.abs(Math.round(armAngleDeg / 3)));
-            for (let i = 0; i <= trailSteps; i++) {
-                const frac = i / trailSteps;
-                const aaDeg = armAngleDeg * frac;
-                const aaRad = aaDeg * Math.PI / 180;
-                const aDir = addressAngle - aaRad;
-                // Interpolate cock angle
-                const ck = wc * frac * Math.PI / 180;
-                const cDir = aDir + ck;
-                const hx = shoulderX + armLen * Math.cos(aDir);
-                const hy = shoulderY + armLen * Math.sin(aDir);
-                const chx = hx + clubLen * Math.cos(cDir);
-                const chy = hy + clubLen * Math.sin(cDir);
-                trailPoints.push(`${i === 0 ? 'M' : 'L'} ${chx.toFixed(1)} ${chy.toFixed(1)}`);
+            // Trail arc (from address to current position)
+            const trailPts = [];
+            const steps = Math.max(4, Math.abs(Math.round(swingDeg / 2)));
+            for (let i = 0; i <= steps; i++) {
+                const f = i / steps;
+                const a = addrAngle - (swingDeg * f * Math.PI / 180);
+                const px = cx + radius * Math.cos(a);
+                const py = cy + radius * Math.sin(a);
+                trailPts.push(`${i === 0 ? 'M' : 'L'} ${px.toFixed(1)} ${py.toFixed(1)}`);
             }
-            const trailPath = trailPoints.join(' ');
 
-            // Colors
             const bodyColor = '#2D3B2D';
-            const clubColor = isRecording ? '#C8956C' : '#5A7A5A';
-            const trailColor = '#C8956C';
-
-            // Body rotation visual (shoulders rotate with swing)
-            const shoulderRotDeg = clamp(armAngleDeg * 0.4, -40, 40);
-            const shoulderRotRad = shoulderRotDeg * Math.PI / 180;
-
-            // Hip rotation (less than shoulders)
-            const hipRotDeg = shoulderRotDeg * 0.3;
-            const hipRotRad = hipRotDeg * Math.PI / 180;
-
-            // Head position (above body, slight rotation)
-            const headOffX = cx + Math.sin(shoulderRotRad * 0.2) * 3;
-            const headOffY = cy - bodyR - headR - 3;
-
-            // Shoulder endpoints (for visual line)
-            const sW = 22; // half shoulder width
-            const sLX = cx - sW * Math.cos(shoulderRotRad);
-            const sLY = cy - sW * Math.sin(shoulderRotRad);
-            const sRX = cx + sW * Math.cos(shoulderRotRad);
-            const sRY = cy + sW * Math.sin(shoulderRotRad);
-
-            // Hip endpoints
-            const hW = 14; // half hip width
-            const hLX = cx - hW * Math.cos(hipRotRad);
-            const hLY = cy + bodyR * 0.6 - hW * Math.sin(hipRotRad);
-            const hRX = cx + hW * Math.cos(hipRotRad);
-            const hRY = cy + bodyR * 0.6 + hW * Math.sin(hipRotRad);
-
-            // Feet positions (wider than hips, minimal rotation)
-            const feetY = cy + bodyR + 15;
-            const fLX = cx - 16;
-            const fRX = cx + 16;
-
-            // Swing arc indicator (at shoulder)
-            const arcRadius = 30;
+            const accentColor = '#C8956C';
+            const arcR = 35;
 
             return React.createElement('div', {
                 className: `golfer-wrapper ${isRecording ? 'golfer-recording' : ''}`
@@ -1472,205 +1766,165 @@
                         className: 'golfer-svg',
                         viewBox: '0 0 280 280'
                     },
-                        // === BACKGROUND GUIDES ===
-                        // Target line (horizontal, pointing left = toward target)
+                        // === SVG DEFS: gradients & filters ===
+                        React.createElement('defs', null,
+                            // Gold gradient for trail
+                            React.createElement('linearGradient', { id: 'trailGrad', x1: '0%', y1: '0%', x2: '100%', y2: '0%' },
+                                React.createElement('stop', { offset: '0%', stopColor: accentColor, stopOpacity: 0.1 }),
+                                React.createElement('stop', { offset: '100%', stopColor: accentColor, stopOpacity: 0.7 })
+                            ),
+                            // Radial glow for club head
+                            React.createElement('radialGradient', { id: 'clubGlow' },
+                                React.createElement('stop', { offset: '0%', stopColor: accentColor, stopOpacity: 0.6 }),
+                                React.createElement('stop', { offset: '100%', stopColor: accentColor, stopOpacity: 0 })
+                            ),
+                            // Soft shadow filter
+                            React.createElement('filter', { id: 'softGlow', x: '-50%', y: '-50%', width: '200%', height: '200%' },
+                                React.createElement('feGaussianBlur', { stdDeviation: '3', result: 'blur' }),
+                                React.createElement('feMerge', null,
+                                    React.createElement('feMergeNode', { 'in': 'blur' }),
+                                    React.createElement('feMergeNode', { 'in': 'SourceGraphic' })
+                                )
+                            ),
+                            // Arc gradient (angle arc)
+                            React.createElement('linearGradient', { id: 'arcGrad', x1: '0%', y1: '0%', x2: '100%', y2: '100%' },
+                                React.createElement('stop', { offset: '0%', stopColor: accentColor, stopOpacity: 0.2 }),
+                                React.createElement('stop', { offset: '100%', stopColor: accentColor, stopOpacity: 0.8 })
+                            )
+                        ),
+
+                        // Target line (TOP of SVG — horizontal, pointing left)
                         React.createElement('line', {
-                            x1: 15, y1: targetLineY, x2: ballX - 15, y2: targetLineY,
-                            stroke: trailColor, strokeWidth: 1, opacity: 0.25,
+                            x1: 20, y1: 20, x2: 130, y2: 20,
+                            stroke: accentColor, strokeWidth: 1, opacity: 0.25,
                             strokeDasharray: '5 4'
                         }),
-                        // Target arrow (pointing left)
                         React.createElement('polygon', {
-                            points: `18,${targetLineY - 4} 10,${targetLineY} 18,${targetLineY + 4}`,
-                            fill: trailColor, opacity: 0.3
+                            points: '23,16 15,20 23,24',
+                            fill: accentColor, opacity: 0.3
                         }),
                         React.createElement('text', {
-                            x: 14, y: targetLineY - 8, textAnchor: 'start',
-                            fill: trailColor, fontSize: '7', fontWeight: 600, opacity: 0.4,
-                            fontFamily: 'Inter, sans-serif'
-                        }, '\u30BF\u30FC\u30B2\u30C3\u30C8'),
+                            x: 140, y: 23, textAnchor: 'start',
+                            fill: accentColor, fontSize: '8', fontWeight: 600, opacity: 0.4,
+                            fontFamily: "'Playfair Display', serif", letterSpacing: '0.08em'
+                        }, 'TARGET'),
 
-                        // Right side label (テイクバック)
+                        // Direction labels
                         React.createElement('text', {
-                            x: 265, y: cy - 5, textAnchor: 'end',
-                            fill: bodyColor, fontSize: '7', fontWeight: 500, opacity: 0.3,
-                            fontFamily: 'Inter, sans-serif'
-                        }, '\u30C6\u30A4\u30AF\u30D0\u30C3\u30AF'),
+                            x: 265, y: cy + 50, textAnchor: 'end',
+                            fill: bodyColor, fontSize: '7', fontWeight: 500, opacity: 0.25,
+                            fontFamily: 'Inter, sans-serif', letterSpacing: '0.05em'
+                        }, '\u30C6\u30A4\u30AF\u30D0\u30C3\u30AF \u2192'),
                         React.createElement('text', {
-                            x: 265, y: cy + 5, textAnchor: 'end',
-                            fill: bodyColor, fontSize: '7', fontWeight: 500, opacity: 0.3,
-                            fontFamily: 'Inter, sans-serif'
-                        }, '\u2192'),
+                            x: 15, y: cy + 50, textAnchor: 'start',
+                            fill: bodyColor, fontSize: '7', fontWeight: 500, opacity: 0.25,
+                            fontFamily: 'Inter, sans-serif', letterSpacing: '0.05em'
+                        }, '\u2190 \u30D5\u30A9\u30ED\u30FC'),
 
-                        // Left side label (フォロースルー)
-                        React.createElement('text', {
-                            x: 15, y: cy - 5, textAnchor: 'start',
-                            fill: bodyColor, fontSize: '7', fontWeight: 500, opacity: 0.3,
-                            fontFamily: 'Inter, sans-serif'
-                        }, '\u30D5\u30A9\u30ED\u30FC\u30B9\u30EB\u30FC'),
-                        React.createElement('text', {
-                            x: 15, y: cy + 5, textAnchor: 'start',
-                            fill: bodyColor, fontSize: '7', fontWeight: 500, opacity: 0.3,
-                            fontFamily: 'Inter, sans-serif'
-                        }, '\u2190'),
+                        // Pivot outer ring (animated pulse when recording)
+                        isRecording ? React.createElement('circle', {
+                            cx: cx, cy: cy, r: 5,
+                            fill: 'none', stroke: accentColor, strokeWidth: 1, opacity: 0.4,
+                            style: { animation: 'pivot-ring 1.5s ease-in-out infinite' }
+                        }) : null,
 
-                        // Ball position
+                        // Pivot dot (shoulder)
+                        React.createElement('circle', {
+                            cx: cx, cy: cy, r: 4,
+                            fill: '#E8E4DC', stroke: bodyColor, strokeWidth: 1.5
+                        }),
+
+                        // Ball (subtle shadow)
+                        React.createElement('circle', {
+                            cx: ballX + 1, cy: ballY + 1, r: 4,
+                            fill: 'rgba(0,0,0,0.06)'
+                        }),
                         React.createElement('circle', {
                             cx: ballX, cy: ballY, r: 4,
-                            fill: 'white', stroke: '#CCC', strokeWidth: 1
+                            fill: 'white', stroke: '#D5D0C8', strokeWidth: 1
                         }),
 
-                        // === SWING TRAIL ARC ===
-                        Math.abs(armAngleDeg) > 3 ? React.createElement('path', {
-                            d: trailPath,
+                        // Ghost address line (thin, elegant)
+                        Math.abs(swingDeg) > 5 ? React.createElement('line', {
+                            x1: cx, y1: cy, x2: ballX, y2: cy + radius,
+                            stroke: bodyColor, strokeWidth: 1, strokeDasharray: '2 4', opacity: 0.12
+                        }) : null,
+
+                        // Angle arc at pivot (gradient stroke)
+                        Math.abs(swingDeg) > 5 ? React.createElement('path', {
+                            d: describeArc(cx, cy, arcR,
+                                swingDeg > 0 ? 180 : 180 + swingDeg,
+                                swingDeg > 0 ? 180 + swingDeg : 180),
                             fill: 'none',
-                            stroke: trailColor,
-                            strokeWidth: 2,
-                            strokeDasharray: '4 3',
-                            opacity: 0.45,
+                            stroke: 'url(#arcGrad)', strokeWidth: 2, opacity: 0.6,
                             strokeLinecap: 'round'
                         }) : null,
 
-                        // Ghost address position
-                        Math.abs(armAngleDeg) > 5 ? React.createElement('g', { opacity: 0.15 },
-                            React.createElement('line', {
-                                x1: cx, y1: cy,
-                                x2: cx, y2: cy + armLen,
-                                stroke: bodyColor, strokeWidth: 2, strokeLinecap: 'round'
-                            }),
-                            React.createElement('line', {
-                                x1: cx, y1: cy + armLen,
-                                x2: cx, y2: cy + armLen + clubLen,
-                                stroke: '#8A8A82', strokeWidth: 1.5, strokeLinecap: 'round'
-                            })
-                        ) : null,
-
-                        // Swing angle arc at shoulder
-                        Math.abs(armAngleDeg) > 5 ? React.createElement('path', {
-                            d: describeArc(cx, cy, arcRadius,
-                                armAngleDeg > 0 ? 180 : 180 + armAngleDeg,
-                                armAngleDeg > 0 ? 180 + armAngleDeg : 180),
-                            fill: 'none',
-                            stroke: trailColor,
-                            strokeWidth: 1.5,
-                            opacity: 0.5,
-                            strokeLinecap: 'round'
-                        }) : null,
-
-                        // Angle degree label on arc
+                        // Angle label (larger, serif)
                         Math.abs(c) > 3 ? React.createElement('text', {
-                            x: cx + (arcRadius + 10) * Math.cos(addressAngle - armAngleRad * 0.5),
-                            y: cy + (arcRadius + 10) * Math.sin(addressAngle - armAngleRad * 0.5),
-                            textAnchor: 'middle',
-                            dominantBaseline: 'middle',
-                            fill: trailColor,
-                            fontSize: '10',
-                            fontWeight: 700,
-                            fontFamily: 'Inter, sans-serif'
+                            x: cx + (arcR + 14) * Math.cos(addrAngle - swingRad * 0.5),
+                            y: cy + (arcR + 14) * Math.sin(addrAngle - swingRad * 0.5),
+                            textAnchor: 'middle', dominantBaseline: 'middle',
+                            fill: accentColor, fontSize: '12', fontWeight: 700,
+                            fontFamily: "'Playfair Display', serif",
+                            style: { transition: 'all 0.15s ease' }
                         }, `${Math.round(c)}\u00B0`) : null,
 
-                        // === BODY (top-down) ===
-                        // Body shadow / ground
-                        React.createElement('ellipse', {
-                            cx: cx, cy: cy, rx: bodyR + 5, ry: bodyR + 8,
-                            fill: 'rgba(45,59,45,0.04)'
-                        }),
-
-                        // Feet (small ovals, below body)
-                        React.createElement('ellipse', {
-                            cx: fLX, cy: feetY, rx: 5, ry: 8,
-                            fill: 'none', stroke: bodyColor, strokeWidth: 1.5, opacity: 0.4
-                        }),
-                        React.createElement('ellipse', {
-                            cx: fRX, cy: feetY, rx: 5, ry: 8,
-                            fill: 'none', stroke: bodyColor, strokeWidth: 1.5, opacity: 0.4
-                        }),
-
-                        // Hip line
-                        React.createElement('line', {
-                            x1: hLX, y1: hLY, x2: hRX, y2: hRY,
-                            stroke: bodyColor, strokeWidth: 2.5, strokeLinecap: 'round', opacity: 0.5
-                        }),
-
-                        // Torso (oval)
-                        React.createElement('ellipse', {
-                            cx: cx, cy: cy, rx: bodyR * 0.85, ry: bodyR,
-                            fill: '#E8E4DC', stroke: bodyColor, strokeWidth: 2.5,
-                            transform: `rotate(${shoulderRotDeg * 0.3}, ${cx}, ${cy})`
-                        }),
-
-                        // Shoulder line
-                        React.createElement('line', {
-                            x1: sLX, y1: sLY, x2: sRX, y2: sRY,
-                            stroke: bodyColor, strokeWidth: 3, strokeLinecap: 'round'
-                        }),
-
-                        // Head (circle, above body)
-                        React.createElement('circle', {
-                            cx: headOffX, cy: headOffY, r: headR,
-                            fill: '#E8E4DC', stroke: bodyColor, strokeWidth: 2.5
-                        }),
-                        // Cap brim indicator
-                        React.createElement('line', {
-                            x1: headOffX - 5, y1: headOffY - 3,
-                            x2: headOffX + 5, y2: headOffY - 3,
-                            stroke: bodyColor, strokeWidth: 2, strokeLinecap: 'round'
-                        }),
-
-                        // === ARMS + CLUB (animated) ===
-                        // Left arm (from shoulder to hand) - both arms go together in top-down view
-                        React.createElement('line', {
-                            x1: shoulderX, y1: shoulderY,
-                            x2: handX, y2: handY,
-                            stroke: bodyColor, strokeWidth: 3, strokeLinecap: 'round'
-                        }),
-
-                        // Wrist cock angle indicator (small arc at wrist)
-                        Math.abs(wc) > 5 ? React.createElement('path', {
-                            d: describeArc(handX, handY, 8,
-                                (armDir * 180 / Math.PI),
-                                (clubDir * 180 / Math.PI)),
-                            fill: 'none',
-                            stroke: '#4A7A4A',
-                            strokeWidth: 1.5,
-                            opacity: 0.6,
-                            strokeLinecap: 'round'
+                        // Club trail arc (animated flowing dash)
+                        Math.abs(swingDeg) > 3 ? React.createElement('path', {
+                            d: trailPts.join(' '),
+                            fill: 'none', stroke: 'url(#trailGrad)',
+                            strokeWidth: 3, strokeDasharray: '6 8',
+                            opacity: 0.5, strokeLinecap: 'round',
+                            style: isRecording ? { animation: 'trail-dash 0.8s linear infinite' } : {}
                         }) : null,
 
-                        // Club shaft (from hand to club head, WITH wrist cock offset)
+                        // Club line glow (behind main line)
                         React.createElement('line', {
-                            x1: handX, y1: handY,
-                            x2: clubHeadX, y2: clubHeadY,
-                            stroke: clubColor, strokeWidth: 2.5, strokeLinecap: 'round'
+                            x1: cx, y1: cy, x2: chX, y2: chY,
+                            stroke: isRecording ? accentColor : '#5A7A5A',
+                            strokeWidth: 6, strokeLinecap: 'round', opacity: 0.15
                         }),
 
-                        // Club head (small rectangle, rotated to face perpendicular to shaft)
-                        React.createElement('rect', {
-                            x: clubHeadX - 4, y: clubHeadY - 2,
-                            width: 12, height: 5, rx: 1.5,
-                            fill: clubColor,
-                            transform: `rotate(${clubDir * 180 / Math.PI + 90}, ${clubHeadX}, ${clubHeadY})`
+                        // Current club line
+                        React.createElement('line', {
+                            x1: cx, y1: cy, x2: chX, y2: chY,
+                            stroke: isRecording ? accentColor : '#5A7A5A',
+                            strokeWidth: 2, strokeLinecap: 'round',
+                            style: { transition: 'all 0.08s ease' }
                         }),
 
-                        // Hand grip dot
+                        // Club head outer glow
                         React.createElement('circle', {
-                            cx: handX, cy: handY, r: 3,
-                            fill: bodyColor
+                            cx: chX, cy: chY, r: 14,
+                            fill: 'url(#clubGlow)',
+                            style: isRecording
+                                ? { animation: 'club-glow 1.2s ease-in-out infinite' }
+                                : { animation: 'club-glow-idle 2s ease-in-out infinite' }
                         }),
 
-                        // === RECORDING INDICATOR ===
+                        // Club head dot
+                        React.createElement('circle', {
+                            cx: chX, cy: chY, r: 5,
+                            fill: isRecording ? accentColor : '#5A7A5A',
+                            stroke: 'rgba(255,255,255,0.8)', strokeWidth: 1.5,
+                            filter: 'url(#softGlow)',
+                            style: { transition: 'all 0.08s ease' }
+                        }),
+
+                        // REC indicator (blinking)
                         isRecording ? React.createElement('circle', {
-                            cx: 18, cy: 18, r: 5,
-                            fill: '#C45B4A'
+                            cx: 18, cy: 18, r: 4, fill: '#C45B4A',
+                            style: { animation: 'rec-blink 1s ease-in-out infinite' }
                         }) : null,
                         isRecording ? React.createElement('text', {
-                            x: 28, y: 22,
-                            fill: '#C45B4A', fontSize: '9', fontWeight: 600,
-                            fontFamily: 'Inter, sans-serif'
+                            x: 27, y: 21,
+                            fill: '#C45B4A', fontSize: '8', fontWeight: 700,
+                            fontFamily: 'Inter, sans-serif', letterSpacing: '0.1em'
                         }, 'REC') : null
                     )
                 ),
-                // Numeric values: 3 axes now
+                // Numeric values
                 React.createElement('div', { className: 'golfer-values' },
                     React.createElement('div', { className: 'golfer-axis' },
                         React.createElement('span', { className: 'golfer-axis-num gold' },
@@ -1688,7 +1942,6 @@
                         React.createElement('span', { className: 'golfer-axis-unit' }, '\u30D5\u30A9\u30ED\u30FC')
                     )
                 ),
-                // Combined total
                 c > 2 ? React.createElement('div', { className: 'golfer-total' },
                     React.createElement('span', { className: 'golfer-total-num' },
                         `${Math.round(c)}\u00B0`),
@@ -1752,7 +2005,472 @@
             getSwings: () => SessionStats._swings,
             getAccuracy: () => SessionStats._accuracy,
             getMinutes: () => Math.round((Date.now() - SessionStats._startTime) / 60000),
+            // Personal best tracking (in-memory)
+            _bestTempo: null,
+            _bestArc: null,
+            _prevSwings: 0,
+            _prevAccuracy: 0,
+            _streak: 1,  // At least 1 day if app is opened
+            recordMetrics: (metrics) => {
+                if (!metrics) return;
+                if (metrics.tempo > 0 && (!SessionStats._bestTempo || Math.abs(metrics.tempo - 3.0) < Math.abs(SessionStats._bestTempo - 3.0))) {
+                    SessionStats._bestTempo = metrics.tempo;
+                }
+                if (metrics.combinedAngle > 0 && (!SessionStats._bestArc || metrics.combinedAngle > SessionStats._bestArc)) {
+                    SessionStats._bestArc = metrics.combinedAngle;
+                }
+                SessionStats._prevSwings = SessionStats._swings;
+                SessionStats._prevAccuracy = SessionStats._accuracy;
+            },
+            getBestTempo: () => SessionStats._bestTempo,
+            getBestArc: () => SessionStats._bestArc,
+            getStreak: () => SessionStats._streak,
+            getPrev: () => ({ swings: SessionStats._prevSwings, accuracy: SessionStats._prevAccuracy }),
         };
+
+        // DEFAULT SWING NOTES
+        const DEFAULT_NOTES = [
+            'ヘッドアップに注意',
+            'テンポは練習通り',
+            '手元が浮かないように',
+        ];
+
+        // MY SWING CHECKLIST COMPONENT
+        const MySwingChecklist = () => {
+            const [expanded, setExpanded] = useState(false);
+            const [showSettings, setShowSettings] = useState(false);
+            const [notes, setNotes] = useState(() => {
+                try { const s = localStorage.getItem('golflev_swing_notes'); return s ? JSON.parse(s) : DEFAULT_NOTES; } catch { return DEFAULT_NOTES; }
+            });
+            const [displayCount, setDisplayCount] = useState(() => {
+                try { const s = localStorage.getItem('golflev_swing_note_count'); return s ? parseInt(s, 10) : 3; } catch { return 3; }
+            });
+            const [editIdx, setEditIdx] = useState(null);
+            const [editVal, setEditVal] = useState('');
+            const [newVal, setNewVal] = useState('');
+
+            const persist = (nextNotes, nextCount) => {
+                try {
+                    localStorage.setItem('golflev_swing_notes', JSON.stringify(nextNotes));
+                    if (nextCount !== undefined) localStorage.setItem('golflev_swing_note_count', String(nextCount));
+                } catch {}
+            };
+
+            const saveEdit = (idx) => {
+                if (editVal.trim()) {
+                    const next = [...notes];
+                    next[idx] = editVal.trim();
+                    setNotes(next);
+                    persist(next);
+                }
+                setEditIdx(null);
+            };
+
+            const addNote = () => {
+                if (newVal.trim()) {
+                    const next = [...notes, newVal.trim()];
+                    setNotes(next);
+                    persist(next);
+                    setNewVal('');
+                }
+            };
+
+            const removeNote = (idx) => {
+                const next = notes.filter((_, i) => i !== idx);
+                setNotes(next);
+                const nextCount = Math.min(displayCount, next.length);
+                setDisplayCount(nextCount);
+                persist(next, nextCount);
+            };
+
+            const changeCount = (delta) => {
+                const next = Math.max(1, Math.min(notes.length, displayCount + delta));
+                setDisplayCount(next);
+                try { localStorage.setItem('golflev_swing_note_count', String(next)); } catch {}
+            };
+
+            const resetNotes = () => {
+                setNotes(DEFAULT_NOTES);
+                setDisplayCount(3);
+                persist(DEFAULT_NOTES, 3);
+            };
+
+            const visibleNotes = notes.slice(0, displayCount);
+
+            return (
+                <div className="card home-stagger-3" style={{ padding: 0, overflow: 'hidden' }}>
+                    {/* Header */}
+                    <div
+                        onClick={() => { if (!showSettings) setExpanded(!expanded); }}
+                        style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', flex: 1 }}>
+                            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #C8956C, #A87A56)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: '0.65rem', fontFamily: "'Playfair Display', serif", flexShrink: 0 }}>NOTE</div>
+                            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-text)' }}>My Swing Notes</div>
+                            {!showSettings ? (
+                                <span
+                                    onClick={(e) => { e.stopPropagation(); setExpanded(true); setShowSettings(true); }}
+                                    style={{ fontSize: '0.65rem', color: 'var(--color-gold)', fontWeight: 600, cursor: 'pointer', letterSpacing: '0.03em', marginLeft: '0.5rem' }}
+                                >Setting</span>
+                            ) : (
+                                <span
+                                    onClick={(e) => { e.stopPropagation(); setShowSettings(false); }}
+                                    style={{ fontSize: '0.65rem', color: 'var(--color-gold)', fontWeight: 600, cursor: 'pointer', letterSpacing: '0.03em', marginLeft: '0.5rem' }}
+                                >Done</span>
+                            )}
+                        </div>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', transition: 'transform 0.2s', transform: expanded || showSettings ? 'rotate(180deg)' : 'rotate(0)', flexShrink: 0 }}>▾</span>
+                    </div>
+
+                    {/* Notes display */}
+                    {expanded && !showSettings && (
+                        <div style={{ padding: '0 1.25rem 1rem' }}>
+                            {visibleNotes.map((note, i) => (
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.5rem 0', borderBottom: i < visibleNotes.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none' }}>
+                                    <div style={{ width: '20px', height: '20px', borderRadius: '6px', background: 'linear-gradient(135deg, #C8956C, #A87A56)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.6rem', fontWeight: 700, flexShrink: 0 }}>{i + 1}</div>
+                                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text)', fontFamily: "'Noto Serif JP', serif", lineHeight: 1.4 }}>{note}</div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Settings view */}
+                    {showSettings && (
+                        <div style={{ padding: '0 1.25rem 1rem' }}>
+                            {/* Display count */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.8rem', padding: '0.5rem 0.7rem', background: 'var(--color-bg-secondary)', borderRadius: '10px' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Display count</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem' }}>
+                                    <span onClick={() => changeCount(-1)} style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontWeight: 700, fontSize: '1rem', color: 'var(--color-text-secondary)', border: '1px solid #E0DCD4' }}>−</span>
+                                    <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-primary)', minWidth: '20px', textAlign: 'center' }}>{displayCount}</span>
+                                    <span onClick={() => changeCount(1)} style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontWeight: 700, fontSize: '1rem', color: 'var(--color-text-secondary)', border: '1px solid #E0DCD4' }}>+</span>
+                                </div>
+                            </div>
+
+                            {/* Editable notes list */}
+                            {notes.map((note, i) => (
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.45rem 0', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                                    <div style={{ width: '18px', height: '18px', borderRadius: '5px', background: i < displayCount ? 'linear-gradient(135deg, var(--color-primary), #4A6B4A)' : 'var(--color-bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: i < displayCount ? 'white' : 'var(--color-text-secondary)', fontSize: '0.55rem', fontWeight: 700, flexShrink: 0 }}>{i + 1}</div>
+                                    {editIdx === i ? (
+                                        <input
+                                            type="text" autoFocus value={editVal}
+                                            onChange={(e) => setEditVal(e.target.value)}
+                                            onBlur={() => saveEdit(i)}
+                                            onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(i); }}
+                                            style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: '0.8rem', color: 'var(--color-text)', fontFamily: "'Noto Serif JP', serif", borderBottom: '1.5px solid var(--color-gold)', padding: '0.15rem 0' }}
+                                        />
+                                    ) : (
+                                        <div
+                                            onClick={() => { setEditIdx(i); setEditVal(note); }}
+                                            style={{ flex: 1, fontSize: '0.8rem', color: i < displayCount ? 'var(--color-text)' : 'var(--color-text-secondary)', cursor: 'pointer', opacity: i < displayCount ? 1 : 0.5 }}
+                                        >{note}</div>
+                                    )}
+                                    <span
+                                        onClick={() => removeNote(i)}
+                                        style={{ fontSize: '0.7rem', color: '#C45B4A', cursor: 'pointer', opacity: 0.5, flexShrink: 0, padding: '0 0.2rem' }}
+                                    >×</span>
+                                </div>
+                            ))}
+
+                            {/* Add new note */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.6rem' }}>
+                                <input
+                                    type="text" value={newVal}
+                                    onChange={(e) => setNewVal(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') addNote(); }}
+                                    placeholder="Add a new note..."
+                                    style={{ flex: 1, border: 'none', outline: 'none', background: 'var(--color-bg-secondary)', borderRadius: '8px', padding: '0.5rem 0.7rem', fontSize: '0.75rem', color: 'var(--color-text)' }}
+                                />
+                                <span
+                                    onClick={addNote}
+                                    style={{ width: '28px', height: '28px', borderRadius: '8px', background: newVal.trim() ? 'linear-gradient(135deg, var(--color-primary), #4A6B4A)' : 'var(--color-bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: newVal.trim() ? 'white' : 'var(--color-text-secondary)', fontWeight: 700, fontSize: '1rem', flexShrink: 0 }}
+                                >+</span>
+                            </div>
+
+                            {/* Reset */}
+                            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '0.6rem' }}>
+                                <span onClick={resetNotes} style={{ fontSize: '0.65rem', color: 'var(--color-text-secondary)', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: '2px' }}>Reset to default</span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // ALL AVAILABLE CLUBS (pool for user to pick from)
+        const ALL_CLUBS = [
+            { key: '1W', label: '1W', category: 'Wood' },
+            { key: '3W', label: '3W', category: 'Wood' },
+            { key: '5W', label: '5W', category: 'Wood' },
+            { key: '7W', label: '7W', category: 'Wood' },
+            { key: '3U', label: '3U', category: 'Utility' },
+            { key: '4U', label: '4U', category: 'Utility' },
+            { key: '5U', label: '5U', category: 'Utility' },
+            { key: '3I', label: '3I', category: 'Iron' },
+            { key: '4I', label: '4I', category: 'Iron' },
+            { key: '5I', label: '5I', category: 'Iron' },
+            { key: '6I', label: '6I', category: 'Iron' },
+            { key: '7I', label: '7I', category: 'Iron' },
+            { key: '8I', label: '8I', category: 'Iron' },
+            { key: '9I', label: '9I', category: 'Iron' },
+            { key: 'PW', label: 'PW', category: 'Wedge' },
+            { key: '48', label: '48°', category: 'Wedge' },
+            { key: '50', label: '50°', category: 'Wedge' },
+            { key: '52', label: '52°', category: 'Wedge' },
+            { key: 'AW', label: 'AW', category: 'Wedge' },
+            { key: '54', label: '54°', category: 'Wedge' },
+            { key: '56', label: '56°', category: 'Wedge' },
+            { key: 'SW', label: 'SW', category: 'Wedge' },
+            { key: '58', label: '58°', category: 'Wedge' },
+            { key: '60', label: '60°', category: 'Wedge' },
+            { key: 'LW', label: 'LW', category: 'Wedge' },
+        ];
+        const DEFAULT_BAG = ['1W','3W','5W','4U','5I','6I','7I','8I','9I','PW','AW','SW'];
+
+        // CLUB DISTANCE CARD COMPONENT (with settings)
+        const ClubDistanceCard = () => {
+            const [expanded, setExpanded] = useState(false);
+            const [showSettings, setShowSettings] = useState(false);
+            const [distances, setDistances] = useState(() => {
+                try { const s = localStorage.getItem('golflev_club_distances'); return s ? JSON.parse(s) : {}; } catch { return {}; }
+            });
+            const [myBag, setMyBag] = useState(() => {
+                try { const s = localStorage.getItem('golflev_my_bag'); return s ? JSON.parse(s) : DEFAULT_BAG; } catch { return DEFAULT_BAG; }
+            });
+            const [editing, setEditing] = useState(null);
+            const [editVal, setEditVal] = useState('');
+
+            const saveDist = (key, val) => {
+                const num = parseInt(val, 10);
+                const next = { ...distances };
+                if (num > 0) { next[key] = num; } else { delete next[key]; }
+                setDistances(next);
+                try { localStorage.setItem('golflev_club_distances', JSON.stringify(next)); } catch {}
+                setEditing(null);
+            };
+
+            const toggleClub = (key) => {
+                let next;
+                if (myBag.includes(key)) {
+                    next = myBag.filter(k => k !== key);
+                } else {
+                    // Insert in ALL_CLUBS order
+                    const order = ALL_CLUBS.map(c => c.key);
+                    next = [...myBag, key].sort((a, b) => order.indexOf(a) - order.indexOf(b));
+                }
+                setMyBag(next);
+                try { localStorage.setItem('golflev_my_bag', JSON.stringify(next)); } catch {}
+            };
+
+            const resetBag = () => {
+                setMyBag(DEFAULT_BAG);
+                try { localStorage.setItem('golflev_my_bag', JSON.stringify(DEFAULT_BAG)); } catch {}
+            };
+
+            const myClubs = ALL_CLUBS.filter(c => myBag.includes(c.key));
+            const filledCount = myClubs.filter(c => distances[c.key]).length;
+
+            // Group ALL_CLUBS by category for settings view
+            const categories = [...new Set(ALL_CLUBS.map(c => c.category))];
+
+            return (
+                <div className="card home-stagger-3" style={{ padding: 0, overflow: 'hidden' }}>
+                    {/* Header */}
+                    <div
+                        onClick={() => { if (!showSettings) setExpanded(!expanded); }}
+                        style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', flex: 1 }}>
+                            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, var(--color-primary), #4A6B4A)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: '0.7rem', fontFamily: "'Playfair Display', serif", flexShrink: 0 }}>YD</div>
+                            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-text)' }}>My Distances</div>
+                            {!showSettings ? (
+                                <span
+                                    onClick={(e) => { e.stopPropagation(); setExpanded(true); setShowSettings(true); }}
+                                    style={{ fontSize: '0.65rem', color: 'var(--color-gold)', fontWeight: 600, cursor: 'pointer', letterSpacing: '0.03em', marginLeft: '0.5rem' }}
+                                >Setting</span>
+                            ) : (
+                                <span
+                                    onClick={(e) => { e.stopPropagation(); setShowSettings(false); }}
+                                    style={{ fontSize: '0.65rem', color: 'var(--color-gold)', fontWeight: 600, cursor: 'pointer', letterSpacing: '0.03em', marginLeft: '0.5rem' }}
+                                >Done</span>
+                            )}
+                        </div>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', transition: 'transform 0.2s', transform: expanded || showSettings ? 'rotate(180deg)' : 'rotate(0)', flexShrink: 0 }}>▾</span>
+                    </div>
+
+                    {/* Distance grid (normal view) */}
+                    {expanded && !showSettings && (
+                        <div style={{ padding: '0 1rem 1rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.4rem' }}>
+                                {myClubs.map(club => (
+                                    <div
+                                        key={club.key}
+                                        onClick={() => { setEditing(club.key); setEditVal(distances[club.key] ? String(distances[club.key]) : ''); }}
+                                        style={{
+                                            padding: '0.55rem 0.4rem', borderRadius: '10px',
+                                            background: distances[club.key] ? 'rgba(200,149,108,0.08)' : 'var(--color-bg-secondary)',
+                                            textAlign: 'center', cursor: 'pointer',
+                                            border: editing === club.key ? '1.5px solid var(--color-gold)' : '1.5px solid transparent',
+                                            transition: 'all 0.15s ease',
+                                        }}
+                                    >
+                                        <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--color-text-secondary)', letterSpacing: '0.05em' }}>{club.label}</div>
+                                        {editing === club.key ? (
+                                            <input type="number" autoFocus value={editVal}
+                                                onChange={(e) => setEditVal(e.target.value)}
+                                                onBlur={() => saveDist(club.key, editVal)}
+                                                onKeyDown={(e) => { if (e.key === 'Enter') saveDist(club.key, editVal); }}
+                                                style={{ width: '100%', border: 'none', outline: 'none', background: 'transparent', textAlign: 'center', fontFamily: "'Playfair Display', serif", fontSize: '1.05rem', fontWeight: 800, color: 'var(--color-gold)', padding: '0.1rem 0', marginTop: '0.1rem' }}
+                                                placeholder="—"
+                                            />
+                                        ) : (
+                                            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.05rem', fontWeight: 800, color: distances[club.key] ? 'var(--color-primary)' : 'var(--color-text-secondary)', marginTop: '0.1rem', opacity: distances[club.key] ? 1 : 0.3 }}>
+                                                {distances[club.key] || '—'}
+                                            </div>
+                                        )}
+                                        {distances[club.key] && editing !== club.key && (
+                                            <div style={{ fontSize: '0.55rem', color: 'var(--color-text-secondary)', marginTop: '0.05rem' }}>yd</div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                            <div style={{ fontSize: '0.65rem', color: 'var(--color-text-secondary)', textAlign: 'center', marginTop: '0.7rem', fontStyle: 'italic' }}>
+                                Tap to edit — saved on this device
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Club settings view */}
+                    {showSettings && (
+                        <div style={{ padding: '0 1rem 1rem' }}>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', marginBottom: '0.6rem' }}>
+                                Tap to add or remove clubs from your bag
+                            </div>
+                            {categories.map(cat => (
+                                <div key={cat} style={{ marginBottom: '0.6rem' }}>
+                                    <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--color-gold)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '0.3rem' }}>{cat}</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                                        {ALL_CLUBS.filter(c => c.category === cat).map(club => {
+                                            const inBag = myBag.includes(club.key);
+                                            return (
+                                                <div
+                                                    key={club.key}
+                                                    onClick={() => toggleClub(club.key)}
+                                                    style={{
+                                                        padding: '0.4rem 0.7rem', borderRadius: '8px', cursor: 'pointer',
+                                                        fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.02em',
+                                                        fontFamily: "'Playfair Display', serif",
+                                                        background: inBag ? 'linear-gradient(135deg, var(--color-primary), #4A6B4A)' : 'var(--color-bg-secondary)',
+                                                        color: inBag ? 'white' : 'var(--color-text-secondary)',
+                                                        border: inBag ? '1.5px solid var(--color-primary)' : '1.5px solid #E0DCD4',
+                                                        transition: 'all 0.15s ease',
+                                                    }}
+                                                >{club.label}</div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ))}
+                            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '0.5rem' }}>
+                                <span
+                                    onClick={resetBag}
+                                    style={{ fontSize: '0.65rem', color: 'var(--color-text-secondary)', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: '2px' }}
+                                >Reset to default</span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const GRIP_PHOTO_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAMgAAAC4CAYAAACmeqNfAAAHbUlEQVR42u3dy3mjOhgGYHweVzFleDVlUER2SQ1euIbJboqgjKxSRuo4ixOfwYwkBBIX2++7y41g/H/oghFNAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwpA4OAaU+3t9eUj//+frrt4DwzMG4jP3uz9dfPwQEwUg777U16beC/X0UEOYU0qVkG3tqTWJhv+6jgFAjHMGWIdXSbBmSwZjpkgqygFASjqwuUyxYa4dkatdQQJgbjlljiVBQlg5JbmvRNM15+Ds/X3/9OHr7mTGG+D337z7e326K8OP97atmSAJTzpfc8VBoulpAmHTWLy3mUEjWnkCY8hr+UQJM6Vot9H++1gjHz9dfP6YGXAvC4l2rJVuRjIF30bUXAWGVrtVKLVxxIHSx2E3XqqSbtUY4tCCs2rUK+Gya5lSj5ViqhdOC8AgBXqz7JyDc1dhj7f0TEIRXQBAOAWGBAXmNi3gTQvCVOSg/r7VPZrEIFWPVAXDsZqRvNzNZ3yEZBuCvcIQ+N7XEbJuAPFGxZ0p2Y2Zus+39fejn50EIYlfFP/vbCuxb9aAIyP4KtKaSj3KcI/vfFu7T9e+7wffGrol8Br433EZbOyhHRbvbAt3S54QgdHPHOoHWpIscs/PYeKm3rb+CUtIFOzxhQV8aki1HyaB+R/XSzgzzTRfzcAdhUNArFPsahb5k6x2YfXuZ2TU87SYgU+/+evSz8Z2cmWuMP5bQpY7ZhP3f/pbbgnWVdlW0JUVTGoANJgBqFHe31M6NHc8Ji0tsN0ifGYzzlANUo3AmHMy24FhcB6ovGxbsqsUdOsHsfVnSw8rhuOSEYWLhtIM3sMqZbu4ZZ0qxFIasW7NQahdy77V3ewlJ6OMsx43DEQzE3MKJTB0uVgylb2zJ/t7zgtD35LhROM79UEwMRJfqZtxb4Tx6oYe6UaXd04cJSGzBsY/3t5eRg9TlFNT32bdt2G04mqZpr+OtQDi6vZ8gjluEoxm5iDNjkNzpcnA3AZkYjk6f+uG1g4+C3M1J7bhhOGYHQ+txP+OrXjf45r3f03uWmo08bhWOuQdIOO42JLuamBiEIjqOPQgHTzZpMBaKm89iHYWDJw5FlwpIlS7W3HCM3IYpHCweipzP1h03DEfb+zoaEuFgyVCMOW4RjsHArdVyUBiIqqEoDkhpy5ETDpgYiGqhKApIrW7VWMug9SBj1ulmkL35sj+VZqs64SCjhUh2m5YKxOyAVJzKFY6FCmzPxyrj3pk2cUJdLRBDhzXDMXaTjHAUF1g3dbsjs4c15Yw3u9z9KzxWqX2ctmhD7YuAsTOdcIy+uUtNaHQ7+X8179OfutbBdVG602B/0gFZ4wp5buvy5IPRfmG1uQVX4Yw+u9iXCkHsZNurn1ONbV+XXT3uLBxCEQ9DW3OguuatyQsev8vH+9ul+e/W7erhiI5BNgxH9wy3oAaKv2syVwLsnzFDF2Cf6ORyySnwjG19pf7uIBybBiMWhrGzYX819HN/kH4PxzA2zppwJ2mVcPRDEvu7g3CsVhBjY4dqXYRmgcchVw5E9LWmCjy0LM9YC1DqIBybdKfmzLSsEpKFVmycFP7Ec0mCzy5JtQBVArJmOAYBefRwzA5G7A2/njGHZ88aIRnUwXDqM/Z1E/h+PwyznoXeJJ4yteaTd4+xvuAK4bir/vGUWZ3AazzlFEnOG9//nciZ9mtQVL9nhKMJ7O/Y15N+7xrwYUsQCsSWDom+3f9n+dwB1JpdqwUXby4JbxfYxmluGAqOzdeU/5W5LGyR3Nc71iqu/dz2Y27B1Jg3rxyOpVqhrmLAThu9wTfP/EtNAecMfFNfh75/fY3Dr3ODFAvJ2uFItiALFmLNrtoSZ7pawT1t9cbGWoThfmw18J3TIm61L4eMA/WylwK8o0H5ZuHI6Kqctx743pPjMxd1SWuVuBnstIeiS3RVLsOZJeGYGZDALbKbhSW1CsoKT1tqA/sT2pddFV1/pmgQlpPSL+xi5SwyPdba1HraU+KaQrSAV9T19mHXZ+XY4FoMJgak+fPpyFARZA3CKw7wu8EDdtqCIs75+64gwLvvtiz90Yyn6GIFluVpMwstFI6uYP/a5u/nSzRTtx154PxYwU/tTt5Fnz50gY4ZY5BBQWYVWqCgSq933AQxN3gZ/7Md7t9gvNVe//8jTlAIR6VBeqrYUoXTX/Z+oSJLdvkyw9s04TW62ubP/Rnt2Lae8Wavpw9I7Ztv9vBM70RQ20j4uubv51rcBNCiEs/bgtQ887cVQ9YGttll7kPbezZ5dAyVuc9tzniG+3cIzW58+2wKP6iY+5CSse7UYJwwZ1tdpGsUG3dltXiD33dV+pEDEglJlaCUdLMSSwQVbaNy97FtAkvGKK8HC0giJDdBWaPwNh7DzO1C+vjGowdkJCTXoEzp/y8y6N7YaaTFEo5HDkhmUBCO5w6IoAiHgEwbCwiKIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADAov4FsUSphTHdezoAAAAASUVORK5CYII=';
+
+        // 3-STEP GRIP GUIDE ILLUSTRATION
+        const GripGuideSteps = () => (
+            <div className="grip-guide">
+                <div className="grip-steps">
+                    {/* Step 1: スマホを用意 */}
+                    <div className="grip-step">
+                        <div className="grip-step-num">1</div>
+                        <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+                            <rect x="16" y="8" width="24" height="40" rx="4" stroke="#C8956C" strokeWidth="1.5" />
+                            <rect x="20" y="12" width="16" height="28" rx="2" stroke="#C8956C" strokeWidth="0.8" opacity="0.25" />
+                            <circle cx="28" cy="44" r="1.5" stroke="#C8956C" strokeWidth="1" />
+                        </svg>
+                        <div className="grip-step-label">スマホを用意</div>
+                    </div>
+                    <div className="grip-step-arrow">›</div>
+                    {/* Step 2+3: top-down view — phone is tall/thin, hand wraps around */}
+                    <div className="grip-step" style={{ flex: 2 }}>
+                        <div className="grip-step-num">2</div>
+                        <svg width="100" height="74" viewBox="0 0 100 74" fill="none">
+                            <defs>
+                                <linearGradient id="palmGrad" x1="0.3" y1="0" x2="0.7" y2="1">
+                                    <stop offset="0%" stopColor="#C8956C" stopOpacity="0.18" />
+                                    <stop offset="100%" stopColor="#A87A56" stopOpacity="0.06" />
+                                </linearGradient>
+                            </defs>
+                            {/* === RIGHT HAND — top-down, gripping vertical phone === */}
+                            {/* Palm + back of hand (single organic shape) */}
+                            <path d="M50 8 C56 8 60 11 62 16 C64 22 64 34 62 42 C60 48 56 52 50 54 L46 54 C40 52 36 48 34 42 C32 36 32 24 34 16 C36 11 40 8 46 8 Z" fill="url(#palmGrad)" stroke="#C8956C" strokeWidth="0.8" opacity="0.6" />
+                            {/* === PHONE inside hand === */}
+                            <rect x="43" y="6" width="7" height="48" rx="2" fill="white" fillOpacity="0.85" stroke="#C8956C" strokeWidth="1.3" />
+                            {/* Camera (left face, near top) */}
+                            <circle cx="44.5" cy="11" r="1.8" stroke="#C8956C" strokeWidth="0.7" opacity="0.35" />
+                            <circle cx="44.5" cy="11" r="0.6" fill="#C8956C" opacity="0.4" />
+                            {/* === THUMB (laying diagonally across phone back, seen from above) === */}
+                            {/* Thumb shape — wider base tapering to tip */}
+                            <path d="M50 10 C53 9 56 10 57 13 C58 16 57 22 55 26 C53 29 51 29 50 27" fill="#C8956C" opacity="0.1" stroke="#C8956C" strokeWidth="1" strokeLinejoin="round" />
+                            {/* Thumb nail highlight */}
+                            <path d="M55.5 13 C56.5 14.5 56.5 17 55.5 19" stroke="#C8956C" strokeWidth="0.5" opacity="0.3" strokeLinecap="round" fill="none" />
+                            {/* Thumb knuckle crease */}
+                            <path d="M51 24 C52 23.5 53.5 24 54 25" stroke="#C8956C" strokeWidth="0.4" opacity="0.2" strokeLinecap="round" />
+                            {/* === FOUR FINGERS (curling around left side, tips visible) === */}
+                            {/* Index — longest, highest */}
+                            <path d="M43 12 C39 11.5 36 12.5 35 15 C34.5 16.5 35 18 37 19 C38.5 19.5 41 19.5 43 19" fill="#C8956C" opacity="0.08" stroke="#C8956C" strokeWidth="0.9" strokeLinecap="round" />
+                            {/* Middle — slightly wider */}
+                            <path d="M43 21 C38.5 20.5 35 21.5 34 24 C33.5 25.8 34 27.5 36 28.5 C37.5 29 40.5 29 43 28.5" fill="#C8956C" opacity="0.07" stroke="#C8956C" strokeWidth="0.9" strokeLinecap="round" />
+                            {/* Ring */}
+                            <path d="M43 31 C39 30.5 36 31.5 35 33.5 C34.5 35 35 36.5 37 37.5 C38.5 38 41 37.5 43 37" fill="#C8956C" opacity="0.06" stroke="#C8956C" strokeWidth="0.85" strokeLinecap="round" />
+                            {/* Pinky — shortest, lowest */}
+                            <path d="M43 39 C40 39 37.5 39.5 37 41 C36.5 42.5 37 43.5 38.5 44 C40 44.3 41.5 44 43 43.5" fill="#C8956C" opacity="0.05" stroke="#C8956C" strokeWidth="0.8" strokeLinecap="round" />
+                            {/* Knuckle bumps (right side of hand) */}
+                            <circle cx="58" cy="16" r="1.8" stroke="#C8956C" strokeWidth="0.4" fill="none" opacity="0.15" />
+                            <circle cx="60" cy="24" r="2" stroke="#C8956C" strokeWidth="0.4" fill="none" opacity="0.13" />
+                            <circle cx="59" cy="33" r="1.8" stroke="#C8956C" strokeWidth="0.4" fill="none" opacity="0.11" />
+                            <circle cx="57" cy="40" r="1.5" stroke="#C8956C" strokeWidth="0.4" fill="none" opacity="0.09" />
+                            {/* Tendon lines on back of hand */}
+                            <path d="M56 48 C57 40 58 30 57 16" stroke="#C8956C" strokeWidth="0.3" opacity="0.08" strokeLinecap="round" />
+                            <path d="M53 50 C54 42 55 32 54 20" stroke="#C8956C" strokeWidth="0.3" opacity="0.06" strokeLinecap="round" />
+                            {/* === DIRECTION LABELS === */}
+                            <line x1="30" y1="11" x2="18" y2="11" stroke="#C8956C" strokeWidth="1" opacity="0.5" strokeLinecap="round" />
+                            <path d="M21 8.5 l-3 2.5 l3 2.5" stroke="#C8956C" strokeWidth="0.8" opacity="0.5" fill="none" strokeLinecap="round" />
+                            <text x="24" y="7" textAnchor="middle" fill="#C8956C" fontSize="4" fontWeight="700" opacity="0.5" fontFamily="Inter, sans-serif">CAM</text>
+                            <line x1="64" y1="11" x2="76" y2="11" stroke="#C8956C" strokeWidth="1" opacity="0.5" strokeLinecap="round" />
+                            <path d="M73 8.5 l3 2.5 l-3 2.5" stroke="#C8956C" strokeWidth="0.8" opacity="0.5" fill="none" strokeLinecap="round" />
+                            <text x="70" y="7" textAnchor="middle" fill="#C8956C" fontSize="4" fontWeight="700" opacity="0.5" fontFamily="Inter, sans-serif">画面</text>
+                            <text x="46" y="64" textAnchor="middle" fill="#C8956C" fontSize="3.8" fontWeight="700" opacity="0.4" fontFamily="'Playfair Display', serif">GOLF GRIP</text>
+                            <text x="46" y="71" textAnchor="middle" fill="#C8956C" fontSize="3.2" fontWeight="500" opacity="0.3" fontFamily="Inter, sans-serif">上から見た図</text>
+                        </svg>
+                        <div className="grip-step-label">向きを確認</div>
+                    </div>
+                    <div className="grip-step-arrow">›</div>
+                    {/* Step 3: 実際の握り方（写真） */}
+                    <div className="grip-step">
+                        <div className="grip-step-num">3</div>
+                        <img
+                            src={`data:image/png;base64,${GRIP_PHOTO_B64}`}
+                            alt="Golf grip"
+                            style={{ width: '72px', borderRadius: '10px', border: '1.5px solid rgba(200,149,108,0.3)' }}
+                        />
+                        <div className="grip-step-label">ゴルフグリップ</div>
+                    </div>
+                </div>
+                <div className="grip-text">
+                    カメラ面を左に、画面を右に向けて握ってください
+                </div>
+            </div>
+        );
 
         // HOME SCREEN
         const HomeScreen = ({ onSelectMode }) => {
@@ -1773,55 +2491,33 @@
                 return () => clearInterval(timer);
             }, []);
 
-            const weeklyTarget = 50;
-            const weeklyPercent = Math.min(100, Math.round((swings / weeklyTarget) * 100));
+            // weeklyTarget removed — replaced by club distance card
 
             return (
                 <div className="screen">
-                    <div className="header">
-                        <div className="logo">GOLFLEV</div>
-                        <p className="subtitle" style={{ color: 'var(--color-gold)', letterSpacing: '0.2em', fontSize: '0.75rem', textTransform: 'uppercase' }}>Smart Swing Trainer</p>
-                        <div style={{ width: '36px', height: '2px', background: 'linear-gradient(90deg, transparent, var(--color-gold), transparent)', margin: '12px auto 0' }}></div>
+                    <div className="hero-header">
+                        <div className="logo">GOLF<span>LEV</span></div>
+                        <p style={{ color: 'var(--color-gold)', letterSpacing: '0.2em', fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 600, margin: 0 }}>Smart Swing Trainer</p>
+                        <div className="hero-ornament">
+                            <div className="hero-ornament-line"></div>
+                            <div className="hero-ornament-diamond"></div>
+                            <div className="hero-ornament-line"></div>
+                        </div>
                     </div>
                     <div className="content">
                         <div className="stack-v">
-                            <button
-                                className="btn btn-primary btn-lg btn-block"
-                                onClick={() => { AudioUtils.click(); onSelectMode('drill'); }}
-                                style={{ height: '56px', marginBottom: '1rem', position: 'relative' }}
-                            >
-                                練習を始める
-                                <span style={{ position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)', width: '32px', height: '32px', background: 'rgba(200,149,108,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>→</span>
-                            </button>
-                            <div className="grid-2">
-                                <div
-                                    className="card card-clickable"
-                                    onClick={() => { AudioUtils.click(); onSelectMode('drill'); }}
-                                >
-                                    <div className="card-title-area">
-                                        <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'linear-gradient(135deg, #2D3B2D, #4A6B4A)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: '18px', fontFamily: "'Playfair Display', serif" }}>D</div>
-                                    </div>
-                                    <div className="mode-card">
-                                        <div className="mode-card-title" style={{ fontFamily: "'Playfair Display', 'Noto Serif JP', Georgia, serif" }}>ドリル</div>
-                                        <div className="mode-card-desc">1つずつマスター</div>
-                                    </div>
+                            {/* Greeting + date */}
+                            <div className="home-stagger-1" style={{ textAlign: 'center', padding: '0.25rem 0 0.5rem' }}>
+                                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.15rem', fontWeight: 700, color: 'var(--color-text)', letterSpacing: '0.02em' }}>
+                                    {(() => { const h = new Date().getHours(); return h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening'; })()}
                                 </div>
-                                <div
-                                    className="card card-clickable"
-                                    onClick={() => { AudioUtils.click(); onSelectMode('free'); }}
-                                >
-                                    <div className="card-title-area">
-                                        <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'linear-gradient(135deg, #C8956C, #A87A56)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: '18px', fontFamily: "'Playfair Display', serif" }}>M</div>
-                                    </div>
-                                    <div className="mode-card">
-                                        <div className="mode-card-title" style={{ fontFamily: "'Playfair Display', 'Noto Serif JP', Georgia, serif" }}>計測</div>
-                                        <div className="mode-card-desc">全データを分析</div>
-                                    </div>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.2rem', letterSpacing: '0.05em' }}>
+                                    {new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}
                                 </div>
                             </div>
 
                             {/* TODAY'S STATS */}
-                            <div className="stats-card">
+                            <div className="stats-card home-stagger-1">
                                 <div className="stats-header">
                                     <span className="stats-header-title">TODAY'S STATS</span>
                                     <span className="stats-header-link">詳細 →</span>
@@ -1842,16 +2538,56 @@
                                 </div>
                             </div>
 
-                            {/* WEEKLY PROGRESS */}
-                            <div className="weekly-card">
-                                <div className="weekly-header">
-                                    <span className="weekly-title">週間目標</span>
-                                    <span className="weekly-percent">{weeklyPercent}%</span>
+                            {/* T & M cards — horizontal badge + text */}
+                            <div className="grid-2 home-stagger-2">
+                                <div
+                                    className="card card-clickable"
+                                    onClick={() => { AudioUtils.click(); onSelectMode('drill'); }}
+                                    style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.85rem' }}
+                                >
+                                    <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'linear-gradient(135deg, var(--color-primary), #4A6B4A)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: '1.4rem', fontFamily: "'Playfair Display', serif", flexShrink: 0 }}>T</div>
+                                    <div style={{ fontFamily: "'Playfair Display', 'Noto Serif JP', Georgia, serif", fontSize: '1.05rem', fontWeight: 700, color: 'var(--color-text)' }}>練習</div>
                                 </div>
-                                <div className="progress-bar-bg">
-                                    <div className="progress-bar-fill" style={{ width: `${weeklyPercent}%` }}></div>
+                                <div
+                                    className="card card-clickable"
+                                    onClick={() => { AudioUtils.click(); onSelectMode('free'); }}
+                                    style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.85rem' }}
+                                >
+                                    <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'linear-gradient(135deg, #C8956C, #A87A56)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: '1.4rem', fontFamily: "'Playfair Display', serif", flexShrink: 0 }}>M</div>
+                                    <div style={{ fontFamily: "'Playfair Display', 'Noto Serif JP', Georgia, serif", fontSize: '1.05rem', fontWeight: 700, color: 'var(--color-text)' }}>計測</div>
                                 </div>
                             </div>
+
+                            {/* STREAK + PERSONAL BEST + LAST SESSION — 3 columns */}
+                            <div className="home-stagger-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.6rem' }}>
+                                {/* Streak */}
+                                <div className="card" style={{ padding: '0.85rem 0.5rem', textAlign: 'center' }}>
+                                    <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-gold)', lineHeight: 1 }}>
+                                        {SessionStats.getStreak()}
+                                    </div>
+                                    <div style={{ fontSize: '0.6rem', fontWeight: 600, color: 'var(--color-text-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase', marginTop: '0.3rem' }}>Day Streak</div>
+                                </div>
+                                {/* Best Tempo */}
+                                <div className="card" style={{ padding: '0.85rem 0.5rem', textAlign: 'center' }}>
+                                    <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-primary)', lineHeight: 1 }}>
+                                        {SessionStats.getBestTempo() ? SessionStats.getBestTempo().toFixed(1) : '—'}
+                                    </div>
+                                    <div style={{ fontSize: '0.6rem', fontWeight: 600, color: 'var(--color-text-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase', marginTop: '0.3rem' }}>Best Tempo</div>
+                                </div>
+                                {/* Best Arc */}
+                                <div className="card" style={{ padding: '0.85rem 0.5rem', textAlign: 'center' }}>
+                                    <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-primary)', lineHeight: 1 }}>
+                                        {SessionStats.getBestArc() ? Math.round(SessionStats.getBestArc()) + '°' : '—'}
+                                    </div>
+                                    <div style={{ fontSize: '0.6rem', fontWeight: 600, color: 'var(--color-text-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase', marginTop: '0.3rem' }}>Best Arc</div>
+                                </div>
+                            </div>
+
+                            {/* CLUB DISTANCE CHART */}
+                            <ClubDistanceCard />
+
+                            {/* SWING NOTES CHECKLIST */}
+                            <MySwingChecklist />
                         </div>
                     </div>
                 </div>
@@ -1861,17 +2597,16 @@
         // DRILL CATEGORY SELECTION
         const DrillCategoryScreen = ({ onSelectDrill, onBack }) => {
             const drills = [
-                { id: 'width', name: 'ふり幅', icon: '📐', jp: 'Swing Width' },
-                { id: 'smoothness', name: 'スムーズさ', icon: '🌊', jp: 'Smoothness' },
-                { id: 'tempo', name: 'テンポ', icon: '🎵', jp: 'Tempo' },
-                { id: 'face', name: 'フェース管理', icon: '🎯', jp: 'Face Control' }
+                { id: 'width', name: 'スイング軌道', icon: 'A', jp: 'Swing Arc' },
+                { id: 'tempo', name: 'テンポ', icon: 'T', jp: 'Tempo' },
+                { id: 'face', name: 'フェース', icon: 'F', jp: 'Face Angle' }
             ];
 
             return (
                 <div className="screen">
                     <div className="header">
                         <button className="btn btn-ghost back-btn" onClick={onBack}>←</button>
-                        <h2>ドリルを選択</h2>
+                        <h2 style={{ fontFamily: "'Playfair Display', serif", letterSpacing: '0.05em' }}>TRAINING</h2>
                     </div>
                     <div className="content">
                         <div className="drill-grid">
@@ -1880,16 +2615,15 @@
                                 <div
                                     key={`bz-${drill.id}`}
                                     className="card card-clickable drill-card"
+                                    style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.25rem' }}
                                     onClick={() => { AudioUtils.click(); onSelectDrill('business', drill.id); }}
                                 >
-                                    <div className="card-title-area">
-                                        <div className="card-icon">{drill.icon}</div>
-                                        <div className="card-progress">
-                                            <span>✓ 0</span>
-                                        </div>
+                                    <div className="card-icon" style={{ width: '52px', height: '52px', fontSize: '1.3rem', flexShrink: 0 }}>{drill.icon}</div>
+                                    <div style={{ flex: 1 }}>
+                                        <h3 style={{ margin: 0, fontSize: '1rem' }}>{drill.name}</h3>
+                                        <p className="text-sm" style={{ margin: '0.15rem 0 0', opacity: 0.5 }}>{drill.jp}</p>
                                     </div>
-                                    <h3>{drill.name}</h3>
-                                    <p className="text-sm">{drill.jp}</p>
+                                    <span style={{ color: 'var(--color-gold)', fontSize: '0.8rem', fontWeight: 600 }}>✓ 0</span>
                                 </div>
                             ))}
 
@@ -1898,16 +2632,15 @@
                                 <div
                                     key={`hs-${drill.id}`}
                                     className="card card-clickable drill-card"
+                                    style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.25rem' }}
                                     onClick={() => { AudioUtils.click(); onSelectDrill('half', drill.id); }}
                                 >
-                                    <div className="card-title-area">
-                                        <div className="card-icon">{drill.icon}</div>
-                                        <div className="card-progress">
-                                            <span>✓ 0</span>
-                                        </div>
+                                    <div className="card-icon" style={{ width: '52px', height: '52px', fontSize: '1.3rem', flexShrink: 0 }}>{drill.icon}</div>
+                                    <div style={{ flex: 1 }}>
+                                        <h3 style={{ margin: 0, fontSize: '1rem' }}>{drill.name}</h3>
+                                        <p className="text-sm" style={{ margin: '0.15rem 0 0', opacity: 0.5 }}>{drill.jp}</p>
                                     </div>
-                                    <h3>{drill.name}</h3>
-                                    <p className="text-sm">{drill.jp}</p>
+                                    <span style={{ color: 'var(--color-gold)', fontSize: '0.8rem', fontWeight: 600 }}>✓ 0</span>
                                 </div>
                             ))}
                         </div>
@@ -1931,28 +2664,16 @@
                         hard: { name: 'きびしい', spec: '45° 〜 60°' }
                     }
                 },
-                smoothness: {
-                    business: {
-                        easy: { name: 'やさしい', spec: '≥50%' },
-                        normal: { name: 'ふつう', spec: '≥65%' },
-                        hard: { name: 'きびしい', spec: '≥80%' }
-                    },
-                    half: {
-                        easy: { name: 'やさしい', spec: '≥50%' },
-                        normal: { name: 'ふつう', spec: '≥65%' },
-                        hard: { name: 'きびしい', spec: '≥80%' }
-                    }
-                },
                 tempo: {
                     business: {
-                        easy: { name: 'やさしい', spec: '1.5:1 〜 5.0:1' },
-                        normal: { name: 'ふつう', spec: '2.0:1 〜 4.0:1' },
-                        hard: { name: 'きびしい', spec: '2.5:1 〜 3.5:1' }
+                        easy: { name: 'やさしい', spec: '1.5:1〜5.0:1 / 安定度≥40%' },
+                        normal: { name: 'ふつう', spec: '2.0:1〜4.0:1 / 安定度≥55%' },
+                        hard: { name: 'きびしい', spec: '2.5:1〜3.5:1 / 安定度≥70%' }
                     },
                     half: {
-                        easy: { name: 'やさしい', spec: '1.5:1 〜 5.0:1' },
-                        normal: { name: 'ふつう', spec: '2.0:1 〜 4.0:1' },
-                        hard: { name: 'きびしい', spec: '2.5:1 〜 3.5:1' }
+                        easy: { name: 'やさしい', spec: '1.5:1〜5.0:1 / 安定度≥40%' },
+                        normal: { name: 'ふつう', spec: '2.0:1〜4.0:1 / 安定度≥55%' },
+                        hard: { name: 'きびしい', spec: '2.5:1〜3.5:1 / 安定度≥70%' }
                     }
                 },
                 face: {
@@ -2027,13 +2748,9 @@
                     business: { easy: [15, 45], normal: [18, 38], hard: [20, 35] },
                     half: { easy: [35, 75], normal: [40, 65], hard: [45, 60] }
                 },
-                smoothness: {
-                    business: { easy: 50, normal: 65, hard: 80 },
-                    half: { easy: 50, normal: 65, hard: 80 }
-                },
                 tempo: {
-                    business: { easy: [1.5, 5.0], normal: [2.0, 4.0], hard: [2.5, 3.5] },
-                    half: { easy: [1.5, 5.0], normal: [2.0, 4.0], hard: [2.5, 3.5] }
+                    business: { easy: { range: [1.5, 5.0], smooth: 40 }, normal: { range: [2.0, 4.0], smooth: 55 }, hard: { range: [2.5, 3.5], smooth: 70 } },
+                    half: { easy: { range: [1.5, 5.0], smooth: 40 }, normal: { range: [2.0, 4.0], smooth: 55 }, hard: { range: [2.5, 3.5], smooth: 70 } }
                 },
                 face: {
                     business: { easy: 20, normal: 12, hard: 6 },
@@ -2160,16 +2877,10 @@
                     <div className="screen">
                         <div className="header">
                             <button className="btn btn-ghost back-btn" onClick={onBack}>←</button>
-                            <h2>握り方の確認</h2>
+                            <h2>グリップの確認</h2>
                         </div>
                         <div className="content">
-                            <div className="grip-guide">
-                                <div className="grip-icon">📱</div>
-                                <div className="grip-text">
-                                    スマートフォンを握ってください。<br/>
-                                    カメラは左を向いてください。
-                                </div>
-                            </div>
+                            <GripGuideSteps />
                             <button className="btn btn-primary btn-lg btn-block" onClick={handleGripConfirm}>
                                 準備完了
                             </button>
@@ -2184,7 +2895,7 @@
                 return (
                     <div className="screen">
                         <div className="header">
-                            <h2>ドリル実行中</h2>
+                            <h2>トレーニング中</h2>
                         </div>
                         <div className="content">
                             <div className="phase-indicator">
@@ -2231,17 +2942,17 @@
                         success = value >= config[0] && value <= config[1];
                         target = `${config[0]}° 〜 ${config[1]}°`;
                     }
-                } else if (drillId === 'smoothness') {
-                    value = metrics.smoothness;
-                    displayValue = Math.round(value);
-                    success = value >= config;
-                    target = `${config}% 以上`;
                 } else if (drillId === 'tempo') {
                     value = metrics.tempo;
                     displayValue = Math.round(value * 100) / 100;
-                    if (Array.isArray(config)) {
-                        success = value >= config[0] && value <= config[1];
-                        target = `${config[0].toFixed(1)}:1 〜 ${config[1].toFixed(1)}:1`;
+                    const smoothVal = metrics.smoothness || 0;
+                    const tempoRange = config.range || config;
+                    const smoothThreshold = config.smooth || 0;
+                    if (Array.isArray(tempoRange)) {
+                        const tempoOk = value >= tempoRange[0] && value <= tempoRange[1];
+                        const smoothOk = smoothVal >= smoothThreshold;
+                        success = tempoOk && smoothOk;
+                        target = `${tempoRange[0].toFixed(1)}:1〜${tempoRange[1].toFixed(1)}:1 / 安定度≥${smoothThreshold}%`;
                     }
                 } else if (drillId === 'face') {
                     value = Math.abs(metrics.vfa);
@@ -2268,11 +2979,17 @@
                                 </div>
                                 <div className="metric-label">
                                     {drillId === 'width' && '°'}
-                                    {drillId === 'smoothness' && '%'}
                                     {drillId === 'tempo' && ':1'}
                                     {drillId === 'face' && '°'}
                                 </div>
                             </div>
+
+                            {/* テンポドリル: 安定度サブ表示 */}
+                            {drillId === 'tempo' && metrics && (
+                                <div style={{ textAlign: 'center', marginTop: '0.5rem', fontSize: '0.95rem', color: 'var(--color-text-secondary)' }}>
+                                    安定度: <span style={{ fontWeight: 700, color: (metrics.smoothness || 0) >= (config.smooth || 0) ? 'var(--color-gold)' : '#C45B4A' }}>{Math.round(metrics.smoothness || 0)}%</span>
+                                </div>
+                            )}
 
                             <div className="range-info">
                                 <div className="range-box">
@@ -2288,9 +3005,8 @@
                             </div>
 
                             <div className="result-tip">
-                                {drillId === 'width' && '適切な振り幅を保つことで、安定したスイングが実現します。'}
-                                {drillId === 'smoothness' && 'より滑らかな動きを意識して、緊張を取り除きましょう。'}
-                                {drillId === 'tempo' && 'テンポが一定することで、リズム感のあるスイングになります。'}
+                                {drillId === 'width' && 'スイング軌道を目標範囲に収めることで、安定したアークが身につきます。'}
+                                {drillId === 'tempo' && 'テンポと安定度の両方が揃うことで、力みのないリズムが生まれます。'}
                                 {drillId === 'face' && 'フェース角を安定させることが、方向性の鍵になります。'}
                             </div>
 
@@ -2306,7 +3022,7 @@
                                     もう一度
                                 </button>
                                 <button className="btn btn-secondary btn-lg btn-block" onClick={onBack}>
-                                    別のドリル
+                                    別のトレーニング
                                 </button>
                             </div>
                         </div>
@@ -2329,11 +3045,11 @@
                 <div className="screen">
                     <div className="header">
                         <button className="btn btn-ghost back-btn" onClick={onBack}>←</button>
-                        <h2>握り方の確認</h2>
+                        <h2>グリップの確認</h2>
                     </div>
                     <div className="content">
                         <div className="grip-guide">
-                            <div className="grip-icon">📱</div>
+                            <div className="grip-icon"><svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="20" y="8" width="24" height="44" rx="4" stroke="#C8956C" strokeWidth="1.8" /><rect x="24" y="12" width="16" height="28" rx="2" stroke="#C8956C" strokeWidth="1" opacity="0.3" /><circle cx="32" cy="46" r="2" stroke="#C8956C" strokeWidth="1.2" /><path d="M18 26c-3 0-5 1.5-5 4v8c0 2.5 2 4 5 4" stroke="#C8956C" strokeWidth="1.5" strokeLinecap="round" fill="none" /><path d="M15 30h-2c-1.5 0-2.5 1-2.5 2.5s1 2.5 2.5 2.5h2" stroke="#C8956C" strokeWidth="1.2" strokeLinecap="round" fill="none" /><path d="M46 26c3 0 5 1.5 5 4v8c0 2.5-2 4-5 4" stroke="#C8956C" strokeWidth="1.5" strokeLinecap="round" fill="none" /><line x1="32" y1="56" x2="28" y2="60" stroke="#C8956C" strokeWidth="1" opacity="0.4" strokeLinecap="round" /><line x1="32" y1="56" x2="36" y2="60" stroke="#C8956C" strokeWidth="1" opacity="0.4" strokeLinecap="round" /><text x="32" y="63" textAnchor="middle" fill="#C8956C" fontSize="4" fontWeight="600" opacity="0.5" fontFamily="Inter, sans-serif">CAMERA ←</text></svg></div>
                             <div className="grip-text">
                                 スマートフォンを握ってください。<br/>
                                 カメラは左を向いてください。
@@ -2681,6 +3397,7 @@
             const [drill, setDrill] = useState(null);
             const [difficulty, setDifficulty] = useState(null);
             const [freeStep, setFreeStep] = useState('grip');
+            const [swingPathType, setSwingPathType] = useState(null);
 
             const navigateTo = (newScreen) => {
                 AudioUtils.click();
@@ -2716,10 +3433,65 @@
                             onSelectDrill={(z, d) => {
                                 setZone(z);
                                 setDrill(d);
-                                setScreen('drill-difficulty');
+                                if (d === 'width') {
+                                    setScreen('swing-path-select');
+                                } else {
+                                    setScreen('drill-difficulty');
+                                }
                             }}
                             onBack={goHome}
                         />
+                    )}
+
+                    {screen === 'swing-path-select' && (
+                        <div className="screen">
+                            <div className="header">
+                                <button className="btn btn-ghost back-btn" onClick={() => setScreen('drill-category')}>←</button>
+                                <h2 style={{ fontFamily: "'Playfair Display', serif", letterSpacing: '0.05em' }}>SWING PATH</h2>
+                            </div>
+                            <div className="content">
+                                <p style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginBottom: '1.25rem' }}>目標とする軌道を選んでください</p>
+                                <div className="stack-v" style={{ gap: '0.75rem' }}>
+                                    {[
+                                        { id: 'inside-in', name: 'インサイドイン', en: 'Inside-In', desc: 'ストレート軌道。最も安定したスイング', color: 'var(--color-primary)',
+                                          svg: React.createElement('svg', { width: 60, height: 40, viewBox: '0 0 60 40', fill: 'none' },
+                                            React.createElement('circle', { cx: 30, cy: 30, r: 2.5, fill: 'white', stroke: '#C8956C', strokeWidth: 1 }),
+                                            React.createElement('path', { d: 'M50 35 Q40 10 30 30 Q20 10 10 35', stroke: '#2D3B2D', strokeWidth: 1.8, fill: 'none', strokeLinecap: 'round' }),
+                                            React.createElement('path', { d: 'M12 33 l-3 3', stroke: '#2D3B2D', strokeWidth: 1, strokeLinecap: 'round' }),
+                                          )
+                                        },
+                                        { id: 'outside-in', name: 'アウトサイドイン', en: 'Outside-In', desc: 'フェード・スライス系。カット軌道', color: '#C8956C',
+                                          svg: React.createElement('svg', { width: 60, height: 40, viewBox: '0 0 60 40', fill: 'none' },
+                                            React.createElement('circle', { cx: 30, cy: 30, r: 2.5, fill: 'white', stroke: '#C8956C', strokeWidth: 1 }),
+                                            React.createElement('path', { d: 'M50 15 Q42 12 30 30 Q22 12 10 35', stroke: '#C8956C', strokeWidth: 1.8, fill: 'none', strokeLinecap: 'round' }),
+                                            React.createElement('path', { d: 'M12 33 l-3 3', stroke: '#C8956C', strokeWidth: 1, strokeLinecap: 'round' }),
+                                          )
+                                        },
+                                        { id: 'inside-out', name: 'インサイドアウト', en: 'Inside-Out', desc: 'ドロー・フック系。飛距離が出る', color: '#5A7A5A',
+                                          svg: React.createElement('svg', { width: 60, height: 40, viewBox: '0 0 60 40', fill: 'none' },
+                                            React.createElement('circle', { cx: 30, cy: 30, r: 2.5, fill: 'white', stroke: '#C8956C', strokeWidth: 1 }),
+                                            React.createElement('path', { d: 'M50 35 Q38 12 30 30 Q18 12 10 15', stroke: '#5A7A5A', strokeWidth: 1.8, fill: 'none', strokeLinecap: 'round' }),
+                                            React.createElement('path', { d: 'M12 17 l-3 -3', stroke: '#5A7A5A', strokeWidth: 1, strokeLinecap: 'round' }),
+                                          )
+                                        },
+                                    ].map(path => (
+                                        <div
+                                            key={path.id}
+                                            className="card card-clickable"
+                                            onClick={() => { AudioUtils.click(); setSwingPathType(path.id); setScreen('drill-difficulty'); }}
+                                            style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.25rem' }}
+                                        >
+                                            <div style={{ flexShrink: 0 }}>{path.svg}</div>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '1rem', fontWeight: 700, color: 'var(--color-text)' }}>{path.name}</div>
+                                                <div style={{ fontSize: '0.7rem', color: 'var(--color-gold)', fontWeight: 600, letterSpacing: '0.03em' }}>{path.en}</div>
+                                                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.2rem' }}>{path.desc}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
                     )}
 
                     {screen === 'drill-difficulty' && (
