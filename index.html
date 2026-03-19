@@ -1420,48 +1420,43 @@
                 const qC = QuatUtils.fromEuler(orient.alpha, orient.beta, orient.gamma);
                 const qB = QuatUtils.fromEuler(baseline.alpha, baseline.beta, baseline.gamma);
 
-                // Step 2: Compute relative rotation in baseline device frame
-                // qRel represents: "how has the phone rotated FROM address TO current?"
-                // Formula: qRel = qBaseline⁻¹ ⊗ qCurrent
+                // Step 2: Relative quaternion (for vertical accuracy + deviation)
                 const qRel = QuatUtils.mul(QuatUtils.conj(qB), qC);
 
-                // Step 3: Total angular deviation from baseline (degrees)
-                // Used for ③ return accuracy — exact measure of "how far from address"
+                // Step 3: Total angular deviation from baseline (for ③ return accuracy)
                 const deviation = QuatUtils.angle(qRel);
 
-                // Step 4: Swing-Twist decomposition around Y-axis (shaft direction)
-                // At address, phone Y-axis points UP along the "shaft"
-                // twist = wrist roll/cock (rotation AROUND the shaft)
-                // swing = club movement (rotation that MOVES the shaft)
+                // Step 4: Swing-Twist decomposition (for wrist roll only)
                 const { swing, twistAngle } = QuatUtils.decomposeSwingTwist(qRel);
 
-                // Step 5: Track where the shaft is pointing now
-                // At address: shaft = [0, 1, 0] (up)
-                // After swing: shaft has moved to a new direction
+                // Step 5: VERTICAL from quaternion (accurate shaft tilt)
+                // The quaternion correctly measures how far the shaft has tilted
                 const shaft = QuatUtils.rotVec(swing, { x: 0, y: 1, z: 0 });
-
-                // Step 6: Decompose shaft direction into vertical + horizontal
-                // vertical = angle from UP (0° at address, increases during swing)
                 const shaftY = Math.min(1, Math.max(-1, shaft.y));
                 const vertical = Math.acos(shaftY) * 180 / Math.PI;
 
-                // horizontal = direction of shaft in horizontal plane (signed, degrees)
-                // Only meaningful when shaft has tilted enough (vertical > 3°)
-                // This is the KEY metric for ② takeaway direction and ④ path type
-                const horizontal = vertical > 3
-                    ? Math.atan2(shaft.x, shaft.z) * 180 / Math.PI
-                    : 0;
+                // Step 6: HORIZONTAL from direct gamma difference
+                // CRITICAL: The swing-twist decomposition ABSORBS gamma changes
+                // into the twist component, making it BLIND to inside/outside.
+                // Gamma directly measures the phone's left-right tilt =
+                // the golfer's inside/outside hand position.
+                // Positive = hands went outside, Negative = hands went inside
+                const horizontal = normAngle(orient.gamma - baseline.gamma);
 
-                // Step 7: Wrist roll from twist component
-                const wristCock = clamp(twistAngle, -180, 180);
+                // Step 7: Wrist roll from twist (minus the gamma component)
+                // Since gamma changes are now tracked by horizontal,
+                // wristCock captures the remaining rotation = true wrist roll
+                const wristCock = clamp(twistAngle - horizontal, -180, 180);
 
                 return {
-                    vertical,              // shaft tilt from UP (≥ 0, degrees)
-                    horizontal,            // direction in horizontal plane (signed, degrees)
-                    wristCock,             // twist around shaft axis (signed, degrees)
-                    combined: vertical,    // swing arc ≈ shaft tilt (compatible with old code)
-                    signedHorizontal: horizontal,  // same as horizontal (compatible)
-                    deviation              // total rotation from baseline (degrees)
+                    vertical,              // shaft tilt from UP (≥ 0, degrees) — QUATERNION
+                    horizontal,            // inside/outside direction (signed, degrees) — GAMMA
+                    wristCock,             // true wrist roll (signed, degrees) — QUATERNION minus GAMMA
+                    combined: vertical,    // swing arc ≈ shaft tilt
+                    signedHorizontal: horizontal,
+                    deviation,             // total rotation from baseline (degrees)
+                    shaftX,                // raw lateral component (-1 to 1)
+                    shaftZ                 // raw forward/backward component (-1 to 1)
                 };
             },
 
@@ -1554,69 +1549,69 @@
 
                 // ============================================================
                 // ④ SWING PATH TYPE (スイング軌道タイプ判定)
-                // Compare takeaway curve vs downswing curve in horizontal (beta)
-                // at equivalent vertical (gamma) positions
-                //
-                // Method: sample beta at several gamma checkpoints during
-                // takeaway and downswing, then compute average difference
+                // Compare takeaway vs downswing using shaftX (lateral component).
+                // shaftX is the TRUE inside/outside differentiator:
+                //   - Takeaway and downswing on same lateral path = inside-in
+                //   - Downswing more outward (larger shaftX) = outside-in
+                //   - Downswing more inward (smaller shaftX) = inside-out
                 // ============================================================
                 let pathDifference = 0;
                 let pathType = 'inside-in';
                 if (topIdx > 3 && impactIdx > topIdx + 2) {
-                    // Build takeaway curve: gamma -> beta mapping (0 to topIdx)
+                    // Build curves using shaftX (lateral) at each vertical level
                     const takeawayCurve = [];
                     for (let i = 0; i <= topIdx; i++) {
-                        takeawayCurve.push({ v: angles[i].vertical, h: angles[i].horizontal });
+                        takeawayCurve.push({
+                            v: angles[i].vertical,
+                            lat: angles[i].shaftX || 0  // lateral component
+                        });
                     }
-                    // Build downswing curve: gamma -> beta mapping (topIdx to impactIdx)
                     const downswingCurve = [];
                     for (let i = topIdx; i <= impactIdx; i++) {
-                        downswingCurve.push({ v: angles[i].vertical, h: angles[i].horizontal });
+                        downswingCurve.push({
+                            v: angles[i].vertical,
+                            lat: angles[i].shaftX || 0
+                        });
                     }
 
-                    // Sample at several vertical checkpoints (e.g., 25%, 50%, 75% of max vertical)
-                    const maxV = Math.abs(takeawayV);
+                    // Compare at vertical checkpoints (25%, 50%, 75% of max)
+                    const maxV = takeawayV;  // already positive from quaternion
                     const checkpoints = [0.25, 0.50, 0.75];
                     let totalDiff = 0;
                     let validCheckpoints = 0;
 
                     for (const frac of checkpoints) {
                         const targetV = maxV * frac;
+                        if (targetV < 5) continue;  // skip tiny angles (noisy)
 
-                        // Find closest point in takeaway curve to this vertical level
-                        let bestTakeaway = null;
-                        let bestTakeawayDist = Infinity;
+                        let bestT = null, bestTDist = Infinity;
                         for (const pt of takeawayCurve) {
-                            const dist = Math.abs(Math.abs(pt.v) - targetV);
-                            if (dist < bestTakeawayDist) {
-                                bestTakeawayDist = dist;
-                                bestTakeaway = pt;
-                            }
+                            const d = Math.abs(pt.v - targetV);
+                            if (d < bestTDist) { bestTDist = d; bestT = pt; }
                         }
 
-                        // Find closest point in downswing curve to this vertical level
-                        let bestDownswing = null;
-                        let bestDownswingDist = Infinity;
+                        let bestD = null, bestDDist = Infinity;
                         for (const pt of downswingCurve) {
-                            const dist = Math.abs(Math.abs(pt.v) - targetV);
-                            if (dist < bestDownswingDist) {
-                                bestDownswingDist = dist;
-                                bestDownswing = pt;
-                            }
+                            const d = Math.abs(pt.v - targetV);
+                            if (d < bestDDist) { bestDDist = d; bestD = pt; }
                         }
 
-                        if (bestTakeaway && bestDownswing &&
-                            bestTakeawayDist < maxV * 0.2 && bestDownswingDist < maxV * 0.2) {
-                            // Positive diff = downswing is more outward than takeaway
-                            totalDiff += (bestDownswing.h - bestTakeaway.h);
+                        if (bestT && bestD &&
+                            bestTDist < maxV * 0.2 && bestDDist < maxV * 0.2) {
+                            // Compare lateral (shaftX) component
+                            // Positive diff = downswing shaftX is more positive than takeaway
+                            totalDiff += (bestD.lat - bestT.lat);
                             validCheckpoints++;
                         }
                     }
 
                     if (validCheckpoints > 0) {
-                        pathDifference = totalDiff / validCheckpoints;
-                        // Classification thresholds (degrees)
-                        const PATH_THRESHOLD = 4;
+                        // pathDifference is in raw shaftX units (0 to 1 scale)
+                        // Convert to approximate degrees for threshold comparison
+                        pathDifference = Math.asin(clamp(
+                            totalDiff / validCheckpoints, -1, 1
+                        )) * 180 / Math.PI;
+                        const PATH_THRESHOLD = 3;  // degrees
                         if (pathDifference > PATH_THRESHOLD) {
                             pathType = 'outside-in';
                         } else if (pathDifference < -PATH_THRESHOLD) {
@@ -1727,8 +1722,9 @@
             const cx = 140, cy = 100;  // pivot point (shoulder)
             const radius = 100;        // club reach (arm + club)
 
-            // Swing angle: horizontal rotation + vertical contribution
-            const swingDeg = clamp(h * 1.0 + (h > 0 ? v * 0.3 : -Math.abs(v) * 0.15), -160, 160);
+            // Swing angle: horizontal is now gamma-based (±5° to ±25° range)
+            // Scale up for visual, and add vertical contribution for arc size
+            const swingDeg = clamp(h * 4.0 + (h > 0 ? v * 0.8 : -v * 0.8), -160, 160);
             const swingRad = swingDeg * Math.PI / 180;
 
             // Address = straight down (6 o'clock)
@@ -2797,15 +2793,12 @@
                     if (sensorHistoryRef.current.length > 500) sensorHistoryRef.current.shift();
 
                     // State machine
+                    // Phase 1: 'waiting' — sensor is active, waiting for user to tap to confirm address
+                    // Phase 2: 'ready' — baseline captured, waiting for swing start
+                    // Phase 3: 'recording' — recording swing data
                     if (stateRef.current === 'waiting') {
-                        if (SensorUtils.detectStillness(sensorHistoryRef.current)) {
-                            baselineRef.current = { beta: o.beta, gamma: o.gamma, alpha: o.alpha };
-                            stateRef.current = 'ready';
-                            setState('ready');
-                            readyTimeRef.current = now;
-                            readyStableCountRef.current = 0;
-                            AudioUtils.ready();
-                        }
+                        // Just accumulate sensor data; baseline is set by tap (handleAddressConfirm)
+                        // No auto-detection — user explicitly confirms address position
                     } else if (stateRef.current === 'ready') {
                         if (jerk < 2.0 && rotMag < 25) {
                             readyStableCountRef.current++;
@@ -2814,7 +2807,7 @@
                         }
                         const readyElapsed = now - readyTimeRef.current;
                         // Use gyroscope-based swing detection (more reliable)
-                        if (readyElapsed > 600 && readyStableCountRef.current > 8 &&
+                        if (readyElapsed > 300 && readyStableCountRef.current > 3 &&
                             SensorUtils.detectSwingStart(sensorHistoryRef.current)) {
                             stateRef.current = 'recording';
                             setState('recording');
@@ -2872,6 +2865,17 @@
                 setState('waiting');
             };
 
+            // ADDRESS CONFIRM: User taps to register address position as baseline
+            const handleAddressConfirm = () => {
+                const o = orientRef.current;
+                baselineRef.current = { beta: o.beta, gamma: o.gamma, alpha: o.alpha };
+                stateRef.current = 'ready';
+                setState('ready');
+                readyTimeRef.current = Date.now();
+                readyStableCountRef.current = 0;
+                AudioUtils.ready();
+            };
+
             if (state === 'grip') {
                 return (
                     <div className="screen">
@@ -2907,16 +2911,25 @@
                                     <div className={`phase-dot ${phaseIdx === 2 ? 'active' : ''}`}></div>
                                 </div>
                                 <div className="phase-label">
-                                    {state === 'waiting' && '① 静止してください'}
-                                    {state === 'ready' && '② アドレスOK → スイング！'}
+                                    {state === 'waiting' && '① アドレスを取ってください'}
+                                    {state === 'ready' && '② スイング！'}
                                     {state === 'recording' && '③ 計測中...'}
                                 </div>
                                 <div className="phase-sublabel">
-                                    {state === 'waiting' && 'スマホを持って構え、動きを止めてください'}
-                                    {state === 'ready' && '安定を確認しました。準備ができたらスイングしてください'}
+                                    {state === 'waiting' && 'アドレスの姿勢ができたら、画面をタップして確定'}
+                                    {state === 'ready' && 'アドレスを登録しました。スイングしてください'}
                                     {state === 'recording' && 'スイングを記録しています。フィニッシュで止まってください'}
                                 </div>
                             </div>
+                            {state === 'waiting' && (
+                                <button
+                                    className="btn btn-primary btn-lg btn-block"
+                                    onClick={handleAddressConfirm}
+                                    style={{ marginTop: '1.5rem', padding: '1.25rem', fontSize: '1.1rem' }}
+                                >
+                                    アドレス確定
+                                </button>
+                            )}
                             <SwingCompass
                                 beta={orient.beta}
                                 gamma={orient.gamma}
@@ -3174,13 +3187,7 @@
                     }
 
                     if (curState === 'waiting') {
-                        if (SensorUtils.detectStillness(sensorHistoryRef.current)) {
-                            baselineRef.current = { beta: o.beta, gamma: o.gamma, alpha: o.alpha };
-                            setState('ready');
-                            readyTimeRef.current = now;
-                            readyStableCountRef.current = 0;
-                            AudioUtils.beep(800, 150);
-                        }
+                        // Baseline is set by handleFreeAddressConfirm (tap), not auto
                     }
 
                     if (curState === 'ready') {
@@ -3190,7 +3197,7 @@
                             readyStableCountRef.current = 0;
                         }
                         const readyElapsed = now - readyTimeRef.current;
-                        if (readyElapsed > 600 && readyStableCountRef.current > 8 &&
+                        if (readyElapsed > 300 && readyStableCountRef.current > 3 &&
                             SensorUtils.detectSwingStart(sensorHistoryRef.current)) {
                             sensorHistoryRef.current = [];
                             sensorHistoryRef.current.push({
@@ -3235,6 +3242,16 @@
             if (state === 'waiting' || state === 'ready' || state === 'recording') {
                 const phaseIdx = state === 'waiting' ? 0 : state === 'ready' ? 1 : 2;
 
+                // ADDRESS CONFIRM for free mode
+                const handleFreeAddressConfirm = () => {
+                    const o = orientRef.current;
+                    baselineRef.current = { beta: o.beta, gamma: o.gamma, alpha: o.alpha };
+                    setState('ready');
+                    readyTimeRef.current = Date.now();
+                    readyStableCountRef.current = 0;
+                    AudioUtils.ready();
+                };
+
                 return (
                     <div className="screen">
                         <div className="header">
@@ -3250,16 +3267,25 @@
                                     <div className={`phase-dot ${phaseIdx === 2 ? 'active' : ''}`}></div>
                                 </div>
                                 <div className="phase-label">
-                                    {state === 'waiting' && '① 静止してください'}
-                                    {state === 'ready' && '② アドレスOK → スイング！'}
+                                    {state === 'waiting' && '① アドレスを取ってください'}
+                                    {state === 'ready' && '② スイング！'}
                                     {state === 'recording' && '③ 計測中...'}
                                 </div>
                                 <div className="phase-sublabel">
-                                    {state === 'waiting' && 'スマホを持って構え、動きを止めてください'}
-                                    {state === 'ready' && '安定を確認しました。準備ができたらスイングしてください'}
+                                    {state === 'waiting' && 'アドレスの姿勢ができたら、画面をタップして確定'}
+                                    {state === 'ready' && 'アドレスを登録しました。スイングしてください'}
                                     {state === 'recording' && 'スイングを記録しています。フィニッシュで止まってください'}
                                 </div>
                             </div>
+                            {state === 'waiting' && (
+                                <button
+                                    className="btn btn-primary btn-lg btn-block"
+                                    onClick={handleFreeAddressConfirm}
+                                    style={{ marginTop: '1.5rem', padding: '1.25rem', fontSize: '1.1rem' }}
+                                >
+                                    アドレス確定
+                                </button>
+                            )}
                             <SwingCompass
                                 beta={orient.beta}
                                 gamma={orient.gamma}
