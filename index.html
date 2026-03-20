@@ -1420,43 +1420,64 @@
                 const qC = QuatUtils.fromEuler(orient.alpha, orient.beta, orient.gamma);
                 const qB = QuatUtils.fromEuler(baseline.alpha, baseline.beta, baseline.gamma);
 
-                // Step 2: Relative quaternion (for vertical accuracy + deviation)
+                // Step 2: Relative quaternion (for deviation)
                 const qRel = QuatUtils.mul(QuatUtils.conj(qB), qC);
-
-                // Step 3: Total angular deviation from baseline (for ③ return accuracy)
                 const deviation = QuatUtils.angle(qRel);
 
-                // Step 4: Swing-Twist decomposition (for wrist roll only)
-                const { swing, twistAngle } = QuatUtils.decomposeSwingTwist(qRel);
+                // Step 3: Wrist roll from swing-twist decomposition
+                const { twistAngle } = QuatUtils.decomposeSwingTwist(qRel);
+                const wristCock = clamp(twistAngle, -180, 180);
 
-                // Step 5: VERTICAL from quaternion (accurate shaft tilt)
-                // The quaternion correctly measures how far the shaft has tilted
-                const shaft = QuatUtils.rotVec(swing, { x: 0, y: 1, z: 0 });
-                const shaftY = Math.min(1, Math.max(-1, shaft.y));
-                const vertical = Math.acos(shaftY) * 180 / Math.PI;
+                // Step 4: EARTH-FRAME shaft tracking
+                // Track where the shaft (phone Y-axis) is pointing in WORLD coordinates
+                // This correctly uses ALL sensor data (alpha + beta + gamma)
+                const shaftCur = QuatUtils.rotVec(qC, { x: 0, y: 1, z: 0 });
+                const shaftBl = QuatUtils.rotVec(qB, { x: 0, y: 1, z: 0 });
 
-                // Step 6: HORIZONTAL from direct gamma difference
-                // CRITICAL: The swing-twist decomposition ABSORBS gamma changes
-                // into the twist component, making it BLIND to inside/outside.
-                // Gamma directly measures the phone's left-right tilt =
-                // the golfer's inside/outside hand position.
-                // Positive = hands went outside, Negative = hands went inside
-                const horizontal = normAngle(orient.gamma - baseline.gamma);
+                // Step 5: VERTICAL = angle between current shaft and address shaft
+                const shaftDot = Math.min(1, Math.max(-1,
+                    shaftCur.x * shaftBl.x + shaftCur.y * shaftBl.y + shaftCur.z * shaftBl.z
+                ));
+                const vertical = Math.acos(shaftDot) * 180 / Math.PI;
 
-                // Step 7: Wrist roll from twist (minus the gamma component)
-                // Since gamma changes are now tracked by horizontal,
-                // wristCock captures the remaining rotation = true wrist roll
-                const wristCock = clamp(twistAngle - horizontal, -180, 180);
+                // Step 6: HORIZONTAL = inside/outside direction
+                // Uses SWING PLANE approach:
+                //   Swing plane = vertical plane containing shaft_bl and gravity (0,1,0)
+                //   Plane normal = cross(shaft_bl, gravity_down)
+                //   Positive horizontal = shaft deviated to one side (outside)
+                //   Negative horizontal = shaft deviated to other side (inside)
+                // This gives 0° for straight takeaway and ±degrees for lateral deviation.
+                const gravDown = { x: 0, y: -1, z: 0 };
+                // Normal to swing plane
+                const pnx = shaftBl.y * gravDown.z - shaftBl.z * gravDown.y;
+                const pny = shaftBl.z * gravDown.x - shaftBl.x * gravDown.z;
+                const pnz = shaftBl.x * gravDown.y - shaftBl.y * gravDown.x;
+                const pnLen = Math.sqrt(pnx*pnx + pny*pny + pnz*pnz);
+
+                let horizontal = 0;
+                if (pnLen > 0.01 && vertical > 2) {
+                    const nx = pnx/pnLen, ny = pny/pnLen, nz = pnz/pnLen;
+                    // Shaft displacement: remove component along baseline shaft
+                    const dsx = shaftCur.x - shaftDot * shaftBl.x;
+                    const dsy = shaftCur.y - shaftDot * shaftBl.y;
+                    const dsz = shaftCur.z - shaftDot * shaftBl.z;
+                    // Lateral = projection onto plane normal
+                    const lateral = dsx*nx + dsy*ny + dsz*nz;
+                    // Displacement magnitude
+                    const dLen = Math.sqrt(dsx*dsx + dsy*dsy + dsz*dsz);
+                    if (dLen > 0.001) {
+                        const sinLat = Math.min(1, Math.max(-1, lateral / dLen));
+                        horizontal = Math.asin(sinLat) * 180 / Math.PI;
+                    }
+                }
 
                 return {
-                    vertical,              // shaft tilt from UP (≥ 0, degrees) — QUATERNION
-                    horizontal,            // inside/outside direction (signed, degrees) — GAMMA
-                    wristCock,             // true wrist roll (signed, degrees) — QUATERNION minus GAMMA
-                    combined: vertical,    // swing arc ≈ shaft tilt
+                    vertical,              // shaft tilt from address (≥ 0, degrees)
+                    horizontal,            // inside/outside direction (signed, degrees)
+                    wristCock,             // twist around shaft axis (signed, degrees)
+                    combined: vertical,    // swing arc
                     signedHorizontal: horizontal,
-                    deviation,             // total rotation from baseline (degrees)
-                    shaftX,                // raw lateral component (-1 to 1)
-                    shaftZ                 // raw forward/backward component (-1 to 1)
+                    deviation              // total rotation from baseline (degrees)
                 };
             },
 
@@ -1549,28 +1570,28 @@
 
                 // ============================================================
                 // ④ SWING PATH TYPE (スイング軌道タイプ判定)
-                // Compare takeaway vs downswing using shaftX (lateral component).
-                // shaftX is the TRUE inside/outside differentiator:
-                //   - Takeaway and downswing on same lateral path = inside-in
-                //   - Downswing more outward (larger shaftX) = outside-in
-                //   - Downswing more inward (smaller shaftX) = inside-out
+                // Compare takeaway vs downswing horizontal (swing-plane deviation).
+                // Horizontal measures lateral deviation from the swing plane in degrees.
+                //   - Same horizontal path = inside-in
+                //   - Downswing more positive = outside-in
+                //   - Downswing more negative = inside-out
                 // ============================================================
                 let pathDifference = 0;
                 let pathType = 'inside-in';
                 if (topIdx > 3 && impactIdx > topIdx + 2) {
-                    // Build curves using shaftX (lateral) at each vertical level
+                    // Build curves using horizontal at each vertical level
                     const takeawayCurve = [];
                     for (let i = 0; i <= topIdx; i++) {
                         takeawayCurve.push({
                             v: angles[i].vertical,
-                            lat: angles[i].shaftX || 0  // lateral component
+                            lat: angles[i].horizontal  // earth-frame direction
                         });
                     }
                     const downswingCurve = [];
                     for (let i = topIdx; i <= impactIdx; i++) {
                         downswingCurve.push({
                             v: angles[i].vertical,
-                            lat: angles[i].shaftX || 0
+                            lat: angles[i].horizontal
                         });
                     }
 
@@ -1598,20 +1619,17 @@
 
                         if (bestT && bestD &&
                             bestTDist < maxV * 0.2 && bestDDist < maxV * 0.2) {
-                            // Compare lateral (shaftX) component
-                            // Positive diff = downswing shaftX is more positive than takeaway
+                            // Compare horizontal direction
+                            // Positive diff = downswing more outward than takeaway
                             totalDiff += (bestD.lat - bestT.lat);
                             validCheckpoints++;
                         }
                     }
 
                     if (validCheckpoints > 0) {
-                        // pathDifference is in raw shaftX units (0 to 1 scale)
-                        // Convert to approximate degrees for threshold comparison
-                        pathDifference = Math.asin(clamp(
-                            totalDiff / validCheckpoints, -1, 1
-                        )) * 180 / Math.PI;
-                        const PATH_THRESHOLD = 3;  // degrees
+                        // pathDifference is in degrees (earth-frame horizontal)
+                        pathDifference = totalDiff / validCheckpoints;
+                        const PATH_THRESHOLD = 4;  // degrees
                         if (pathDifference > PATH_THRESHOLD) {
                             pathType = 'outside-in';
                         } else if (pathDifference < -PATH_THRESHOLD) {
@@ -1722,9 +1740,9 @@
             const cx = 140, cy = 100;  // pivot point (shoulder)
             const radius = 100;        // club reach (arm + club)
 
-            // Swing angle: horizontal is now gamma-based (±5° to ±25° range)
-            // Scale up for visual, and add vertical contribution for arc size
-            const swingDeg = clamp(h * 4.0 + (h > 0 ? v * 0.8 : -v * 0.8), -160, 160);
+            // Swing angle: horizontal is swing-plane based (±5° to ±30° range)
+            // Scale up for visual: h controls direction, v controls arc size
+            const swingDeg = clamp(h * 3 + (h < 0 ? -v * 0.5 : v * 0.5), -160, 160);
             const swingRad = swingDeg * Math.PI / 180;
 
             // Address = straight down (6 o'clock)
