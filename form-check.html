@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Golflev · Form Check (Level 1)</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400;1,700&family=Noto+Serif+JP:wght@300;400;500&family=Inter:wght@300;400;500;600&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+
+:root{
+  --bg:#F8F5EF;
+  --ink:#2D3B2D;
+  --ink-soft:#5A5A52;
+  --ink-faint:#8A8A82;
+  --gold:#C8956C;
+  --gold-hair:rgba(200,149,108,0.42);
+  --warn:#C45B4A;
+  --ok:#4A6B4A;
+  --paper:#FFFFFF;
+  --line:#E5DFD0;
+  --serif:'Playfair Display','Noto Serif JP',serif;
+  --jp:'Noto Serif JP','Playfair Display',serif;
+  --ui:'Inter',-apple-system,system-ui,sans-serif;
+  --mono:'SF Mono',Menlo,Consolas,monospace;
+  --ease:cubic-bezier(0.2,0.7,0.2,1);
+}
+
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--ui);
+  min-height:100vh;
+  letter-spacing:.01em;
+  font-size:14px;
+  overflow-x:hidden;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;
+  background-image:radial-gradient(circle at 20% 10%,rgba(200,149,108,0.04) 0,transparent 35%),radial-gradient(circle at 85% 90%,rgba(45,59,45,0.03) 0,transparent 40%);
+  z-index:0;
+}
+
+#app{position:relative;z-index:1;min-height:100vh;max-width:430px;margin:0 auto;display:flex;flex-direction:column}
+
+.page{
+  position:absolute;inset:0;
+  display:none;flex-direction:column;
+  padding:48px 32px 56px;
+  max-width:430px;margin:0 auto;
+  pointer-events:none;
+}
+.page.active{display:flex;pointer-events:auto;animation:pageIn .9s var(--ease) both}
+@keyframes pageIn{from{opacity:0}to{opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{to{opacity:1}}
+
+/* Header */
+.brand{
+  text-align:center;font-family:var(--serif);font-style:italic;font-size:11px;
+  color:var(--gold);letter-spacing:.32em;text-transform:uppercase;
+  margin-bottom:6px;font-weight:400;
+}
+.level-tag{
+  text-align:center;font-family:var(--serif);font-style:italic;font-size:11px;
+  color:var(--gold);letter-spacing:.18em;text-transform:uppercase;font-weight:400;
+  margin-bottom:32px;
+}
+
+/* Title */
+.title{text-align:center;margin-bottom:48px}
+.title-en{
+  font-family:var(--serif);font-style:italic;font-weight:400;
+  font-size:36px;line-height:1.1;color:var(--ink);margin-bottom:16px;letter-spacing:-.005em;
+}
+.title-en strong{font-weight:700;font-style:normal}
+.title-hr{width:24px;height:.5px;background:var(--gold);margin:0 auto 16px;opacity:.7}
+.title-jp{font-family:var(--jp);font-size:11.5px;letter-spacing:.18em;color:var(--ink-faint)}
+
+/* Visual area */
+.visual{flex:1;display:flex;align-items:center;justify-content:center;margin:0 auto;min-height:240px}
+.triangle-fig{width:240px;height:240px;position:relative}
+.triangle-fig svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+
+.tri-guide-circle{fill:none;stroke:var(--gold-hair);stroke-width:.5;opacity:.7}
+.tri-rotator{transform-origin:120px 120px}
+.tri-shoulders{stroke:var(--ink);stroke-width:1.2;stroke-linecap:round;fill:none;opacity:.85}
+.tri-arm{stroke:var(--ink);stroke-width:1;stroke-linecap:round;fill:none;opacity:.75}
+.tri-shoulder-dot{fill:var(--ink);opacity:.85}
+.tri-grip{fill:var(--gold)}
+.tri-elbow{fill:var(--warn);opacity:0}
+
+@keyframes swingDemo{
+  0%,8%{transform:rotate(0deg)}
+  35%,55%{transform:rotate(-60deg)}
+  85%,100%{transform:rotate(0deg)}
+}
+.tri-rotator.demo{animation:fadeIn .8s var(--ease) .8s forwards,swingDemo 5s cubic-bezier(.45,0,.4,1) 1.4s infinite;opacity:0}
+
+/* Caption */
+.caption{text-align:center;margin-bottom:32px}
+.caption-jp{font-family:var(--jp);font-weight:400;font-size:13px;line-height:1.9;color:var(--ink-soft);letter-spacing:.06em}
+.caption-en{font-family:var(--serif);font-style:italic;font-size:11px;color:var(--ink-faint);letter-spacing:.04em;margin-top:8px}
+
+/* Buttons */
+.action{text-align:center;margin-top:auto}
+.btn{
+  font-family:var(--ui);font-size:11px;font-weight:600;letter-spacing:.42em;text-transform:uppercase;
+  color:var(--ink);background:transparent;border:none;padding:16px 0;cursor:pointer;
+  position:relative;display:inline-block;transition:color .4s var(--ease);
+}
+.btn::after{content:"";position:absolute;left:50%;bottom:10px;width:48px;height:.5px;background:var(--gold);transform:translateX(-50%) scaleX(0);transition:transform .8s var(--ease);transform-origin:center}
+.btn:hover{color:var(--gold)}
+.btn:hover::after{transform:translateX(-50%) scaleX(1)}
+.btn-primary{
+  background:var(--ink);color:var(--bg);padding:18px 36px;
+  font-family:var(--ui);font-size:11px;font-weight:600;letter-spacing:.42em;text-transform:uppercase;
+  border:none;cursor:pointer;
+}
+.btn-primary:hover{background:#1F2D1F}
+.btn-text{
+  font-family:var(--ui);font-size:10px;letter-spacing:.32em;text-transform:uppercase;
+  color:var(--ink-faint);background:transparent;border:none;padding:8px 16px;cursor:pointer;margin-top:18px;
+}
+.btn-text:hover{color:var(--gold)}
+
+/* Permission page */
+.perm-text{
+  font-family:var(--jp);font-size:12.5px;line-height:1.9;color:var(--ink-soft);
+  text-align:center;max-width:300px;margin:0 auto 36px;letter-spacing:.04em;
+}
+.perm-error{
+  font-family:var(--jp);font-size:11.5px;color:var(--warn);
+  padding:10px 14px;background:rgba(196,91,74,.06);border-left:2px solid var(--warn);
+  margin-top:14px;letter-spacing:.04em;text-align:left;line-height:1.7;
+}
+
+/* Calibration countdown */
+.countdown{
+  font-family:var(--serif);font-style:italic;font-weight:400;
+  font-size:96px;color:var(--ink);text-align:center;line-height:1;
+  margin-bottom:24px;
+  font-variant-numeric:tabular-nums;
+}
+.countdown-text{font-family:var(--jp);font-size:12px;color:var(--ink-soft);text-align:center;letter-spacing:.18em;margin-bottom:48px}
+.stability-bar{
+  width:64px;height:2px;background:var(--line);margin:0 auto;position:relative;overflow:hidden;
+}
+.stability-fill{position:absolute;top:0;left:0;height:100%;background:var(--gold);transition:width .25s linear}
+
+/* Live indicator */
+.live-pulse{
+  text-align:center;font-family:var(--serif);font-style:italic;font-size:11px;
+  color:var(--gold);letter-spacing:.18em;margin-bottom:24px;
+}
+.live-pulse::before{
+  content:"";display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--warn);margin-right:8px;vertical-align:middle;
+  animation:livePulse 1s ease-in-out infinite;
+}
+@keyframes livePulse{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:1;transform:scale(1.4)}}
+
+/* Result page */
+.result-word{
+  font-family:var(--serif);font-style:italic;font-weight:400;font-size:42px;
+  letter-spacing:-.01em;color:var(--ink);text-align:center;margin-top:16px;margin-bottom:6px;
+  opacity:0;animation:fadeUp 1.2s var(--ease) .6s forwards;
+}
+.result-word strong{font-weight:700;font-style:normal}
+.result-word.warn{color:var(--warn)}
+.result-jp{
+  text-align:center;font-family:var(--jp);font-size:11.5px;
+  letter-spacing:.18em;color:var(--ink-faint);margin-bottom:32px;
+  opacity:0;animation:fadeUp 1s var(--ease) .9s forwards;
+}
+.result-note{
+  max-width:300px;margin:0 auto 36px;padding:14px 20px;
+  background:rgba(196,91,74,.06);border-left:2px solid var(--warn);text-align:left;
+  opacity:0;animation:fadeUp 1s var(--ease) 1.2s forwards;
+}
+.result-note.ok{background:rgba(74,107,74,.06);border-left-color:var(--ok)}
+.result-note-label{font-family:var(--serif);font-style:italic;font-size:10px;color:var(--warn);letter-spacing:.18em;text-transform:uppercase;margin-bottom:6px}
+.result-note.ok .result-note-label{color:var(--ok)}
+.result-note-text{font-family:var(--jp);font-size:11.5px;color:var(--ink-soft);line-height:1.7}
+
+/* Debug HUD (toggleable) */
+.debug-hud{
+  position:fixed;top:8px;left:8px;
+  background:rgba(0,0,0,.78);color:#0F0;
+  font-family:var(--mono);font-size:10px;line-height:1.5;
+  padding:6px 10px;border-radius:4px;z-index:200;
+  display:none;letter-spacing:0;
+  font-variant-numeric:tabular-nums;pointer-events:none;
+}
+.debug-hud.show{display:block}
+.debug-toggle{
+  position:fixed;top:8px;right:8px;width:24px;height:24px;
+  background:rgba(0,0,0,.4);color:#fff;font-size:14px;
+  border:none;border-radius:50%;cursor:pointer;z-index:201;
+  display:flex;align-items:center;justify-content:center;
+}
+</style>
+</head>
+<body>
+
+<button class="debug-toggle" id="debugToggle" aria-label="debug">·</button>
+<div class="debug-hud" id="debugHud"></div>
+
+<div id="app">
+
+  <!-- ============ Permission ============ -->
+  <div class="page active" data-page="permission">
+    <div class="brand">Golflev</div>
+    <div class="level-tag">Level 1 · Form Check</div>
+
+    <div class="title">
+      <div class="title-en"><em>The</em> <strong>Triangle</strong></div>
+      <div class="title-hr"></div>
+      <div class="title-jp">三 角 形 を 維 持 し て</div>
+    </div>
+
+    <div class="perm-text">
+      iPhone を 縦に持って ゴルフのグリップ握りで構え、<br>
+      4時の方向まで ゆっくり テイクバックします。
+    </div>
+
+    <div class="action">
+      <button class="btn-primary" id="btnPerm">Enable Sensor</button>
+      <div id="permError"></div>
+    </div>
+  </div>
+
+  <!-- ============ Address Calibration ============ -->
+  <div class="page" data-page="address">
+    <div class="brand">Golflev</div>
+    <div class="level-tag">Calibrate</div>
+
+    <div class="title">
+      <div class="title-en"><em>Hold.</em></div>
+      <div class="title-hr"></div>
+      <div class="title-jp">ア ド レ ス で 静 止</div>
+    </div>
+
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <div class="countdown" id="countdownNum">3</div>
+      <div class="countdown-text" id="countdownLabel">グリップ握りで動かない</div>
+      <div class="stability-bar"><div class="stability-fill" id="stabilityFill" style="width:0%"></div></div>
+    </div>
+
+    <div class="action">
+      <button class="btn-text" onclick="goto('permission')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ============ Ready ============ -->
+  <div class="page" data-page="ready">
+    <div class="brand">Golflev</div>
+    <div class="level-tag">Ready</div>
+
+    <div class="title">
+      <div class="title-en"><em>The</em> <strong>Triangle</strong></div>
+      <div class="title-hr"></div>
+      <div class="title-jp">4 時 の 位 置 ま で</div>
+    </div>
+
+    <div class="visual">
+      <div class="triangle-fig">
+        <svg viewBox="0 0 240 240">
+          <circle class="tri-guide-circle" cx="120" cy="120" r="92"/>
+          <text x="216" y="170" text-anchor="middle" font-family="'Playfair Display',serif" font-style="italic" font-size="13" fill="#C8956C" opacity="0.5">4</text>
+          <circle cx="200" cy="166" r="5" fill="#C8956C" opacity="0.65"/>
+
+          <g class="tri-rotator demo">
+            <line class="tri-shoulders" x1="98" y1="120" x2="142" y2="120"/>
+            <circle class="tri-shoulder-dot" cx="98" cy="120" r="3"/>
+            <circle class="tri-shoulder-dot" cx="142" cy="120" r="3"/>
+            <line class="tri-arm" x1="98" y1="120" x2="109" y2="164"/>
+            <line class="tri-arm" x1="109" y1="164" x2="120" y2="208"/>
+            <line class="tri-arm" x1="142" y1="120" x2="131" y2="164"/>
+            <line class="tri-arm" x1="131" y1="164" x2="120" y2="208"/>
+            <circle class="tri-grip" cx="120" cy="208" r="5"/>
+          </g>
+          <circle cx="120" cy="120" r="1.5" fill="#8A8A82" opacity="0.4"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="caption">
+      <div class="caption-jp">
+        両肩と握りで 三角形 を作って、<br>
+        その まま 4 時の位置 まで 上げる。
+      </div>
+      <div class="caption-en">— Don't bend the elbows.</div>
+    </div>
+
+    <div class="action">
+      <button class="btn-primary" id="btnBegin">Begin</button>
+      <div><button class="btn-text" onclick="goto('permission')">Back</button></div>
+    </div>
+  </div>
+
+  <!-- ============ Live ============ -->
+  <div class="page" data-page="live">
+    <div class="brand">Golflev</div>
+    <div class="level-tag" id="liveLabel">Waiting...</div>
+
+    <div class="title">
+      <div class="title-en"><em id="liveTitleEn">Begin.</em></div>
+      <div class="title-hr"></div>
+      <div class="title-jp" id="liveTitleJp">ゆ っ く り 上 げ て</div>
+    </div>
+
+    <div class="visual">
+      <div class="triangle-fig">
+        <svg viewBox="0 0 240 240">
+          <circle class="tri-guide-circle" cx="120" cy="120" r="92"/>
+          <text x="216" y="170" text-anchor="middle" font-family="'Playfair Display',serif" font-style="italic" font-size="13" fill="#C8956C" opacity="0.5">4</text>
+          <circle cx="200" cy="166" r="5" fill="#C8956C" opacity="0.65"/>
+
+          <g class="tri-rotator" id="liveRig" style="opacity:1;transform:rotate(0deg)">
+            <line class="tri-shoulders" x1="98" y1="120" x2="142" y2="120"/>
+            <circle class="tri-shoulder-dot" cx="98" cy="120" r="3"/>
+            <circle class="tri-shoulder-dot" cx="142" cy="120" r="3"/>
+            <line class="tri-arm" x1="98" y1="120" x2="109" y2="164"/>
+            <line class="tri-arm" x1="109" y1="164" x2="120" y2="208"/>
+            <line class="tri-arm" x1="142" y1="120" x2="131" y2="164"/>
+            <line class="tri-arm" x1="131" y1="164" x2="120" y2="208"/>
+            <circle class="tri-grip" cx="120" cy="208" r="5"/>
+          </g>
+          <circle cx="120" cy="120" r="1.5" fill="#8A8A82" opacity="0.4"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="live-pulse" id="livePulse">measuring</div>
+
+    <div class="action">
+      <button class="btn-text" onclick="goto('ready')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ============ Result ============ -->
+  <div class="page" data-page="result">
+    <div class="brand">Golflev</div>
+    <div class="level-tag">Result</div>
+
+    <div class="title" style="margin-bottom:24px">
+      <div class="title-en"><em>Your</em> <strong>Triangle</strong></div>
+      <div class="title-hr"></div>
+    </div>
+
+    <div class="visual" style="min-height:200px">
+      <div class="triangle-fig">
+        <svg viewBox="0 0 240 240">
+          <circle class="tri-guide-circle" cx="120" cy="120" r="92"/>
+          <text x="216" y="170" text-anchor="middle" font-family="'Playfair Display',serif" font-style="italic" font-size="13" fill="#C8956C" opacity="0.5">4</text>
+          <path id="resultTrace" d="" stroke="#C8956C" stroke-width="1.4" fill="none" stroke-linecap="round" opacity="0.6"/>
+          <circle cx="200" cy="166" r="5" fill="#C8956C" opacity="0.7"/>
+          <g id="resultRig" class="tri-rotator" style="opacity:1;transform:rotate(0deg)">
+            <line class="tri-shoulders" x1="98" y1="120" x2="142" y2="120"/>
+            <circle class="tri-shoulder-dot" cx="98" cy="120" r="3"/>
+            <circle class="tri-shoulder-dot" cx="142" cy="120" r="3"/>
+            <line class="tri-arm" id="resLU" x1="98" y1="120" x2="109" y2="164"/>
+            <line class="tri-arm" id="resLL" x1="109" y1="164" x2="120" y2="208"/>
+            <line class="tri-arm" id="resRU" x1="142" y1="120" x2="131" y2="164"/>
+            <line class="tri-arm" id="resRL" x1="131" y1="164" x2="120" y2="208"/>
+            <circle class="tri-elbow" id="resElbow" cx="131" cy="164" r="3.5"/>
+            <circle class="tri-grip" id="resGrip" cx="120" cy="208" r="5"/>
+          </g>
+          <circle cx="120" cy="120" r="1.5" fill="#8A8A82" opacity="0.4"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="result-word" id="resWord"><em>—</em></div>
+    <div class="result-jp" id="resJp">—</div>
+
+    <div class="result-note" id="resNote">
+      <div class="result-note-label" id="resNoteLabel">気になった瞬間</div>
+      <div class="result-note-text" id="resNoteText">—</div>
+    </div>
+
+    <div class="action">
+      <button class="btn-primary" onclick="restart()">Once More</button>
+      <div><button class="btn-text" onclick="goto('permission')">Finish</button></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════
+   QUATERNION + ANGLE UTILITIES (verified from app/index.html)
+   ════════════════════════════════════════════════════════════════ */
+const QuatUtils = {
+  fromEuler: (alphaDeg, betaDeg, gammaDeg) => {
+    const d2r = Math.PI / 360;
+    const a = (alphaDeg || 0) * d2r;
+    const b = (betaDeg  || 0) * d2r;
+    const g = (gammaDeg || 0) * d2r;
+    const ca = Math.cos(a), sa = Math.sin(a);
+    const cb = Math.cos(b), sb = Math.sin(b);
+    const cg = Math.cos(g), sg = Math.sin(g);
+    return {
+      w: ca*cb*cg - sa*sb*sg,
+      x: ca*sb*cg - sa*cb*sg,
+      y: ca*cb*sg + sa*sb*cg,
+      z: ca*sb*sg + sa*cb*cg
+    };
+  },
+  conj: q => ({ w: q.w, x: -q.x, y: -q.y, z: -q.z }),
+  mul: (a, b) => ({
+    w: a.w*b.w - a.x*b.x - a.y*b.y - a.z*b.z,
+    x: a.w*b.x + a.x*b.w + a.y*b.z - a.z*b.y,
+    y: a.w*b.y - a.x*b.z + a.y*b.w + a.z*b.x,
+    z: a.w*b.z + a.x*b.y - a.y*b.x + a.z*b.w
+  }),
+  rotVec: (q, v) => {
+    const qw=q.w,qx=q.x,qy=q.y,qz=q.z;
+    const vx=v.x,vy=v.y,vz=v.z;
+    const tx = 2*(qy*vz - qz*vy);
+    const ty = 2*(qz*vx - qx*vz);
+    const tz = 2*(qx*vy - qy*vx);
+    return {
+      x: vx + qw*tx + (qy*tz - qz*ty),
+      y: vy + qw*ty + (qz*tx - qx*tz),
+      z: vz + qw*tz + (qx*ty - qy*tx)
+    };
+  },
+  angle: q => {
+    const w = Math.min(1, Math.max(-1, q.w));
+    return 2 * Math.acos(Math.abs(w)) * 180 / Math.PI;
+  },
+  decomposeSwingTwist: q => {
+    const len = Math.sqrt(q.w*q.w + q.y*q.y);
+    if (len < 1e-6) return { twist:{w:1,x:0,y:0,z:0}, swing:q, twistAngle:0 };
+    const twist = { w: q.w/len, x: 0, y: q.y/len, z: 0 };
+    const swing = QuatUtils.mul(q, QuatUtils.conj(twist));
+    const twistAngle = 2 * Math.atan2(twist.y, twist.w) * 180 / Math.PI;
+    return { swing, twist, twistAngle };
+  }
+};
+
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const mag3 = v => Math.sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
+
+function calcAngles(orient, baseline){
+  if (!baseline) return { vertical:0, horizontal:0, wristCock:0, deviation:0 };
+  const qC = QuatUtils.fromEuler(orient.alpha, orient.beta, orient.gamma);
+  const qB = QuatUtils.fromEuler(baseline.alpha, baseline.beta, baseline.gamma);
+  const qRel = QuatUtils.mul(QuatUtils.conj(qB), qC);
+  const deviation = QuatUtils.angle(qRel);
+  const { twistAngle } = QuatUtils.decomposeSwingTwist(qRel);
+  const wristCock = clamp(twistAngle, -180, 180);
+
+  const shaftCur = QuatUtils.rotVec(qC, { x:0, y:1, z:0 });
+  const shaftBl  = QuatUtils.rotVec(qB, { x:0, y:1, z:0 });
+  const shaftDot = clamp(shaftCur.x*shaftBl.x + shaftCur.y*shaftBl.y + shaftCur.z*shaftBl.z, -1, 1);
+  const vertical = Math.acos(shaftDot) * 180 / Math.PI;
+
+  const gravDown = { x:0, y:-1, z:0 };
+  const pnx = shaftBl.y*gravDown.z - shaftBl.z*gravDown.y;
+  const pny = shaftBl.z*gravDown.x - shaftBl.x*gravDown.z;
+  const pnz = shaftBl.x*gravDown.y - shaftBl.y*gravDown.x;
+  const pnLen = Math.sqrt(pnx*pnx + pny*pny + pnz*pnz);
+
+  let horizontal = 0;
+  if (pnLen > 0.01 && vertical > 2) {
+    const nx=pnx/pnLen, ny=pny/pnLen, nz=pnz/pnLen;
+    const dsx = shaftCur.x - shaftDot*shaftBl.x;
+    const dsy = shaftCur.y - shaftDot*shaftBl.y;
+    const dsz = shaftCur.z - shaftDot*shaftBl.z;
+    const lateral = dsx*nx + dsy*ny + dsz*nz;
+    const dLen = Math.sqrt(dsx*dsx + dsy*dsy + dsz*dsz);
+    if (dLen > 0.001) horizontal = Math.asin(clamp(lateral/dLen, -1, 1)) * 180 / Math.PI;
+  }
+
+  return { vertical, horizontal, wristCock, deviation };
+}
+
+/* ════════════════════════════════════════════════════════════════
+   SENSOR + STATE
+   ════════════════════════════════════════════════════════════════ */
+const SENSOR = {
+  orient: { alpha: 0, beta: 0, gamma: 0 },
+  acc:    { x: 0, y: 0, z: 0 },           // linear acceleration (gravity removed)
+  rotRate:{ alpha: 0, beta: 0, gamma: 0 } // deg/s
+};
+
+const STATE = {
+  phase: 'permission',     // permission | address | ready | live | result
+  baseline: null,
+  rCal: 0.65,              // arm length (m), default for now
+  buffer: [],              // recorded samples during measurement
+  startTime: 0,
+  motionDetected: false,
+  motionEndTimer: null,
+  permGranted: false
+};
+
+const REACH_TARGET = 60;   // 4 o'clock = 60° rotation
+const MOTION_START_THRESHOLD = 30;  // deg/s
+const MOTION_END_THRESHOLD = 25;    // deg/s
+const MOTION_END_DURATION = 400;    // ms below threshold to confirm end
+const MIN_REACH_FOR_VALID = 25;     // deg, below this we ignore (didn't really swing)
+
+/* ════════════════════════════════════════════════════════════════
+   PERMISSION + EVENT WIRING
+   ════════════════════════════════════════════════════════════════ */
+async function requestPermission(){
+  try {
+    let oriOK = true, motOK = true;
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      const r = await DeviceOrientationEvent.requestPermission();
+      oriOK = r === 'granted';
+    }
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+      const r = await DeviceMotionEvent.requestPermission();
+      motOK = r === 'granted';
+    }
+    if (!oriOK || !motOK){
+      showPermError('許可が必要です。Safariの設定 > 詳細 > 「モーションと画面の向きへのアクセス」を確認してください。');
+      return;
+    }
+    window.addEventListener('deviceorientation', onOrient);
+    window.addEventListener('devicemotion', onMotion);
+    STATE.permGranted = true;
+    setTimeout(() => {
+      if (SENSOR.orient.alpha === 0 && SENSOR.orient.beta === 0 && SENSOR.orient.gamma === 0) {
+        showPermError('センサー値を取得できていません。HTTPS環境で開いてください。');
+        return;
+      }
+      goto('address');
+      startAddressCalibration();
+    }, 600);
+  } catch(e){
+    showPermError('エラー: ' + e.message);
+  }
+}
+function showPermError(msg){
+  document.getElementById('permError').innerHTML = `<div class="perm-error">${msg}</div>`;
+}
+function onOrient(e){
+  SENSOR.orient.alpha = e.alpha || 0;
+  SENSOR.orient.beta  = e.beta || 0;
+  SENSOR.orient.gamma = e.gamma || 0;
+  if (STATE.phase === 'live' && STATE.baseline) updateLiveTriangle();
+  if (STATE.phase === 'live') tickLive();
+  updateDebug();
+}
+function onMotion(e){
+  // acceleration: linear (gravity removed) — preferred
+  // accelerationIncludingGravity: includes gravity
+  if (e.acceleration && e.acceleration.x !== null) {
+    SENSOR.acc.x = e.acceleration.x || 0;
+    SENSOR.acc.y = e.acceleration.y || 0;
+    SENSOR.acc.z = e.acceleration.z || 0;
+  } else if (e.accelerationIncludingGravity && e.accelerationIncludingGravity.x !== null) {
+    // Crude fallback: subtract approx gravity (not ideal)
+    SENSOR.acc.x = e.accelerationIncludingGravity.x || 0;
+    SENSOR.acc.y = e.accelerationIncludingGravity.y || 0;
+    SENSOR.acc.z = e.accelerationIncludingGravity.z || 0;
+  }
+  if (e.rotationRate){
+    SENSOR.rotRate.alpha = e.rotationRate.alpha || 0;
+    SENSOR.rotRate.beta  = e.rotationRate.beta || 0;
+    SENSOR.rotRate.gamma = e.rotationRate.gamma || 0;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ADDRESS CALIBRATION (3-second stable hold)
+   ════════════════════════════════════════════════════════════════ */
+let calibSamples = [];
+let calibTimer = null;
+
+function startAddressCalibration(){
+  calibSamples = [];
+  if (calibTimer) clearInterval(calibTimer);
+
+  let countdown = 3;
+  document.getElementById('countdownNum').textContent = countdown;
+  document.getElementById('countdownLabel').textContent = 'グリップ握りで動かない';
+  document.getElementById('stabilityFill').style.width = '0%';
+
+  calibTimer = setInterval(() => {
+    // Sample current orient
+    calibSamples.push({ ...SENSOR.orient, t: performance.now() });
+
+    // Check stability via rotation rate magnitude (low = stable)
+    const w = magRotRate();
+    const stableNow = w < 8; // deg/s
+    const stabilityPct = stableNow ? Math.min(100, document.getElementById('stabilityFill').offsetWidth / 64 * 100 + 6) : Math.max(0, document.getElementById('stabilityFill').offsetWidth / 64 * 100 - 12);
+    document.getElementById('stabilityFill').style.width = stabilityPct + '%';
+
+    if (stabilityPct >= 100){
+      countdown--;
+      document.getElementById('countdownNum').textContent = countdown > 0 ? countdown : '✓';
+      document.getElementById('stabilityFill').style.width = '0%';
+
+      if (countdown <= 0){
+        clearInterval(calibTimer);
+        // Average last 1 second of samples for baseline
+        const cutoff = performance.now() - 1000;
+        const recent = calibSamples.filter(s => s.t > cutoff);
+        if (recent.length === 0){ alert('キャリブレーション失敗'); goto('permission'); return; }
+        STATE.baseline = {
+          alpha: avg(recent.map(s => s.alpha)),
+          beta: avg(recent.map(s => s.beta)),
+          gamma: avg(recent.map(s => s.gamma))
+        };
+        document.getElementById('countdownLabel').textContent = '記録完了';
+        setTimeout(() => goto('ready'), 800);
+      }
+    }
+  }, 200);
+}
+
+function avg(arr){ return arr.reduce((a,b)=>a+b,0) / arr.length; }
+function magRotRate(){
+  return Math.sqrt(SENSOR.rotRate.alpha**2 + SENSOR.rotRate.beta**2 + SENSOR.rotRate.gamma**2);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   LIVE MEASUREMENT
+   ════════════════════════════════════════════════════════════════ */
+function startLive(){
+  STATE.buffer = [];
+  STATE.startTime = performance.now();
+  STATE.motionDetected = false;
+  if (STATE.motionEndTimer) clearTimeout(STATE.motionEndTimer);
+  document.getElementById('liveLabel').textContent = 'Waiting...';
+  document.getElementById('liveTitleEn').innerHTML = '<em>Begin.</em>';
+  document.getElementById('liveTitleJp').textContent = 'ゆ っ く り 上 げ て';
+}
+
+function tickLive(){
+  const now = performance.now();
+  const w = magRotRate();
+
+  // Always buffer (during live phase)
+  STATE.buffer.push({
+    t: now,
+    orient: { ...SENSOR.orient },
+    acc: { ...SENSOR.acc },
+    rotRate: { ...SENSOR.rotRate },
+    rotMag: w
+  });
+
+  // Keep buffer to last 5 seconds
+  const cutoff = now - 5000;
+  STATE.buffer = STATE.buffer.filter(d => d.t > cutoff);
+
+  // Detect motion start
+  if (!STATE.motionDetected && w > MOTION_START_THRESHOLD){
+    STATE.motionDetected = true;
+    STATE.startTime = now;
+    document.getElementById('liveLabel').textContent = 'Measuring';
+    document.getElementById('liveTitleEn').innerHTML = '<em>Hold.</em>';
+    document.getElementById('liveTitleJp').textContent = '4 時 ま で';
+  }
+
+  // Detect motion end
+  if (STATE.motionDetected){
+    if (w < MOTION_END_THRESHOLD){
+      if (!STATE.motionEndTimer){
+        STATE.motionEndTimer = setTimeout(() => {
+          finalizeMeasurement();
+        }, MOTION_END_DURATION);
+      }
+    } else {
+      // Movement resumed, cancel end timer
+      if (STATE.motionEndTimer){
+        clearTimeout(STATE.motionEndTimer);
+        STATE.motionEndTimer = null;
+      }
+    }
+  }
+
+  // Safety timeout (10s max)
+  if (STATE.motionDetected && now - STATE.startTime > 10000){
+    finalizeMeasurement();
+  }
+}
+
+function updateLiveTriangle(){
+  if (!STATE.baseline) return;
+  const a = calcAngles(SENSOR.orient, STATE.baseline);
+  // Live rotation of the triangle to match user's actual takeaway
+  // Map vertical (0..60) to rotation angle (0..-60 deg)
+  const rot = -Math.min(70, a.vertical);
+  document.getElementById('liveRig').style.transform = `rotate(${rot}deg)`;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   FINAL ANALYSIS — 3 indicators
+   ════════════════════════════════════════════════════════════════ */
+function finalizeMeasurement(){
+  if (STATE.motionEndTimer){ clearTimeout(STATE.motionEndTimer); STATE.motionEndTimer = null; }
+  if (STATE.phase !== 'live') return;
+
+  const buf = STATE.buffer;
+  const motionStart = buf.find(d => d.rotMag > MOTION_START_THRESHOLD);
+  if (!motionStart){
+    // No real motion detected — start fresh
+    STATE.motionDetected = false;
+    STATE.startTime = performance.now();
+    return;
+  }
+
+  // Trim buffer to motion window
+  const motionBuf = buf.filter(d => d.t >= motionStart.t);
+  if (motionBuf.length < 3){ return; }
+
+  // Indicator C: reach angle (using FINAL orient vs baseline)
+  const last = motionBuf[motionBuf.length - 1];
+  const finalAngles = calcAngles(last.orient, STATE.baseline);
+  const reach = finalAngles.vertical;
+  const reachErr = Math.abs(reach - REACH_TARGET);
+
+  // If reach too small, retry rather than judge
+  if (reach < MIN_REACH_FOR_VALID){
+    STATE.motionDetected = false;
+    STATE.buffer = [];
+    return;
+  }
+
+  // Indicator A: centripetal acceleration consistency
+  // For each sample, compute |a_linear| and compare to ω² × r
+  let acRatioSum = 0, acCount = 0;
+  for (const d of motionBuf){
+    const wRad = magRotRate3(d.rotRate) * Math.PI / 180; // rad/s
+    if (wRad < 1.5) continue; // ignore slow segments
+    const expected = wRad * wRad * STATE.rCal; // m/s²
+    if (expected < 0.5) continue;
+    const actual = Math.sqrt(d.acc.x**2 + d.acc.y**2 + d.acc.z**2);
+    acRatioSum += Math.min(2, actual / expected);
+    acCount++;
+  }
+  const acRatio = acCount > 0 ? acRatioSum / acCount : 1.0;
+
+  // Indicator B: max jerk (acceleration discontinuity)
+  let maxJerk = 0;
+  for (let i = 1; i < motionBuf.length; i++){
+    const dt = (motionBuf[i].t - motionBuf[i-1].t) / 1000;
+    if (dt < 0.005) continue;
+    const dax = motionBuf[i].acc.x - motionBuf[i-1].acc.x;
+    const day = motionBuf[i].acc.y - motionBuf[i-1].acc.y;
+    const daz = motionBuf[i].acc.z - motionBuf[i-1].acc.z;
+    const jerk = Math.sqrt(dax*dax + day*day + daz*daz) / dt;
+    if (jerk > maxJerk) maxJerk = jerk;
+  }
+
+  // Score each indicator (0..1)
+  const sC = clamp((15 - reachErr) / 10, 0, 1);
+  const sA = clamp((acRatio - 0.7) / 0.15, 0, 1);
+  const sB = clamp((40 - maxJerk) / 25, 0, 1);  // jerk in m/s³
+
+  // Weighted total
+  const total = sC * 0.50 + sB * 0.30 + sA * 0.20;
+
+  // Estimate elbow flex from acRatio
+  // If acRatio = (rEff/rCal)², solve for flex angle
+  let estFlex = 0;
+  if (acRatio < 0.99 && acRatio > 0.3){
+    const ratio = Math.sqrt(acRatio); // rEff/rCal
+    // From cosine law: rEff² = u² + l² + 2ul·cos(flex), with u≈0.55r, l≈0.45r
+    // Solve for flex: cos(flex) = (rEff² - u² - l²) / (2ul)
+    const u = STATE.rCal * 0.55, l = STATE.rCal * 0.45;
+    const rEff = ratio * STATE.rCal;
+    const cosFlex = (rEff*rEff - u*u - l*l) / (2*u*l);
+    if (cosFlex >= -1 && cosFlex <= 1){
+      estFlex = Math.acos(cosFlex) * 180 / Math.PI;
+    }
+  }
+
+  // Determine rank + message
+  let rank, headline, jp, noteLabel, noteText, noteOk = false;
+  if (total >= 0.85){
+    rank = 'perfect';
+    headline = 'Perfect.';
+    jp = '三角形が保てています';
+    noteLabel = '完了';
+    noteText = `到達 ${reach.toFixed(0)}° / 三角形を維持できています。`;
+    noteOk = true;
+  } else if (total >= 0.65){
+    rank = 'good';
+    headline = 'Good.';
+    jp = 'きれいなテイクバック';
+    noteLabel = '完了';
+    noteText = `到達 ${reach.toFixed(0)}°。次もこの感覚で。`;
+    noteOk = true;
+  } else if (total >= 0.40){
+    rank = 'almost';
+    headline = 'Almost.';
+    jp = 'も う 少 し';
+    noteLabel = '気になった点';
+    if (reachErr > 10){
+      noteText = reach < REACH_TARGET ? `テイクバックが浅いです（到達 ${reach.toFixed(0)}°、目標60°）。もう少し上まで。` : `振りすぎました（到達 ${reach.toFixed(0)}°、目標60°）。4時で止めましょう。`;
+    } else if (estFlex > 8){
+      noteText = `右肘が約 ${estFlex.toFixed(0)}° 曲がりました。三角形を保ったまま振り上げてみましょう。`;
+    } else {
+      noteText = `動きが滑らかではありません。ゆっくり一定速度で振りましょう。`;
+    }
+  } else {
+    rank = 'tryagain';
+    headline = 'Try again.';
+    jp = 'も う 一 度';
+    noteLabel = '気になった点';
+    if (reachErr > 15){
+      noteText = reach < REACH_TARGET ? `テイクバックが浅すぎます（到達 ${reach.toFixed(0)}°）。4時の位置まで上げましょう。` : `振りすぎです。4時で止まりましょう。`;
+    } else {
+      noteText = `三角形が崩れています（推定屈曲 ${estFlex.toFixed(0)}°）。もう一度ゆっくり。`;
+    }
+  }
+
+  // Render result page
+  renderResult({ rank, headline, jp, noteLabel, noteText, noteOk, reach, estFlex, total, sA, sB, sC, acRatio, maxJerk, reachErr });
+  goto('result');
+}
+
+function magRotRate3(r){
+  return Math.sqrt(r.alpha*r.alpha + r.beta*r.beta + r.gamma*r.gamma);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   RESULT RENDER
+   ════════════════════════════════════════════════════════════════ */
+function renderResult(r){
+  const word = document.getElementById('resWord');
+  word.innerHTML = `<em>${r.headline}</em>`;
+  word.classList.toggle('warn', r.rank === 'tryagain');
+
+  document.getElementById('resJp').textContent = r.jp;
+
+  const note = document.getElementById('resNote');
+  note.classList.toggle('ok', r.noteOk);
+  document.getElementById('resNoteLabel').textContent = r.noteLabel;
+  document.getElementById('resNoteText').innerHTML = r.noteText;
+
+  // Visualize result triangle: rotate to actual reach, bend right elbow if estFlex > 8
+  const reach = Math.min(70, r.reach);
+  document.getElementById('resultRig').style.transform = `rotate(-${reach}deg)`;
+
+  const trace = document.getElementById('resultTrace');
+  const targetX = 120 + 92 * Math.sin(reach * Math.PI/180);
+  const targetY = 120 + 92 * Math.cos(reach * Math.PI/180);
+  trace.setAttribute('d', `M 120 208 A 92 92 0 0 0 ${targetX.toFixed(1)} ${targetY.toFixed(1)}`);
+
+  // Bent elbow visualization
+  const flex = Math.min(30, r.estFlex);
+  if (flex > 8){
+    const t = Math.min(1, (flex - 8) / 22);
+    const ex = 131 + 25 * t;
+    const ey = 164 - 4 * t;
+    const gx = 120 - 2 * t;
+    const gy = 208 - 7 * t;
+    document.getElementById('resRU').setAttribute('x2', ex);
+    document.getElementById('resRU').setAttribute('y2', ey);
+    document.getElementById('resRU').setAttribute('stroke', '#C45B4A');
+    document.getElementById('resRU').setAttribute('stroke-opacity', '0.85');
+    document.getElementById('resRL').setAttribute('x1', ex);
+    document.getElementById('resRL').setAttribute('y1', ey);
+    document.getElementById('resRL').setAttribute('x2', gx);
+    document.getElementById('resRL').setAttribute('y2', gy);
+    document.getElementById('resRL').setAttribute('stroke', '#C45B4A');
+    document.getElementById('resRL').setAttribute('stroke-opacity', '0.85');
+    document.getElementById('resElbow').setAttribute('cx', ex);
+    document.getElementById('resElbow').setAttribute('cy', ey);
+    document.getElementById('resElbow').style.opacity = 0.9;
+    document.getElementById('resGrip').setAttribute('cx', gx);
+    document.getElementById('resGrip').setAttribute('cy', gy);
+    // Adjust left arm to follow grip
+    const lx = 109 - 1 * t;
+    const ly = 164 - 3 * t;
+    document.getElementById('resLU').setAttribute('x2', lx);
+    document.getElementById('resLU').setAttribute('y2', ly);
+    document.getElementById('resLL').setAttribute('x1', lx);
+    document.getElementById('resLL').setAttribute('y1', ly);
+    document.getElementById('resLL').setAttribute('x2', gx);
+    document.getElementById('resLL').setAttribute('y2', gy);
+  } else {
+    // Reset to straight
+    document.getElementById('resRU').setAttribute('x2', 131);
+    document.getElementById('resRU').setAttribute('y2', 164);
+    document.getElementById('resRU').removeAttribute('stroke');
+    document.getElementById('resRU').removeAttribute('stroke-opacity');
+    document.getElementById('resRL').setAttribute('x1', 131);
+    document.getElementById('resRL').setAttribute('y1', 164);
+    document.getElementById('resRL').setAttribute('x2', 120);
+    document.getElementById('resRL').setAttribute('y2', 208);
+    document.getElementById('resRL').removeAttribute('stroke');
+    document.getElementById('resRL').removeAttribute('stroke-opacity');
+    document.getElementById('resElbow').style.opacity = 0;
+    document.getElementById('resGrip').setAttribute('cx', 120);
+    document.getElementById('resGrip').setAttribute('cy', 208);
+    document.getElementById('resLU').setAttribute('x2', 109);
+    document.getElementById('resLU').setAttribute('y2', 164);
+    document.getElementById('resLL').setAttribute('x1', 109);
+    document.getElementById('resLL').setAttribute('y1', 164);
+    document.getElementById('resLL').setAttribute('x2', 120);
+    document.getElementById('resLL').setAttribute('y2', 208);
+  }
+
+  // Update debug
+  if (STATE.debugOn){
+    const dbg = document.getElementById('debugHud');
+    dbg.innerHTML = `RANK: ${r.rank}<br>total: ${r.total.toFixed(2)}<br>reach: ${r.reach.toFixed(1)}° (err ${r.reachErr.toFixed(1)})<br>acRatio: ${r.acRatio.toFixed(2)} (sA ${r.sA.toFixed(2)})<br>jerk: ${r.maxJerk.toFixed(1)} m/s³ (sB ${r.sB.toFixed(2)})<br>estFlex: ${r.estFlex.toFixed(0)}°`;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   NAV
+   ════════════════════════════════════════════════════════════════ */
+function goto(page){
+  STATE.phase = page;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const target = document.querySelector(`.page[data-page="${page}"]`);
+  if (target) target.classList.add('active');
+
+  if (page === 'live') startLive();
+  if (page === 'address') startAddressCalibration();
+}
+
+function restart(){
+  // Skip address re-calibration if baseline is already set, just go back to ready
+  goto('ready');
+}
+
+function updateDebug(){
+  if (!STATE.debugOn) return;
+  const dbg = document.getElementById('debugHud');
+  let txt = `α:${SENSOR.orient.alpha.toFixed(0)} β:${SENSOR.orient.beta.toFixed(0)} γ:${SENSOR.orient.gamma.toFixed(0)}<br>`;
+  txt += `ω:${magRotRate().toFixed(0)}°/s<br>`;
+  txt += `acc:${mag3(SENSOR.acc).toFixed(1)} m/s²<br>`;
+  txt += `phase: ${STATE.phase}<br>`;
+  if (STATE.baseline){
+    const a = calcAngles(SENSOR.orient, STATE.baseline);
+    txt += `V:${a.vertical.toFixed(0)}° H:${a.horizontal.toFixed(0)}°<br>`;
+  }
+  txt += `buf: ${STATE.buffer.length}`;
+  dbg.innerHTML = txt;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   BOOT
+   ════════════════════════════════════════════════════════════════ */
+document.getElementById('btnPerm').addEventListener('click', requestPermission);
+document.getElementById('btnBegin').addEventListener('click', () => goto('live'));
+document.getElementById('debugToggle').addEventListener('click', () => {
+  STATE.debugOn = !STATE.debugOn;
+  document.getElementById('debugHud').classList.toggle('show', STATE.debugOn);
+  updateDebug();
+});
+</script>
+</body>
+</html>
