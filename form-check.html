@@ -322,11 +322,12 @@ body::before{
             <line class="tri-shoulders" x1="98" y1="120" x2="142" y2="120"/>
             <circle class="tri-shoulder-dot" cx="98" cy="120" r="3"/>
             <circle class="tri-shoulder-dot" cx="142" cy="120" r="3"/>
-            <line class="tri-arm" x1="98" y1="120" x2="109" y2="164"/>
-            <line class="tri-arm" x1="109" y1="164" x2="120" y2="208"/>
-            <line class="tri-arm" x1="142" y1="120" x2="131" y2="164"/>
-            <line class="tri-arm" x1="131" y1="164" x2="120" y2="208"/>
-            <circle class="tri-grip" cx="120" cy="208" r="5"/>
+            <line class="tri-arm" id="liveLU" x1="98" y1="120" x2="109" y2="164"/>
+            <line class="tri-arm" id="liveLL" x1="109" y1="164" x2="120" y2="208"/>
+            <line class="tri-arm" id="liveRU" x1="142" y1="120" x2="131" y2="164"/>
+            <line class="tri-arm" id="liveRL" x1="131" y1="164" x2="120" y2="208"/>
+            <circle class="tri-elbow" id="liveElbow" cx="131" cy="164" r="3.5"/>
+            <circle class="tri-grip" id="liveGrip" cx="120" cy="208" r="5"/>
           </g>
           <circle cx="120" cy="120" r="1.5" fill="#8A8A82" opacity="0.4"/>
         </svg>
@@ -496,7 +497,11 @@ const STATE = {
   startTime: 0,
   motionDetected: false,
   motionEndTimer: null,
-  permGranted: false
+  permGranted: false,
+  // Real-time triangle break detection
+  brokenAt: null,          // timestamp when break first detected
+  currentFlex: 0,          // estimated elbow flex angle (deg)
+  peakJerk: 0              // max jerk seen so far
 };
 
 const REACH_TARGET = 60;   // 4 o'clock = 60° rotation
@@ -629,10 +634,18 @@ function startLive(){
   STATE.buffer = [];
   STATE.startTime = performance.now();
   STATE.motionDetected = false;
+  STATE.brokenAt = null;
+  STATE.currentFlex = 0;
+  STATE.peakJerk = 0;
   if (STATE.motionEndTimer) clearTimeout(STATE.motionEndTimer);
   document.getElementById('liveLabel').textContent = 'Waiting...';
   document.getElementById('liveTitleEn').innerHTML = '<em>Begin.</em>';
   document.getElementById('liveTitleJp').textContent = 'ゆ っ く り 上 げ て';
+  document.getElementById('liveTitleEn').style.color = '';
+  document.getElementById('livePulse').textContent = 'measuring';
+  document.getElementById('livePulse').style.color = '';
+  // Reset live triangle to straight
+  applyLiveBend(0);
 }
 
 function tickLive(){
@@ -691,6 +704,128 @@ function updateLiveTriangle(){
   // Map vertical (0..60) to rotation angle (0..-60 deg)
   const rot = -Math.min(70, a.vertical);
   document.getElementById('liveRig').style.transform = `rotate(${rot}deg)`;
+
+  // Real-time break detection (only during measuring)
+  if (STATE.motionDetected) detectBreakRealtime();
+
+  // Apply current bend state to SVG
+  applyLiveBend(STATE.currentFlex);
+}
+
+/* Real-time triangle break detection
+   Examines last ~200ms of samples
+   Fires when:
+     - centripetal acceleration drops below 75% of expected (radius shrunk)
+     - or jerk spike > 30 m/s³ (sudden elbow fold)
+*/
+function detectBreakRealtime(){
+  if (STATE.brokenAt) return; // already broken — stay broken
+  const now = performance.now();
+  const recent = STATE.buffer.filter(d => d.t > now - 250);
+  if (recent.length < 3) return;
+
+  let sumRatio = 0, count = 0;
+  for (const d of recent){
+    const wRad = magRotRate3(d.rotRate) * Math.PI / 180;
+    if (wRad < 1.5) continue;
+    const expected = wRad * wRad * STATE.rCal;
+    if (expected < 0.5) continue;
+    const actual = Math.sqrt(d.acc.x*d.acc.x + d.acc.y*d.acc.y + d.acc.z*d.acc.z);
+    sumRatio += actual / expected;
+    count++;
+  }
+
+  let maxJerk = 0;
+  for (let i = 1; i < recent.length; i++){
+    const dt = (recent[i].t - recent[i-1].t) / 1000;
+    if (dt < 0.005) continue;
+    const dax = recent[i].acc.x - recent[i-1].acc.x;
+    const day = recent[i].acc.y - recent[i-1].acc.y;
+    const daz = recent[i].acc.z - recent[i-1].acc.z;
+    const j = Math.sqrt(dax*dax + day*day + daz*daz) / dt;
+    if (j > maxJerk) maxJerk = j;
+  }
+  if (maxJerk > STATE.peakJerk) STATE.peakJerk = maxJerk;
+
+  const ratio = count > 0 ? sumRatio / count : 1.0;
+  const broken = (count >= 3 && ratio < 0.75) || maxJerk > 30;
+
+  if (broken){
+    STATE.brokenAt = now;
+    // Estimate flex angle from ratio
+    let flex = 0;
+    if (ratio < 1 && ratio > 0.3){
+      const r = Math.sqrt(ratio);
+      const u = STATE.rCal * 0.55, l = STATE.rCal * 0.45;
+      const rEff = r * STATE.rCal;
+      const cosFlex = (rEff*rEff - u*u - l*l) / (2*u*l);
+      if (cosFlex >= -1 && cosFlex <= 1){
+        flex = Math.acos(cosFlex) * 180 / Math.PI;
+      }
+    }
+    if (flex < 12) flex = 15; // minimum visible flex (jerk-only detection)
+    STATE.currentFlex = Math.min(30, flex);
+
+    // Visual cue + haptic
+    document.getElementById('liveTitleEn').innerHTML = '<em>Broken.</em>';
+    document.getElementById('liveTitleJp').textContent = '三 角 形 が 崩 れ た';
+    document.getElementById('liveTitleEn').style.color = '#C45B4A';
+    document.getElementById('livePulse').textContent = 'detected';
+    document.getElementById('livePulse').style.color = '#C45B4A';
+    if (navigator.vibrate) navigator.vibrate([50, 40, 80]);
+  }
+}
+
+/* Apply elbow bend to live SVG (right arm)
+   bendDeg = 0 → straight; 30 → fully bent
+*/
+function applyLiveBend(bendDeg){
+  const t = Math.min(1, Math.max(0, bendDeg / 30));
+  const ex = 131 + 25 * t;
+  const ey = 164 - 4 * t;
+  const gx = 120 - 2 * t;
+  const gy = 208 - 7 * t;
+  const lx = 109 - 1 * t;
+  const ly = 164 - 3 * t;
+
+  const ru = document.getElementById('liveRU');
+  const rl = document.getElementById('liveRL');
+  const lu = document.getElementById('liveLU');
+  const ll = document.getElementById('liveLL');
+  const eb = document.getElementById('liveElbow');
+  const gp = document.getElementById('liveGrip');
+  if (!ru) return;
+
+  ru.setAttribute('x2', ex);
+  ru.setAttribute('y2', ey);
+  rl.setAttribute('x1', ex);
+  rl.setAttribute('y1', ey);
+  rl.setAttribute('x2', gx);
+  rl.setAttribute('y2', gy);
+  lu.setAttribute('x2', lx);
+  lu.setAttribute('y2', ly);
+  ll.setAttribute('x1', lx);
+  ll.setAttribute('y1', ly);
+  ll.setAttribute('x2', gx);
+  ll.setAttribute('y2', gy);
+  eb.setAttribute('cx', ex);
+  eb.setAttribute('cy', ey);
+  eb.style.opacity = t * 0.9;
+  gp.setAttribute('cx', gx);
+  gp.setAttribute('cy', gy);
+
+  // Color the right arm red when broken
+  if (t > 0){
+    ru.setAttribute('stroke', '#C45B4A');
+    ru.setAttribute('stroke-opacity', '0.85');
+    rl.setAttribute('stroke', '#C45B4A');
+    rl.setAttribute('stroke-opacity', '0.85');
+  } else {
+    ru.removeAttribute('stroke');
+    ru.removeAttribute('stroke-opacity');
+    rl.removeAttribute('stroke');
+    rl.removeAttribute('stroke-opacity');
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════
