@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Golflev · Axis Test</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400&family=Noto+Serif+JP:wght@300;400;500&family=Inter:wght@300;400;500;600;700&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+
+:root{
+  --bg:#F8F5EF;
+  --ink:#2D3B2D;
+  --ink-soft:#5A5A52;
+  --ink-faint:#8A8A82;
+  --gold:#C8956C;
+  --warn:#C45B4A;
+  --ok:#4A6B4A;
+  --paper:#FFFFFF;
+  --line:#E5DFD0;
+  --serif:'Playfair Display','Noto Serif JP',serif;
+  --jp:'Noto Serif JP','Playfair Display',serif;
+  --ui:'Inter',-apple-system,system-ui,sans-serif;
+  --mono:'SF Mono',Menlo,Consolas,monospace;
+}
+
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--ui);
+  font-weight:400;
+  min-height:100vh;
+  letter-spacing:.01em;
+  font-size:14px;
+}
+
+#app{
+  max-width:430px;margin:0 auto;
+  padding:32px 20px 48px;
+}
+
+.brand{
+  font-family:var(--serif);font-style:italic;font-size:11px;
+  color:var(--gold);letter-spacing:.32em;text-transform:uppercase;
+  text-align:center;margin-bottom:6px;
+}
+h1{
+  font-family:var(--serif);font-weight:700;font-size:28px;
+  color:var(--ink);text-align:center;margin-bottom:6px;letter-spacing:.01em;
+}
+.subtitle{
+  font-family:var(--jp);font-size:11px;color:var(--ink-faint);
+  text-align:center;letter-spacing:.16em;margin-bottom:24px;
+}
+
+/* Section */
+.section{
+  background:var(--paper);
+  border:1px solid var(--line);
+  padding:18px 20px;
+  margin-bottom:14px;
+}
+.section-label{
+  font-family:var(--serif);font-style:italic;font-size:10px;
+  color:var(--gold);letter-spacing:.28em;text-transform:uppercase;
+  margin-bottom:12px;font-weight:600;
+}
+
+/* Permission */
+.perm-btn{
+  display:block;width:100%;
+  background:var(--ink);color:var(--bg);
+  font-family:var(--ui);font-size:11px;font-weight:600;
+  letter-spacing:.32em;text-transform:uppercase;
+  border:none;padding:18px;cursor:pointer;
+  margin-top:14px;
+  transition:background .25s;
+}
+.perm-btn:hover{background:#1F2D1F}
+.perm-btn:disabled{background:var(--ink-faint);cursor:default}
+
+/* Status */
+.status-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:6px 0;font-family:var(--ui);font-size:12px;
+}
+.status-label{color:var(--ink-soft);letter-spacing:.06em}
+.status-value{
+  font-family:var(--mono);font-size:12px;color:var(--ink);
+  font-variant-numeric:tabular-nums;
+}
+.status-value.ok{color:var(--ok)}
+.status-value.warn{color:var(--warn)}
+
+/* Reading display */
+.reading-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:1px;
+  background:var(--line);
+  margin-top:10px;
+}
+.reading-cell{
+  background:var(--paper);
+  padding:14px 12px;
+  text-align:left;
+}
+.reading-name{
+  font-family:var(--serif);font-size:9px;
+  color:var(--gold);letter-spacing:.24em;text-transform:uppercase;
+  font-weight:600;margin-bottom:4px;
+}
+.reading-value{
+  font-family:var(--mono);font-size:22px;
+  font-weight:500;color:var(--ink);
+  font-variant-numeric:tabular-nums;
+  line-height:1.1;
+}
+.reading-value.large{font-size:26px}
+.reading-jp{
+  font-family:var(--jp);font-size:9px;color:var(--ink-faint);
+  margin-top:3px;letter-spacing:.06em;
+}
+
+/* Action button */
+.action-btn{
+  display:block;width:100%;
+  background:var(--paper);
+  border:1px solid var(--ink);color:var(--ink);
+  font-family:var(--ui);font-size:11px;font-weight:600;
+  letter-spacing:.32em;text-transform:uppercase;
+  padding:16px;cursor:pointer;
+  margin-top:12px;
+  transition:background .25s,color .25s;
+}
+.action-btn:hover{background:var(--ink);color:var(--bg)}
+.action-btn:disabled{
+  border-color:var(--line);color:var(--ink-faint);cursor:default;
+}
+.action-btn:disabled:hover{background:transparent;color:var(--ink-faint)}
+
+.btn-secondary{
+  display:block;width:100%;
+  background:transparent;border:1px solid var(--line);color:var(--ink-soft);
+  font-family:var(--ui);font-size:10px;font-weight:500;
+  letter-spacing:.28em;text-transform:uppercase;
+  padding:12px;cursor:pointer;margin-top:8px;
+}
+.btn-secondary:hover{border-color:var(--ink-soft);color:var(--ink)}
+
+/* Test scenarios */
+.test-list{margin-top:6px}
+.test-row{
+  display:flex;align-items:flex-start;gap:14px;
+  padding:14px 0;
+  border-bottom:1px solid var(--line);
+}
+.test-row:last-child{border-bottom:none}
+.test-num{
+  font-family:var(--serif);font-style:italic;font-weight:600;font-size:14px;
+  color:var(--gold);min-width:24px;flex-shrink:0;letter-spacing:.04em;
+}
+.test-body{flex:1}
+.test-title{
+  font-family:var(--jp);font-size:12px;font-weight:500;
+  color:var(--ink);margin-bottom:4px;letter-spacing:.04em;
+}
+.test-desc{
+  font-family:var(--jp);font-size:10.5px;
+  color:var(--ink-soft);line-height:1.6;letter-spacing:.04em;
+}
+.test-expected{
+  margin-top:6px;font-family:var(--mono);font-size:10.5px;
+  color:var(--gold);letter-spacing:.04em;
+}
+
+/* Live indicator */
+.live-dot{
+  display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--ok);margin-right:6px;vertical-align:middle;
+  animation:pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+
+.callout{
+  font-family:var(--jp);font-size:11px;
+  color:var(--ink-soft);line-height:1.7;
+  padding:10px 14px;
+  background:rgba(200,149,108,.06);
+  border-left:2px solid var(--gold);
+  margin-top:10px;letter-spacing:.04em;
+}
+
+.error-box{
+  font-family:var(--jp);font-size:12px;
+  color:var(--warn);padding:10px 14px;
+  background:rgba(196,91,74,.06);
+  border-left:2px solid var(--warn);
+  margin-top:10px;letter-spacing:.04em;
+}
+
+footer{
+  text-align:center;margin-top:24px;
+  font-family:var(--serif);font-style:italic;font-size:9px;
+  color:var(--gold);letter-spacing:.32em;text-transform:uppercase;
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="brand">Golflev</div>
+  <h1>Axis Test</h1>
+  <div class="subtitle">セ ン サ ー 軸 マ ッ ピ ン グ 検 証</div>
+
+  <!-- ==================== Permission ==================== -->
+  <div class="section" id="permSection">
+    <div class="section-label">§ 01 Permission</div>
+    <div style="font-family:var(--jp);font-size:12px;line-height:1.7;color:var(--ink-soft)">
+      iPhone を <strong>縦に持って</strong> グリップ握りで構えてください。<br>
+      カメラ面が左、画面が右になる向きで握ります。
+    </div>
+    <button class="perm-btn" id="permBtn">Enable Sensor</button>
+    <div id="permError"></div>
+  </div>
+
+  <!-- ==================== Live Reading ==================== -->
+  <div class="section" id="readingSection" style="display:none">
+    <div class="section-label"><span class="live-dot"></span>§ 02 Live Reading</div>
+
+    <!-- Raw -->
+    <div style="font-family:var(--ui);font-size:10px;color:var(--ink-faint);letter-spacing:.18em;text-transform:uppercase;margin-bottom:6px">Raw (DeviceOrientation)</div>
+    <div class="reading-grid" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="reading-cell">
+        <div class="reading-name">α Alpha</div>
+        <div class="reading-value" id="rawA">—</div>
+        <div class="reading-jp">Z軸回転</div>
+      </div>
+      <div class="reading-cell">
+        <div class="reading-name">β Beta</div>
+        <div class="reading-value" id="rawB">—</div>
+        <div class="reading-jp">X軸回転</div>
+      </div>
+      <div class="reading-cell">
+        <div class="reading-name">γ Gamma</div>
+        <div class="reading-value" id="rawG">—</div>
+        <div class="reading-jp">Y軸回転</div>
+      </div>
+    </div>
+
+    <!-- Computed -->
+    <div style="font-family:var(--ui);font-size:10px;color:var(--ink-faint);letter-spacing:.18em;text-transform:uppercase;margin:18px 0 6px">Computed (vs Baseline)</div>
+    <div class="reading-grid">
+      <div class="reading-cell">
+        <div class="reading-name">Vertical</div>
+        <div class="reading-value large" id="vVal">—</div>
+        <div class="reading-jp">テイクバック角（0以上）</div>
+      </div>
+      <div class="reading-cell">
+        <div class="reading-name">Horizontal</div>
+        <div class="reading-value large" id="hVal">—</div>
+        <div class="reading-jp">左右の振り（±）</div>
+      </div>
+      <div class="reading-cell">
+        <div class="reading-name">Wrist Cock</div>
+        <div class="reading-value large" id="wVal">—</div>
+        <div class="reading-jp">手首ロール（±）</div>
+      </div>
+      <div class="reading-cell">
+        <div class="reading-name">Deviation</div>
+        <div class="reading-value large" id="dVal">—</div>
+        <div class="reading-jp">合成回転角</div>
+      </div>
+    </div>
+
+    <button class="action-btn" id="setBaseBtn">Set Baseline</button>
+    <button class="btn-secondary" id="clearBaseBtn">Clear Baseline</button>
+
+    <div class="callout" id="baseStatus" style="display:none">
+      ベースライン記録済み。<br>
+      この姿勢からの変化が下のVertical / Horizontal / WristCockに表示されます。
+    </div>
+  </div>
+
+  <!-- ==================== Test Scenarios ==================== -->
+  <div class="section" id="testSection" style="display:none">
+    <div class="section-label">§ 03 Test Scenarios</div>
+    <div class="test-list">
+
+      <div class="test-row">
+        <span class="test-num">01</span>
+        <div class="test-body">
+          <div class="test-title">静止</div>
+          <div class="test-desc">グリップを構えたまま動かさない</div>
+          <div class="test-expected">期待値: V ≈ 0° / H ≈ 0° / WC ≈ 0°</div>
+        </div>
+      </div>
+
+      <div class="test-row">
+        <span class="test-num">02</span>
+        <div class="test-body">
+          <div class="test-title">テイクバック（4時の方向まで）</div>
+          <div class="test-desc">三角形を保ったまま、ゆっくり4時の位置まで上げる</div>
+          <div class="test-expected">期待値: V が <strong>大きく増加（〜60°）</strong> / H ≈ 0° / WC ≈ 0°</div>
+        </div>
+      </div>
+
+      <div class="test-row">
+        <span class="test-num">03</span>
+        <div class="test-body">
+          <div class="test-title">左右の振り（インサイドアウト）</div>
+          <div class="test-desc">グリップを軸ごと左右に倒す（内側へ・外側へ）</div>
+          <div class="test-expected">期待値: H が <strong>±に振れる</strong> / V は小さい / WC は小さい</div>
+        </div>
+      </div>
+
+      <div class="test-row">
+        <span class="test-num">04</span>
+        <div class="test-body">
+          <div class="test-title">手首コック（クラブ軸まわりのねじり）</div>
+          <div class="test-desc">縦持ちのまま、長軸のまわりに回転（ドアノブを回すように）</div>
+          <div class="test-expected">期待値: WC が <strong>±に振れる</strong> / V ≈ 0° / H ≈ 0°</div>
+        </div>
+      </div>
+
+    </div>
+    <div class="callout">
+      4つのテストすべてで期待値どおりに反応すれば、軸マッピングは正しく動いています。<br>
+      想定外の値が出る場合（例：テイクバックでHが大きく動く）は、軸マッピングに問題があります。
+    </div>
+  </div>
+
+  <footer>Golflev — sensor diagnostic</footer>
+
+</div>
+
+<script>
+/* ──────────────────────────────────────────────
+   QuatUtils — copied from app/index.html (1285)
+   ────────────────────────────────────────────── */
+const QuatUtils = {
+  fromEuler: (alphaDeg, betaDeg, gammaDeg) => {
+    const d2r = Math.PI / 360;
+    const a = (alphaDeg || 0) * d2r;
+    const b = (betaDeg  || 0) * d2r;
+    const g = (gammaDeg || 0) * d2r;
+    const ca = Math.cos(a), sa = Math.sin(a);
+    const cb = Math.cos(b), sb = Math.sin(b);
+    const cg = Math.cos(g), sg = Math.sin(g);
+    return {
+      w: ca*cb*cg - sa*sb*sg,
+      x: ca*sb*cg - sa*cb*sg,
+      y: ca*cb*sg + sa*sb*cg,
+      z: ca*sb*sg + sa*cb*cg
+    };
+  },
+  conj: q => ({ w: q.w, x: -q.x, y: -q.y, z: -q.z }),
+  mul: (a, b) => ({
+    w: a.w*b.w - a.x*b.x - a.y*b.y - a.z*b.z,
+    x: a.w*b.x + a.x*b.w + a.y*b.z - a.z*b.y,
+    y: a.w*b.y - a.x*b.z + a.y*b.w + a.z*b.x,
+    z: a.w*b.z + a.x*b.y - a.y*b.x + a.z*b.w
+  }),
+  rotVec: (q, v) => {
+    const qw = q.w, qx = q.x, qy = q.y, qz = q.z;
+    const vx = v.x, vy = v.y, vz = v.z;
+    const tx = 2 * (qy * vz - qz * vy);
+    const ty = 2 * (qz * vx - qx * vz);
+    const tz = 2 * (qx * vy - qy * vx);
+    return {
+      x: vx + qw * tx + (qy * tz - qz * ty),
+      y: vy + qw * ty + (qz * tx - qx * tz),
+      z: vz + qw * tz + (qx * ty - qy * tx)
+    };
+  },
+  angle: q => {
+    const w = Math.min(1, Math.max(-1, q.w));
+    return 2 * Math.acos(Math.abs(w)) * 180 / Math.PI;
+  },
+  decomposeSwingTwist: q => {
+    const len = Math.sqrt(q.w * q.w + q.y * q.y);
+    if (len < 1e-6) {
+      return { twist: { w: 1, x: 0, y: 0, z: 0 }, swing: q, twistAngle: 0 };
+    }
+    const twist = { w: q.w / len, x: 0, y: q.y / len, z: 0 };
+    const swing = QuatUtils.mul(q, QuatUtils.conj(twist));
+    const twistAngle = 2 * Math.atan2(twist.y, twist.w) * 180 / Math.PI;
+    return { swing, twist, twistAngle };
+  }
+};
+
+/* ──────────────────────────────────────────────
+   calcAngles — copied from app/index.html (1648)
+   ────────────────────────────────────────────── */
+function clamp(v, a, b){ return Math.max(a, Math.min(b, v)) }
+
+function calcAngles(orient, baseline){
+  if (!baseline) return { vertical: 0, horizontal: 0, wristCock: 0, deviation: 0 };
+
+  const qC = QuatUtils.fromEuler(orient.alpha, orient.beta, orient.gamma);
+  const qB = QuatUtils.fromEuler(baseline.alpha, baseline.beta, baseline.gamma);
+
+  const qRel = QuatUtils.mul(QuatUtils.conj(qB), qC);
+  const deviation = QuatUtils.angle(qRel);
+
+  const { twistAngle } = QuatUtils.decomposeSwingTwist(qRel);
+  const wristCock = clamp(twistAngle, -180, 180);
+
+  const shaftCur = QuatUtils.rotVec(qC, { x: 0, y: 1, z: 0 });
+  const shaftBl = QuatUtils.rotVec(qB, { x: 0, y: 1, z: 0 });
+
+  const shaftDot = Math.min(1, Math.max(-1,
+    shaftCur.x * shaftBl.x + shaftCur.y * shaftBl.y + shaftCur.z * shaftBl.z
+  ));
+  const vertical = Math.acos(shaftDot) * 180 / Math.PI;
+
+  const gravDown = { x: 0, y: -1, z: 0 };
+  const pnx = shaftBl.y * gravDown.z - shaftBl.z * gravDown.y;
+  const pny = shaftBl.z * gravDown.x - shaftBl.x * gravDown.z;
+  const pnz = shaftBl.x * gravDown.y - shaftBl.y * gravDown.x;
+  const pnLen = Math.sqrt(pnx*pnx + pny*pny + pnz*pnz);
+
+  let horizontal = 0;
+  if (pnLen > 0.01 && vertical > 2) {
+    const nx = pnx/pnLen, ny = pny/pnLen, nz = pnz/pnLen;
+    const dsx = shaftCur.x - shaftDot * shaftBl.x;
+    const dsy = shaftCur.y - shaftDot * shaftBl.y;
+    const dsz = shaftCur.z - shaftDot * shaftBl.z;
+    const lateral = dsx*nx + dsy*ny + dsz*nz;
+    const dLen = Math.sqrt(dsx*dsx + dsy*dsy + dsz*dsz);
+    if (dLen > 0.001) {
+      const sinLat = Math.min(1, Math.max(-1, lateral / dLen));
+      horizontal = Math.asin(sinLat) * 180 / Math.PI;
+    }
+  }
+
+  return { vertical, horizontal, wristCock, deviation };
+}
+
+/* ──────────────────────────────────────────────
+   App state
+   ────────────────────────────────────────────── */
+let baseline = null;
+let currentOrient = { alpha: 0, beta: 0, gamma: 0 };
+let permGranted = false;
+
+const $ = id => document.getElementById(id);
+
+function fmt(v, precision = 1){
+  if (v === null || v === undefined || isNaN(v)) return '—';
+  const sign = v >= 0 ? ' ' : '';
+  return sign + v.toFixed(precision) + '°';
+}
+
+function renderRaw(){
+  $('rawA').textContent = fmt(currentOrient.alpha, 1);
+  $('rawB').textContent = fmt(currentOrient.beta, 1);
+  $('rawG').textContent = fmt(currentOrient.gamma, 1);
+}
+
+function renderComputed(){
+  if (!baseline) {
+    $('vVal').textContent = '—';
+    $('hVal').textContent = '—';
+    $('wVal').textContent = '—';
+    $('dVal').textContent = '—';
+    return;
+  }
+  const a = calcAngles(currentOrient, baseline);
+  $('vVal').textContent = fmt(a.vertical, 1);
+  $('hVal').textContent = fmt(a.horizontal, 1);
+  $('wVal').textContent = fmt(a.wristCock, 1);
+  $('dVal').textContent = fmt(a.deviation, 1);
+}
+
+function onOrientation(e){
+  currentOrient = {
+    alpha: e.alpha,
+    beta: e.beta,
+    gamma: e.gamma
+  };
+  renderRaw();
+  renderComputed();
+}
+
+/* ──────────────────────────────────────────────
+   Permission flow
+   ────────────────────────────────────────────── */
+async function requestPermission(){
+  $('permError').innerHTML = '';
+
+  try {
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      // iOS 13+
+      const state = await DeviceOrientationEvent.requestPermission();
+      if (state !== 'granted') {
+        $('permError').innerHTML = '<div class="error-box">許可されませんでした。Safariの設定 > 詳細 > 「モーションと画面の向きへのアクセス」を確認してください。</div>';
+        return;
+      }
+    }
+
+    // Listen for orientation events
+    window.addEventListener('deviceorientation', onOrientation);
+    permGranted = true;
+
+    // Reveal sections
+    $('readingSection').style.display = 'block';
+    $('testSection').style.display = 'block';
+    $('permBtn').textContent = 'Enabled';
+    $('permBtn').disabled = true;
+
+    // Sanity check after 1s
+    setTimeout(() => {
+      if (currentOrient.alpha === 0 && currentOrient.beta === 0 && currentOrient.gamma === 0) {
+        $('permError').innerHTML = '<div class="error-box">センサー値が取得できていません。HTTPS環境で開いてください（GitHub Pages推奨）。</div>';
+      }
+    }, 1500);
+
+  } catch (err) {
+    $('permError').innerHTML = '<div class="error-box">エラー: ' + err.message + '</div>';
+  }
+}
+
+function setBaseline(){
+  if (!permGranted) return;
+  baseline = { ...currentOrient };
+  $('baseStatus').style.display = 'block';
+  $('clearBaseBtn').disabled = false;
+  renderComputed();
+}
+
+function clearBaseline(){
+  baseline = null;
+  $('baseStatus').style.display = 'none';
+  renderComputed();
+}
+
+/* ──────────────────────────────────────────────
+   Wire up
+   ────────────────────────────────────────────── */
+$('permBtn').addEventListener('click', requestPermission);
+$('setBaseBtn').addEventListener('click', setBaseline);
+$('clearBaseBtn').addEventListener('click', clearBaseline);
+</script>
+</body>
+</html>
