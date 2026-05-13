@@ -1638,6 +1638,12 @@ document.getElementById('debugToggle').addEventListener('click', () => {
 
 setupHeightInput();
 
+// テスト用: URL ?fresh で localStorage をクリアして最初から
+if (new URLSearchParams(location.search).has('fresh')) {
+  Object.values(STORAGE_KEYS).forEach(k => localStorage.removeItem(k));
+  history.replaceState({}, '', location.pathname);
+}
+
 // Decide initial page
 if (Storage.getOnboarded()) {
   goto('home');
