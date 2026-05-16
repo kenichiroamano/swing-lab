@@ -10,21 +10,26 @@
 *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 
 :root{
-  --bg:#F8F5EF;
-  --ink:#2D3B2D;
-  --ink-soft:#5A5A52;
-  --ink-faint:#8A8A82;
-  --gold:#C8956C;
-  --gold-hair:rgba(200,149,108,0.42);
-  --warn:#C45B4A;
-  --ok:#4A6B4A;
-  --paper:#FFFFFF;
-  --line:#E5DFD0;
+  --bg:#EFE9DC;             /* v2: 一段濃いベージュ */
+  --ink:#1F2A21;            /* v2: 深い緑黒 */
+  --ink-soft:#4A4A40;       /* v2: やや濃い */
+  --ink-faint:#7A7A6E;      /* v2: やや濃い */
+  --gold:#B8804C;           /* v2: 深いゴールド */
+  --gold-hair:rgba(184,128,76,0.55);  /* v2: 濃いゴールドヘアライン */
+  --warn:#B04A39;
+  --ok:#3D5A3D;
+  --paper:#F7F1E3;          /* v2: 紙色も一段濃い */
+  --line:#D9D0BC;           /* v2: 区切り線濃く */
   --serif:'Playfair Display','Noto Serif JP',serif;
   --jp:'Noto Serif JP','Playfair Display',serif;
   --ui:'Inter',-apple-system,system-ui,sans-serif;
   --mono:'SF Mono',Menlo,Consolas,monospace;
   --ease:cubic-bezier(0.2,0.7,0.2,1);
+  /* v2: 多層シャドウ */
+  --shadow-lux:
+    0 1px 2px rgba(31,42,33,.06),
+    0 6px 16px rgba(31,42,33,.10),
+    0 22px 48px rgba(31,42,33,.10);
 }
 
 body{
@@ -79,10 +84,11 @@ body::before{
   position:relative;aspect-ratio:3/4;overflow:hidden;
   border-radius:1px;
   box-shadow:
-    0 1px 3px rgba(45,59,45,.06),
-    0 12px 32px rgba(45,59,45,.10),
-    0 36px 72px rgba(45,59,45,.06);
-  background:var(--bg);
+    0 1px 2px rgba(31,42,33,.10),
+    0 8px 20px rgba(31,42,33,.14),
+    0 26px 56px rgba(31,42,33,.14),
+    0 60px 100px rgba(31,42,33,.08);
+  background:var(--paper);
 }
 .bz-video{
   position:absolute;inset:0;width:100%;height:100%;
@@ -136,7 +142,15 @@ body::before{
   font-size:36px;line-height:1.1;color:var(--ink);margin-bottom:14px;letter-spacing:-.005em;
 }
 .title-en strong{font-weight:700;font-style:normal}
-.title-hr{width:24px;height:.5px;background:var(--gold);margin:0 auto 14px;opacity:.7}
+.title-hr{
+  width:32px;height:1px;background:var(--gold);
+  margin:0 auto 14px;opacity:.95;position:relative;
+}
+.title-hr::after{
+  content:'';position:absolute;left:50%;top:4px;
+  transform:translateX(-50%);
+  width:54px;height:.5px;background:var(--gold);opacity:.4;
+}
 .title-jp{font-family:var(--jp);font-size:11.5px;letter-spacing:.18em;color:var(--ink-faint)}
 
 /* ─────────── Visual area ─────────── */
@@ -159,6 +173,38 @@ body::before{
 }
 .tri-rotator.demo{animation:fadeIn .8s var(--ease) .8s forwards,swingDemo 5s cubic-bezier(.45,0,.4,1) 1.4s infinite;opacity:0}
 
+/* ─────────── Onboard-3: Drill — two-view layout ─────────── */
+.drill-row{
+  display:flex;align-items:center;justify-content:center;
+  gap:20px;width:100%;max-width:340px;margin:0 auto;
+}
+.drill-item{
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+  flex:1;
+}
+.drill-video-wrap{
+  width:100%;max-width:142px;aspect-ratio:3/4;overflow:hidden;
+  border-radius:1px;
+  box-shadow:
+    0 1px 2px rgba(31,42,33,.10),
+    0 6px 14px rgba(31,42,33,.14),
+    0 22px 36px rgba(31,42,33,.12);
+  background:var(--paper);
+  position:relative;
+}
+.drill-video{
+  width:100%;height:100%;object-fit:cover;display:block;
+}
+.drill-divider{
+  width:.5px;height:160px;background:var(--gold);opacity:.45;
+  align-self:center;
+}
+.drill-caption{
+  font-family:var(--serif);font-style:italic;font-size:10px;
+  color:var(--gold);letter-spacing:.36em;text-transform:uppercase;
+  opacity:.9;
+}
+
 /* ─────────── Caption / text blocks ─────────── */
 .caption{text-align:center;margin-bottom:32px;max-width:320px;margin-left:auto;margin-right:auto}
 .caption-jp{font-family:var(--jp);font-weight:400;font-size:13px;line-height:1.9;color:var(--ink-soft);letter-spacing:.06em}
@@ -175,9 +221,14 @@ body::before{
 .btn-primary{
   background:var(--ink);color:var(--bg);padding:18px 36px;
   font-family:var(--ui);font-size:11px;font-weight:600;letter-spacing:.42em;text-transform:uppercase;
-  border:none;cursor:pointer;transition:background .25s;
+  border:none;cursor:pointer;transition:background .25s,transform .2s var(--ease);
+  box-shadow:
+    0 1px 2px rgba(31,42,33,.18),
+    0 6px 14px rgba(31,42,33,.20),
+    0 16px 32px rgba(31,42,33,.14),
+    inset 0 1px 0 rgba(255,255,255,.06);
 }
-.btn-primary:hover{background:#1F2D1F}
+.btn-primary:hover{background:#152017}
 .btn-text{
   font-family:var(--ui);font-size:10px;letter-spacing:.32em;text-transform:uppercase;
   color:var(--ink-faint);background:transparent;border:none;padding:10px 16px;cursor:pointer;margin-top:14px;
@@ -401,8 +452,7 @@ body::before{
 
     <div class="body-text anim-up d-3">
       ハードウェア不要。<br>
-      iPhone のジャイロセンサーが、<br>
-      <strong>あなたのスイングフォーム</strong>を判定します。
+      <strong>スマートフォンひとつ</strong>で、練習。
     </div>
 
     <div class="action anim-up d-4">
@@ -426,17 +476,13 @@ body::before{
       <div class="title-jp">グリップ</div>
     </div>
 
-    <!-- Business Zone swing — AI-generated video (Luma) -->
+    <!-- The Grip pose — static image (extracted frame) -->
     <div class="bz-stage anim-up d-2">
-      <video class="bz-video"
-             src="assets/bz-swing.mp4"
-             autoplay
-             muted
-             loop
-             playsinline
-             preload="auto"></video>
+      <picture>
+        <source srcset="assets/onboard-grip-pose.webp" type="image/webp">
+        <img class="bz-video" src="assets/onboard-grip-pose.png" alt="グリップ姿勢">
+      </picture>
       <div class="bz-vignette"></div>
-      <div class="bz-caption">Business Zone</div>
     </div>
 
     <div class="action anim-up d-3" style="margin-top:24px">
@@ -461,23 +507,14 @@ body::before{
     </div>
 
     <div class="visual anim-up d-2">
-      <div class="triangle-fig">
-        <svg viewBox="0 0 240 240">
-          <circle class="tri-guide-circle" cx="120" cy="120" r="92"/>
-          <text x="216" y="170" text-anchor="middle" font-family="'Playfair Display',serif" font-style="italic" font-size="13" fill="#C8956C" opacity="0.5">4</text>
-          <circle cx="200" cy="166" r="5" fill="#C8956C" opacity="0.65"/>
-          <g class="tri-rotator demo">
-            <line class="tri-shoulders" x1="98" y1="120" x2="142" y2="120"/>
-            <circle class="tri-shoulder-dot" cx="98" cy="120" r="3"/>
-            <circle class="tri-shoulder-dot" cx="142" cy="120" r="3"/>
-            <line class="tri-arm" x1="98" y1="120" x2="109" y2="164"/>
-            <line class="tri-arm" x1="109" y1="164" x2="120" y2="208"/>
-            <line class="tri-arm" x1="142" y1="120" x2="131" y2="164"/>
-            <line class="tri-arm" x1="131" y1="164" x2="120" y2="208"/>
-            <circle class="tri-grip" cx="120" cy="208" r="5"/>
-          </g>
-          <circle cx="120" cy="120" r="1.5" fill="#8A8A82" opacity="0.4"/>
-        </svg>
+      <div class="drill-row">
+        <div class="drill-item">
+          <div class="drill-video-wrap">
+            <video class="drill-video"
+                   src="assets/bz-swing.mp4"
+                   autoplay muted loop playsinline preload="auto"></video>
+          </div>
+        </div>
       </div>
     </div>
 
