@@ -3,18 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-<title>Golflev · お手本くらべ — Demo Lab</title>
+<title>Golflev · お手本くらべ — Demo Lab v2</title>
 <style>
 *{margin:0;padding:0}
 html,body{height:100%;overflow:hidden;background:#EFE9DC;font-family:'Inter',-apple-system,sans-serif}
 #c{position:fixed;inset:0;width:100%;height:100%}
-.overlay{position:fixed;top:0;left:0;right:0;text-align:center;padding:26px 16px 0;pointer-events:none;z-index:2}
+.overlay{position:fixed;top:0;left:0;right:0;text-align:center;padding:22px 16px 0;pointer-events:none;z-index:2}
 .eyebrow{font-size:11px;letter-spacing:.26em;color:#B8804C;text-transform:uppercase}
-.title{font-family:Georgia,serif;font-weight:800;font-style:italic;font-size:32px;color:#1F2A21;margin-top:4px}
-.note{position:fixed;bottom:84px;left:0;right:0;text-align:center;font-size:11px;letter-spacing:.08em;color:#8A8A82;z-index:2;padding:0 20px}
+.title{font-family:Georgia,serif;font-weight:800;font-style:italic;font-size:30px;color:#1F2A21;margin-top:4px}
+.note{position:fixed;bottom:88px;left:0;right:0;text-align:center;font-size:11px;letter-spacing:.06em;color:#8A8A82;z-index:2;padding:0 18px;line-height:1.7}
 #btns{position:fixed;bottom:26px;left:0;right:0;text-align:center;z-index:3}
-.tbtn{margin:0 6px;padding:12px 20px;border-radius:999px;border:1px solid rgba(31,42,33,.3);
-  background:rgba(247,241,227,.92);color:#1F2A21;font-size:12px;letter-spacing:.08em;font-family:'Inter',sans-serif}
+.tbtn{margin:0 4px;padding:12px 16px;border-radius:999px;border:1px solid rgba(31,42,33,.3);
+  background:rgba(247,241,227,.92);color:#1F2A21;font-size:12px;letter-spacing:.06em;font-family:'Inter',sans-serif}
 .tbtn.on{background:#1F2A21;color:#F7F1E3;border-color:#1F2A21}
 #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
   color:#B8804C;font-size:12px;letter-spacing:.2em;z-index:4;background:#EFE9DC}
@@ -31,13 +31,14 @@ html,body{height:100%;overflow:hidden;background:#EFE9DC;font-family:'Inter',-ap
 <canvas id="c"></canvas>
 <div id="loading">LOADING…</div>
 <div class="overlay">
-  <div class="eyebrow">Demo Lab</div>
+  <div class="eyebrow">Demo Lab v2</div>
   <div class="title">お手本くらべ</div>
 </div>
-<div class="note" id="noteText">A: チップ自然再生（テイクバックほぼ無し） / B: ドライブを8時-4時の範囲でゆっくり往復（テイクバックあり）</div>
+<div class="note" id="noteText">縦アーク＝振り幅ゲージ（言葉なしで直感的に）。光球が金のゾーンに届けば合格の振り幅。<br>A: チップ自然再生 / B: チップを正しいアンカーでスクラブ / C: ドライブをスクラブ</div>
 <div id="btns">
-  <button class="tbtn on" data-m="A">案A チップ</button>
-  <button class="tbtn" data-m="B">案B ドライブ半振り</button>
+  <button class="tbtn on" data-m="A">A 自然再生</button>
+  <button class="tbtn" data-m="B">B 補正スクラブ</button>
+  <button class="tbtn" data-m="C">C ドライブ</button>
 </div>
 
 <script type="module">
@@ -60,8 +61,8 @@ const scene=new THREE.Scene();
 scene.background=new THREE.Color(0xEFE9DC);
 scene.fog=new THREE.Fog(0xEFE9DC,9,18);
 const camera=new THREE.PerspectiveCamera(35,innerWidth/innerHeight,0.1,60);
-camera.position.set(0,1.5,4.4);
-camera.lookAt(0,0.95,0);
+camera.position.set(0,1.5,4.6);
+camera.lookAt(0,1.0,0);
 
 const pmrem=new THREE.PMREMGenerator(renderer);
 scene.environment=pmrem.fromScene(new RoomEnvironment(),0.04).texture;
@@ -79,11 +80,53 @@ const ground=new THREE.Mesh(new THREE.PlaneGeometry(50,50),
 ground.rotation.x=-Math.PI/2; ground.receiveShadow=true;
 scene.add(ground);
 const GOLDM=new THREE.MeshStandardMaterial({color:0xc09455,metalness:1.0,roughness:0.2,envMapIntensity:1.1});
-const ring=new THREE.Mesh(new THREE.TorusGeometry(1.15,0.02,16,128),GOLDM);
-ring.rotation.x=Math.PI/2; ring.position.y=0.012;
-scene.add(ring);
+const ringFloor=new THREE.Mesh(new THREE.TorusGeometry(1.15,0.018,16,128),GOLDM);
+ringFloor.rotation.x=Math.PI/2; ringFloor.position.y=0.012;
+scene.add(ringFloor);
 
-/* 白磁×金の確定マテリアル（golfer3dと同一の分割ロジック） */
+/* ───────── 縦アーク（振り子ゲージ）─────────
+   視聴者から見た「時計の文字盤」を縦に。下半分の弧。
+   光球が振り幅角度どおりに弧を滑り、±60°で金ゾーンに届く。
+   言葉・数字なしで「ここまで振る」が伝わる。 */
+const ARC_R=1.42, ARC_CY=1.62, ARC_Z=-0.55;
+const arcGroup=new THREE.Group();
+arcGroup.position.set(0,ARC_CY,ARC_Z);
+scene.add(arcGroup);
+const d2r=Math.PI/180;
+// 薄い弧（±72°）
+const arcMat=new THREE.MeshStandardMaterial({color:0xB8804C,metalness:.9,roughness:.35,transparent:true,opacity:.38});
+const arcMesh=new THREE.Mesh(new THREE.TorusGeometry(ARC_R,0.012,10,96,144*d2r),arcMat);
+arcMesh.rotation.z=(198)*d2r; // 弧の開始角: 270°-72°=198°
+arcGroup.add(arcMesh);
+// 目標ゾーン（±50°〜±68°）— 金の弧
+const zoneMatL=new THREE.MeshStandardMaterial({color:0xC8956C,metalness:1,roughness:.22,emissive:0xC8956C,emissiveIntensity:.25});
+const zoneMatR=zoneMatL.clone();
+const zoneL=new THREE.Mesh(new THREE.TorusGeometry(ARC_R,0.030,12,32,18*d2r),zoneMatL);
+zoneL.rotation.z=(202)*d2r;  // θ=-68°..-50°
+const zoneR=new THREE.Mesh(new THREE.TorusGeometry(ARC_R,0.030,12,32,18*d2r),zoneMatR);
+zoneR.rotation.z=(320)*d2r;  // θ=+50°..+68°
+arcGroup.add(zoneL,zoneR);
+// 6時の小さな基準点
+const dotMat=new THREE.MeshStandardMaterial({color:0x1F2A21,metalness:.4,roughness:.4});
+const baseDot=new THREE.Mesh(new THREE.SphereGeometry(0.022,16,16),dotMat);
+baseDot.position.set(0,-ARC_R,0);
+arcGroup.add(baseDot);
+// 光球（振り子）
+const ballMat=new THREE.MeshStandardMaterial({color:0xF7F1E3,metalness:.2,roughness:.15,emissive:0xC8956C,emissiveIntensity:1.0});
+const ball=new THREE.Mesh(new THREE.SphereGeometry(0.052,24,24),ballMat);
+arcGroup.add(ball);
+const ballGlow=new THREE.PointLight(0xC8956C,4,2.2);
+ball.add(ballGlow);
+let ballAng=0;
+function setBall(angDeg){
+  ballAng+=(angDeg-ballAng)*0.35;
+  const a=ballAng*d2r;
+  ball.position.set(ARC_R*Math.sin(a), -ARC_R*Math.cos(a), 0);
+  zoneMatL.emissiveIntensity=ballAng<=-50?1.4:.25;
+  zoneMatR.emissiveIntensity=ballAng>=50?1.4:.25;
+}
+
+/* 白磁×金の確定マテリアル */
 const GOLD_JOINT_RE=/Neck|Head|Shoulder|(Left|Right)Arm$|(Left|Right)ForeArm$|Hand|(Left|Right)Leg$|Foot|Toe/;
 function stylize(root){
   const bodyMat=new THREE.MeshPhysicalMaterial({color:0xF2E8D6,metalness:0,roughness:.3,clearcoat:.55,clearcoatRoughness:.35,envMapIntensity:.7});
@@ -135,10 +178,16 @@ function stylize(root){
   });
 }
 
-/* 読み込み: チップ（体＋自然再生用）とドライブ（半振りスクラブ用アニメ） */
-let golfer=null, mixer=null, chipAction=null, driveAction=null, driveDur=3.1;
+/* ───────── アンカー（anim-labの実測値）─────────
+   chip:  addr=0.10 top=0.50 impact=0.78 finish=1.27  ← 旧0.78/0.90/0.95は誤りだった
+   drive: addr=0.15 top=0.95 impact=1.20 finish=1.42 */
+const ANCHC={addr:0.10, top:0.50, impact:0.78, finish:1.27};
+const ANCHD={addr:0.15, top:0.95, impact:1.20, finish:1.42};
+window.__anchors={chip:ANCHC, drive:ANCHD};
+
+let golfer=null, mixer=null, chipAction=null, driveAction=null;
+let chipDur=1.93, driveDur=3.1;
 let MODE='A';
-const ANCH={addr:0.40, top:1.45, impact:1.85, finish:2.60}; // ドライブの較正済みアンカー
 new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
   golfer=fbx;
   golfer.scale.setScalar(0.01);
@@ -147,6 +196,7 @@ new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
   scene.add(golfer);
   mixer=new THREE.AnimationMixer(golfer);
   if(fbx.animations.length){
+    chipDur=fbx.animations[0].duration;
     chipAction=mixer.clipAction(fbx.animations[0]);
     chipAction.play();
   }
@@ -159,32 +209,43 @@ new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
   },undefined,()=>{ document.getElementById('loading').style.display='none'; });
 },undefined,e=>{ window.__err.push('FBX: '+(e.message||e)); });
 
-/* 案B: ドライブを8時-4時の範囲でゆっくり往復（テンポ約2:1、スクラブ） */
+/* 模擬スイング: 0→-60(1.3s)→+60(1.15s)→0(1.1s) テンポ約2:1 */
 const DSEG=[[0,-60,1300,400],[-60,60,1150,900],[60,0,1100,800]];
-let dsi=0,dt0=null,renderT=ANCH.addr,lastTs=null,topAng=-60;
+let dsi=0,dt0=null,renderT=ANCHC.addr;
 const clampN=(v,a,b)=>Math.max(a,Math.min(b,v));
 const lerp=(a,b,u)=>a+(b-a)*u;
-function angleToTime(ang,st){
+function angleToTime(ANCH,ang,st){
   if(st==='back') return lerp(ANCH.addr,ANCH.top,clampN(-ang/60,0,1));
   if(st==='down'){
-    if(ang<-2) return lerp(ANCH.top,ANCH.impact,clampN(1-(ang/topAng),0,1));
+    if(ang<-2) return lerp(ANCH.top,ANCH.impact,clampN(1+(ang/60),0,1));
     return lerp(ANCH.impact,ANCH.finish,clampN(ang/60,0,1));
   }
   if(ang>3) return lerp(ANCH.impact,ANCH.finish,clampN(ang/60,0,1));
   return ANCH.addr;
+}
+/* Aモード: アニメ時刻→角度の逆算（光球をアニメに同期） */
+function timeToAngle(ANCH,t){
+  if(t<=ANCH.addr) return 0;
+  if(t<=ANCH.top) return -60*(t-ANCH.addr)/(ANCH.top-ANCH.addr);
+  if(t<=ANCH.impact) return -60*(1-(t-ANCH.top)/(ANCH.impact-ANCH.top));
+  if(t<=ANCH.finish) return 60*(t-ANCH.impact)/(ANCH.finish-ANCH.impact);
+  return 60*Math.max(0,1-(t-ANCH.finish)/(chipDur-ANCH.finish));
 }
 
 document.querySelectorAll('.tbtn').forEach(b=>b.addEventListener('click',()=>{
   MODE=b.dataset.m;
   document.querySelectorAll('.tbtn').forEach(x=>x.classList.toggle('on',x===b));
   if(!mixer) return;
+  mixer.stopAllAction();
+  dsi=0; dt0=null;
   if(MODE==='A'){
-    if(driveAction) driveAction.stop();
     if(chipAction){ chipAction.reset(); chipAction.paused=false; chipAction.play(); }
+  } else if(MODE==='B'){
+    if(chipAction){ chipAction.reset(); chipAction.play(); chipAction.paused=true; }
+    renderT=ANCHC.addr;
   } else {
-    if(chipAction) chipAction.stop();
     if(driveAction){ driveAction.reset(); driveAction.play(); driveAction.paused=true; }
-    dsi=0; dt0=null; renderT=ANCH.addr;
+    renderT=ANCHD.addr;
   }
 }));
 
@@ -192,29 +253,37 @@ const clock=new THREE.Clock();
 function animate(ts){
   const dts=Math.min(0.05,clock.getDelta());
   if(mixer){
-    if(MODE==='A'){
+    if(MODE==='A'&&chipAction){
       mixer.timeScale=0.55;
+      chipAction.paused=false;
       mixer.update(dts);
-    } else if(driveAction){
-      if(dt0===null)dt0=ts;
-      const seg=DSEG[dsi];
-      const sdt=ts-dt0;
-      const ease=dsi===1?(u=>u*u):(u=>u<0.5?2*u*u:1-Math.pow(-2*u+2,2)/2);
-      let d=seg[1];
-      if(sdt<=seg[2]) d=seg[0]+(seg[1]-seg[0])*ease(Math.min(1,sdt/seg[2]));
-      else if(sdt>seg[2]+seg[3]){ dsi=(dsi+1)%DSEG.length; dt0=ts; }
-      const st=dsi===0?'back':(dsi===1?'down':'idle');
-      const target=angleToTime(d,st);
-      renderT+=(target-renderT)*Math.min(1,dts*10);
-      driveAction.paused=true;
-      driveAction.time=clampN(renderT,0,driveDur-0.001);
-      mixer.timeScale=1;
-      mixer.update(0);
+      setBall(timeToAngle(ANCHC,chipAction.time));
+    } else {
+      const action=MODE==='B'?chipAction:driveAction;
+      const ANCH=MODE==='B'?ANCHC:ANCHD;
+      const dur=MODE==='B'?chipDur:driveDur;
+      if(action){
+        if(dt0===null)dt0=ts;
+        const seg=DSEG[dsi];
+        const sdt=ts-dt0;
+        const ease=dsi===1?(u=>u*u):(u=>u<0.5?2*u*u:1-Math.pow(-2*u+2,2)/2);
+        let d=seg[1];
+        if(sdt<=seg[2]) d=seg[0]+(seg[1]-seg[0])*ease(Math.min(1,sdt/seg[2]));
+        else if(sdt>seg[2]+seg[3]){ dsi=(dsi+1)%DSEG.length; dt0=ts; }
+        const st=dsi===0?'back':(dsi===1?'down':'idle');
+        const target=angleToTime(ANCH,d,st);
+        renderT+=(target-renderT)*Math.min(1,dts*12);
+        action.paused=true;
+        action.time=clampN(renderT,0,dur-0.001);
+        mixer.timeScale=1;
+        mixer.update(0);
+        setBall(d);
+      }
     }
   }
   const t=ts*0.001;
-  camera.position.set(Math.sin(t*0.16)*0.7, 1.5+Math.sin(t*0.1)*0.06, 4.4);
-  camera.lookAt(0,0.95,0);
+  camera.position.set(Math.sin(t*0.14)*0.55, 1.5+Math.sin(t*0.1)*0.05, 4.6);
+  camera.lookAt(0,1.0,0);
   renderer.render(scene,camera);
   requestAnimationFrame(animate);
 }
