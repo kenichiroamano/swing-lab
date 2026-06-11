@@ -260,7 +260,9 @@ function updateTrail(now,deg){
 /* ── 白磁のゴルファー（確定マテリアル: 白磁×金の関節） ── */
 let mixer=null, action=null, golfer=null, clipDur=1.93;
 // スクラブのアンカー（Golf Chipアニメ内の時刻。実機確認で微調整可: window.__anchors）
-const ANCH=window.__anchors={addr:0.12, top:0.80, impact:1.12, finish:1.62};
+// 注: Golf Chipのモーキャプはバックスイング区間が極小（0.85-0.92s）。バック側の見た目の追従が弱いのは素材の限界。
+//     フルスイング素材（Golf Drive等）に差し替えれば全域で追従する → handover参照
+const ANCH=window.__anchors={addr:0.78, top:0.90, impact:0.95, finish:1.50};
 const GOLD_JOINT_RE=/Neck|Head|Shoulder|(Left|Right)Arm$|(Left|Right)ForeArm$|Hand|(Left|Right)Leg$|Foot|Toe/;
 
 new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
