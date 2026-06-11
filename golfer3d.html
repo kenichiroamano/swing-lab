@@ -106,9 +106,9 @@ new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
     }
   });
   const THEMES={
-    porcelain:{ // 磁器: アイボリーの釉薬 × 金
+    porcelain:{ // 磁器: 全身アイボリー（ken指定: 胸・腹の金をやめ、関節も本体と同じ白に。艶だけ僅かに変えて立体感を残す）
       body:new THREE.MeshPhysicalMaterial({color:0xF2E8D6,metalness:0,roughness:.3,clearcoat:.55,clearcoatRoughness:.35,envMapIntensity:.7}),
-      joint:new THREE.MeshStandardMaterial({color:0xC8956C,metalness:.95,roughness:.3,envMapIntensity:1.0})
+      joint:new THREE.MeshPhysicalMaterial({color:0xF2E8D6,metalness:0,roughness:.22,clearcoat:.7,clearcoatRoughness:.25,envMapIntensity:.8})
     },
     trophy:{ // トロフィー: シャンパンゴールドのサテン
       body:new THREE.MeshStandardMaterial({color:0xD9BE8E,metalness:.9,roughness:.42,envMapIntensity:1.0}),
@@ -126,7 +126,7 @@ new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
     document.querySelectorAll('.tbtn').forEach(b=>b.classList.toggle('on',b.dataset.t===name));
   };
   document.querySelectorAll('.tbtn').forEach(b=>b.addEventListener('click',()=>applyTheme(b.dataset.t)));
-  applyTheme('porcelain'); // 既定は淡い磁器
+  applyTheme('porcelain'); // ken決定: A 白磁系で確定
   scene.add(golfer);
   if(fbx.animations && fbx.animations.length){
     mixer=new THREE.AnimationMixer(golfer);
