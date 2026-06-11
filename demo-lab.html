@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Golflev · お手本くらべ — Demo Lab</title>
+<style>
+*{margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#EFE9DC;font-family:'Inter',-apple-system,sans-serif}
+#c{position:fixed;inset:0;width:100%;height:100%}
+.overlay{position:fixed;top:0;left:0;right:0;text-align:center;padding:26px 16px 0;pointer-events:none;z-index:2}
+.eyebrow{font-size:11px;letter-spacing:.26em;color:#B8804C;text-transform:uppercase}
+.title{font-family:Georgia,serif;font-weight:800;font-style:italic;font-size:32px;color:#1F2A21;margin-top:4px}
+.note{position:fixed;bottom:84px;left:0;right:0;text-align:center;font-size:11px;letter-spacing:.08em;color:#8A8A82;z-index:2;padding:0 20px}
+#btns{position:fixed;bottom:26px;left:0;right:0;text-align:center;z-index:3}
+.tbtn{margin:0 6px;padding:12px 20px;border-radius:999px;border:1px solid rgba(31,42,33,.3);
+  background:rgba(247,241,227,.92);color:#1F2A21;font-size:12px;letter-spacing:.08em;font-family:'Inter',sans-serif}
+.tbtn.on{background:#1F2A21;color:#F7F1E3;border-color:#1F2A21}
+#loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  color:#B8804C;font-size:12px;letter-spacing:.2em;z-index:4;background:#EFE9DC}
+</style>
+<script>window.__err=[];window.onerror=m=>window.__err.push(String(m));</script>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="loading">LOADING…</div>
+<div class="overlay">
+  <div class="eyebrow">Demo Lab</div>
+  <div class="title">お手本くらべ</div>
+</div>
+<div class="note" id="noteText">A: チップ自然再生（テイクバックほぼ無し） / B: ドライブを8時-4時の範囲でゆっくり往復（テイクバックあり）</div>
+<div id="btns">
+  <button class="tbtn on" data-m="A">案A チップ</button>
+  <button class="tbtn" data-m="B">案B ドライブ半振り</button>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
+
+const canvas=document.getElementById('c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
+const isMobile=matchMedia('(pointer:coarse)').matches;
+renderer.setPixelRatio(Math.min(devicePixelRatio,isMobile?1.3:1.75));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=0.86;
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0xEFE9DC);
+scene.fog=new THREE.Fog(0xEFE9DC,9,18);
+const camera=new THREE.PerspectiveCamera(35,innerWidth/innerHeight,0.1,60);
+camera.position.set(0,1.5,4.4);
+camera.lookAt(0,0.95,0);
+
+const pmrem=new THREE.PMREMGenerator(renderer);
+scene.environment=pmrem.fromScene(new RoomEnvironment(),0.04).texture;
+const key=new THREE.DirectionalLight(0xfff0dd,2.0);
+key.position.set(2.5,5,2.5); key.castShadow=true;
+key.shadow.mapSize.set(1024,1024);
+key.shadow.camera.left=-3;key.shadow.camera.right=3;key.shadow.camera.top=4;key.shadow.camera.bottom=-1;
+key.shadow.radius=6; key.shadow.bias=-0.0004;
+scene.add(key);
+const rim=new THREE.PointLight(0xC8956C,14,18);
+rim.position.set(-3,2,-3);
+scene.add(rim);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(50,50),
+  new THREE.MeshStandardMaterial({color:0xE6DECB,roughness:.55}));
+ground.rotation.x=-Math.PI/2; ground.receiveShadow=true;
+scene.add(ground);
+const GOLDM=new THREE.MeshStandardMaterial({color:0xc09455,metalness:1.0,roughness:0.2,envMapIntensity:1.1});
+const ring=new THREE.Mesh(new THREE.TorusGeometry(1.15,0.02,16,128),GOLDM);
+ring.rotation.x=Math.PI/2; ring.position.y=0.012;
+scene.add(ring);
+
+/* 白磁×金の確定マテリアル（golfer3dと同一の分割ロジック） */
+const GOLD_JOINT_RE=/Neck|Head|Shoulder|(Left|Right)Arm$|(Left|Right)ForeArm$|Hand|(Left|Right)Leg$|Foot|Toe/;
+function stylize(root){
+  const bodyMat=new THREE.MeshPhysicalMaterial({color:0xF2E8D6,metalness:0,roughness:.3,clearcoat:.55,clearcoatRoughness:.35,envMapIntensity:.7});
+  const jointWhite=new THREE.MeshPhysicalMaterial({color:0xF2E8D6,metalness:0,roughness:.22,clearcoat:.7,clearcoatRoughness:.25,envMapIntensity:.8});
+  const jointGold=new THREE.MeshStandardMaterial({color:0xC8956C,metalness:.95,roughness:.3,envMapIntensity:1.0});
+  root.traverse(c=>{
+    if(!c.isMesh) return;
+    c.castShadow=true;
+    const n=((c.material&&c.material.name)||c.name||'').toLowerCase();
+    if(!n.includes('joint')){ c.material=bodyMat; return; }
+    const geo=c.geometry;
+    if(!geo.attributes.skinIndex||!c.skeleton){ c.material=jointGold; return; }
+    const boneNames=c.skeleton.bones.map(b=>b.name||'');
+    const si=geo.attributes.skinIndex, sw=geo.attributes.skinWeight, pos=geo.attributes.position;
+    const comp=(a,v,j)=>a.array[v*a.itemSize+j];
+    geo.computeBoundingBox();
+    const bb=geo.boundingBox;
+    const mins=[bb.min.x,bb.min.y,bb.min.z], maxs=[bb.max.x,bb.max.y,bb.max.z];
+    const sizes=[maxs[0]-mins[0],maxs[1]-mins[1],maxs[2]-mins[2]];
+    const up=sizes.indexOf(Math.max(...sizes));
+    const lat=[0,1,2].filter(a=>a!==up);
+    const H=sizes[up];
+    const c0=(maxs[lat[0]]+mins[lat[0]])/2, c1=(maxs[lat[1]]+mins[lat[1]])/2;
+    const inTorso=v=>{
+      const p=[comp(pos,v,0),comp(pos,v,1),comp(pos,v,2)];
+      const h=(p[up]-mins[up])/H;
+      const r=Math.hypot(p[lat[0]]-c0,p[lat[1]]-c1);
+      return h>0.44&&h<0.80&&r<0.095*H;
+    };
+    const hasIdx=!!geo.index;
+    const faceCount=hasIdx?geo.index.count/3:pos.count/3;
+    const vAt=hasIdx?(f,k)=>geo.index.array[f*3+k]:(f,k)=>f*3+k;
+    const g=[],w=[];
+    for(let f=0;f<faceCount;f++){
+      let votes=0;
+      const tri=[vAt(f,0),vAt(f,1),vAt(f,2)];
+      for(const v of tri){
+        let best=0,bw=-1;
+        for(let j=0;j<4;j++){const wt=comp(sw,v,j); if(wt>bw){bw=wt;best=comp(si,v,j);}}
+        if(!inTorso(v)&&GOLD_JOINT_RE.test(boneNames[best])) votes++;
+      }
+      (votes>=2?g:w).push(tri[0],tri[1],tri[2]);
+    }
+    geo.setIndex(g.concat(w));
+    geo.clearGroups();
+    geo.addGroup(0,g.length,0);
+    geo.addGroup(g.length,w.length,1);
+    c.material=[jointGold,jointWhite];
+  });
+}
+
+/* 読み込み: チップ（体＋自然再生用）とドライブ（半振りスクラブ用アニメ） */
+let golfer=null, mixer=null, chipAction=null, driveAction=null, driveDur=3.1;
+let MODE='A';
+const ANCH={addr:0.40, top:1.45, impact:1.85, finish:2.60}; // ドライブの較正済みアンカー
+new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
+  golfer=fbx;
+  golfer.scale.setScalar(0.01);
+  golfer.rotation.y=Math.PI/2;
+  stylize(golfer);
+  scene.add(golfer);
+  mixer=new THREE.AnimationMixer(golfer);
+  if(fbx.animations.length){
+    chipAction=mixer.clipAction(fbx.animations[0]);
+    chipAction.play();
+  }
+  new FBXLoader().load('assets/golfer-drive.fbx',(dfbx)=>{
+    if(dfbx.animations.length){
+      driveAction=mixer.clipAction(dfbx.animations[0]);
+      driveDur=dfbx.animations[0].duration;
+    }
+    document.getElementById('loading').style.display='none';
+  },undefined,()=>{ document.getElementById('loading').style.display='none'; });
+},undefined,e=>{ window.__err.push('FBX: '+(e.message||e)); });
+
+/* 案B: ドライブを8時-4時の範囲でゆっくり往復（テンポ約2:1、スクラブ） */
+const DSEG=[[0,-60,1300,400],[-60,60,1150,900],[60,0,1100,800]];
+let dsi=0,dt0=null,renderT=ANCH.addr,lastTs=null,topAng=-60;
+const clampN=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,u)=>a+(b-a)*u;
+function angleToTime(ang,st){
+  if(st==='back') return lerp(ANCH.addr,ANCH.top,clampN(-ang/60,0,1));
+  if(st==='down'){
+    if(ang<-2) return lerp(ANCH.top,ANCH.impact,clampN(1-(ang/topAng),0,1));
+    return lerp(ANCH.impact,ANCH.finish,clampN(ang/60,0,1));
+  }
+  if(ang>3) return lerp(ANCH.impact,ANCH.finish,clampN(ang/60,0,1));
+  return ANCH.addr;
+}
+
+document.querySelectorAll('.tbtn').forEach(b=>b.addEventListener('click',()=>{
+  MODE=b.dataset.m;
+  document.querySelectorAll('.tbtn').forEach(x=>x.classList.toggle('on',x===b));
+  if(!mixer) return;
+  if(MODE==='A'){
+    if(driveAction) driveAction.stop();
+    if(chipAction){ chipAction.reset(); chipAction.paused=false; chipAction.play(); }
+  } else {
+    if(chipAction) chipAction.stop();
+    if(driveAction){ driveAction.reset(); driveAction.play(); driveAction.paused=true; }
+    dsi=0; dt0=null; renderT=ANCH.addr;
+  }
+}));
+
+const clock=new THREE.Clock();
+function animate(ts){
+  const dts=Math.min(0.05,clock.getDelta());
+  if(mixer){
+    if(MODE==='A'){
+      mixer.timeScale=0.55;
+      mixer.update(dts);
+    } else if(driveAction){
+      if(dt0===null)dt0=ts;
+      const seg=DSEG[dsi];
+      const sdt=ts-dt0;
+      const ease=dsi===1?(u=>u*u):(u=>u<0.5?2*u*u:1-Math.pow(-2*u+2,2)/2);
+      let d=seg[1];
+      if(sdt<=seg[2]) d=seg[0]+(seg[1]-seg[0])*ease(Math.min(1,sdt/seg[2]));
+      else if(sdt>seg[2]+seg[3]){ dsi=(dsi+1)%DSEG.length; dt0=ts; }
+      const st=dsi===0?'back':(dsi===1?'down':'idle');
+      const target=angleToTime(d,st);
+      renderT+=(target-renderT)*Math.min(1,dts*10);
+      driveAction.paused=true;
+      driveAction.time=clampN(renderT,0,driveDur-0.001);
+      mixer.timeScale=1;
+      mixer.update(0);
+    }
+  }
+  const t=ts*0.001;
+  camera.position.set(Math.sin(t*0.16)*0.7, 1.5+Math.sin(t*0.1)*0.06, 4.4);
+  camera.lookAt(0,0.95,0);
+  renderer.render(scene,camera);
+  requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>
