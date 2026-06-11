@@ -1,0 +1,196 @@
+/* ════════════════════════════════════════════════════════════════
+   Golflev core.js v1 — 共通計測エンジン
+   2026-06-11 技術検証B合格（単体テスト25件・iPhone実機確認済み）
+   含むもの: QuatUtils / スイングプレーン / SwingTracker / 音 / 保存
+   ════════════════════════════════════════════════════════════════ */
+
+const QuatUtils = {
+  // W3C DeviceOrientation（ZXY内因性）→ クォータニオン。d2r=π/360 は度→ラジアン+半角の合成
+  fromEuler: (alphaDeg, betaDeg, gammaDeg) => {
+    const d2r = Math.PI / 360;
+    const a=(alphaDeg||0)*d2r, b=(betaDeg||0)*d2r, g=(gammaDeg||0)*d2r;
+    const ca=Math.cos(a),sa=Math.sin(a),cb=Math.cos(b),sb=Math.sin(b),cg=Math.cos(g),sg=Math.sin(g);
+    return { w: ca*cb*cg - sa*sb*sg, x: ca*sb*cg - sa*cb*sg, y: ca*cb*sg + sa*sb*cg, z: ca*sb*sg + sa*cb*cg };
+  },
+  conj: q => ({ w:q.w, x:-q.x, y:-q.y, z:-q.z }),
+  mul: (a,b) => ({
+    w: a.w*b.w - a.x*b.x - a.y*b.y - a.z*b.z,
+    x: a.w*b.x + a.x*b.w + a.y*b.z - a.z*b.y,
+    y: a.w*b.y - a.x*b.z + a.y*b.w + a.z*b.x,
+    z: a.w*b.z + a.x*b.y - a.y*b.x + a.z*b.w
+  }),
+  rotVec: (q,v) => {
+    const tx=2*(q.y*v.z-q.z*v.y), ty=2*(q.z*v.x-q.x*v.z), tz=2*(q.x*v.y-q.y*v.x);
+    return { x: v.x+q.w*tx+(q.y*tz-q.z*ty), y: v.y+q.w*ty+(q.z*tx-q.x*tz), z: v.z+q.w*tz+(q.x*ty-q.y*tx) };
+  },
+  angle: q => 2*Math.acos(Math.abs(Math.min(1,Math.max(-1,q.w))))*180/Math.PI,
+  // 近接サンプルの平均（Euler角の0/360°ラップ問題を回避）
+  average: quats => {
+    const ref=quats[0]; let w=0,x=0,y=0,z=0;
+    for (const q of quats){
+      const s=(q.w*ref.w+q.x*ref.x+q.y*ref.y+q.z*ref.z)<0?-1:1;
+      w+=s*q.w; x+=s*q.x; y+=s*q.y; z+=s*q.z;
+    }
+    const len=Math.sqrt(w*w+x*x+y*y+z*z);
+    return len<1e-9?ref:{w:w/len,x:x/len,y:y/len,z:z/len};
+  },
+  // swing-twist分解（シャフト軸=Yまわりのロール角）
+  twistY: q => {
+    const len=Math.sqrt(q.w*q.w+q.y*q.y);
+    if(len<1e-6) return 0;
+    return 2*Math.atan2(q.y/len, q.w/len)*180/Math.PI;
+  }
+};
+
+const GLMath = {
+  clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),
+  norm3:v=>{const l=Math.sqrt(v.x*v.x+v.y*v.y+v.z*v.z);return{x:v.x/l,y:v.y/l,z:v.z/l};},
+  cross3:(a,b)=>({x:a.y*b.z-a.z*b.y,y:a.z*b.x-a.x*b.z,z:a.x*b.y-a.y*b.x}),
+  dot3:(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z,
+  avg:a=>a.reduce((s,v)=>s+v,0)/a.length,
+  std:a=>{const m=GLMath.avg(a);return Math.sqrt(GLMath.avg(a.map(v=>(v-m)*(v-m))));}
+};
+
+// スイングプレーン座標系（法線=シャフト×重力。世界座標はZ-up: X=東,Y=北,Z=上）
+function makePlaneFrame(qB){
+  const shaftBl=QuatUtils.rotVec(qB,{x:0,y:1,z:0});
+  const pn=GLMath.cross3(shaftBl,{x:0,y:0,z:-1});
+  const pnLen=Math.sqrt(GLMath.dot3(pn,pn));
+  if(pnLen<0.15) return null; // シャフトが鉛直すぎ→構え直し要求
+  const n={x:pn.x/pnLen,y:pn.y/pnLen,z:pn.z/pnLen};
+  const u=GLMath.norm3(GLMath.cross3(n,shaftBl));
+  return { qB, shaftBl, n, u };
+}
+
+// 符号付き面内角度（バック−/フォロー＋）と面外逸脱角
+function signedAngles(qC, frame){
+  const s=QuatUtils.rotVec(qC,{x:0,y:1,z:0});
+  const inPlane=Math.atan2(GLMath.dot3(s,frame.u), GLMath.dot3(s,frame.shaftBl))*180/Math.PI;
+  const outPlane=Math.asin(GLMath.clamp(GLMath.dot3(s,frame.n),-1,1))*180/Math.PI;
+  return { inPlane, outPlane };
+}
+
+// 求心加速度モデル用：シャフト軸（Y）まわりの手首ロールを除外した角速度 [rad/s]
+function magRotPerpRad(r){
+  return Math.sqrt(r.alpha*r.alpha + r.beta*r.beta) * Math.PI / 180;
+}
+
+/* スイング状態機械（v5確定版）
+   idle → back（トップ検出: 30°以上＋8°戻り。フォワードプレス対策）
+        → down（最下点通過・速度記録）→ 静止0.4sで確定
+   緩み判定 = 最下点通過速度がピークの75%未満（時刻方式はセンサー遅延に弱いため不採用） */
+class SwingTracker {
+  constructor(o={}){
+    this.startThresh=o.startThresh??30;
+    this.endThresh=o.endThresh??25;
+    this.endHoldMs=o.endHoldMs??400;
+    this.minTopAngle=o.minTopAngle??30;
+    this.topDropDeg=o.topDropDeg??8;
+    this.reset();
+  }
+  reset(){ this.state='idle'; this.swing=null; this.stillSince=null; }
+  feed(t, angle, omega){
+    if(this.state==='idle'){
+      if(omega>this.startThresh){
+        this.state='back';
+        this.swing={t0:t,ext:0,extT:t,top:null,bottom:null,peakW:0,peakWT:null,finish:0,side:0,maxPre:0,wBottom:0,lastT:t};
+      }
+      return null;
+    }
+    const s=this.swing;
+    s.lastT=t;
+    if(this.state==='back'){
+      if(Math.abs(angle)>Math.abs(s.ext)){ s.ext=angle; s.extT=t; }
+      if(Math.abs(s.ext)>=this.minTopAngle
+         && Math.sign(angle)===Math.sign(s.ext)
+         && Math.abs(s.ext)-Math.abs(angle)>=this.topDropDeg){
+        s.top={t:s.extT,angle:s.ext};
+        s.side=Math.sign(s.ext);
+        this.state='down';
+      }
+      if(omega<this.endThresh && Math.abs(s.ext)>=10){
+        if(this.stillSince===null) this.stillSince=t;
+        else if(t-this.stillSince>=this.endHoldMs){
+          const r=this.finalize(); this.reset(); return r;
+        }
+      } else this.stillSince=null;
+    } else if(this.state==='down'){
+      if((!s.bottom || t-s.bottom.t<=250) && omega>s.peakW){ s.peakW=omega; s.peakWT=t; }
+      if(!s.bottom && omega>s.maxPre) s.maxPre=omega;
+      if(s.bottom===null && Math.sign(angle)===-s.side && Math.abs(angle)>1){ s.bottom={t}; s.wBottom=omega; }
+      if(s.bottom && Math.sign(angle)===-s.side && Math.abs(angle)>Math.abs(s.finish)) s.finish=angle;
+      if(omega<this.endThresh){
+        if(this.stillSince===null) this.stillSince=t;
+        else if(t-this.stillSince>=this.endHoldMs){
+          const r=this.finalize(); this.reset(); return r;
+        }
+      } else this.stillSince=null;
+    }
+    return null;
+  }
+  finalize(){
+    const s=this.swing;
+    const backMs=s.top?s.top.t-s.t0:null;
+    const downMs=(s.top&&s.bottom)?s.bottom.t-s.top.t:null;
+    return {
+      backAngle:s.top?s.top.angle:s.ext,
+      followAngle:s.finish,
+      complete:!!(s.top&&s.bottom),
+      slowSwing:s.maxPre<50,
+      tempoRatio:(backMs&&downMs&&downMs>0)?backMs/downMs:null,
+      decel:s.bottom?(s.wBottom < 0.75*s.maxPre):null,
+      wBottom:s.wBottom, maxPre:s.maxPre,
+      t0:s.t0, topT:s.top?s.top.t:null, bottomT:s.bottom?s.bottom.t:null, endT:s.lastT
+    };
+  }
+}
+
+/* 音（Web Audio。iOSはユーザー操作後に ensure() を呼ぶこと） */
+const GLAudio = (function(){
+  let ctx=null;
+  function ensure(){
+    try{
+      ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();
+      if(ctx.state==='suspended') ctx.resume();
+    }catch(e){}
+  }
+  function beep(freq,dur,delay){
+    if(!ctx) return;
+    try{
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.frequency.value=freq; o.connect(g); g.connect(ctx.destination);
+      const t0=ctx.currentTime+(delay||0);
+      g.gain.setValueAtTime(0.0001,t0);
+      g.gain.exponentialRampToValueAtTime(0.22,t0+0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+      o.start(t0); o.stop(t0+dur+0.05);
+    }catch(e){}
+  }
+  return {
+    ensure,
+    click:()=>beep(1200,0.04),
+    start:()=>beep(880,0.10),
+    end:()=>{beep(660,0.09);beep(990,0.12,0.12);},
+    good:()=>{beep(784,0.09);beep(988,0.12,0.10);},
+    success:()=>{beep(784,0.09);beep(988,0.09,0.10);beep(1319,0.18,0.20);},
+    warn:()=>beep(220,0.22),
+    calibDone:()=>{beep(660,0.08);beep(880,0.14,0.09);}
+  };
+})();
+
+/* 保存（バージョン付き統一スキーマの入口。キーは golflev: 名前空間） */
+const GLStore = {
+  get(key,def){
+    try{ const v=localStorage.getItem('golflev:'+key); return v===null?def:JSON.parse(v); }
+    catch(e){ return def; }
+  },
+  set(key,val){
+    try{ localStorage.setItem('golflev:'+key, JSON.stringify(val)); }catch(e){}
+  },
+  push(key,item,cap){
+    const arr=GLStore.get(key,[]);
+    arr.push(item);
+    while(cap && arr.length>cap) arr.shift();
+    GLStore.set(key,arr);
+  }
+};

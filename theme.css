@@ -1,0 +1,58 @@
+/* Golflev theme.css v1 — v2ラグジュアリートーン共通スタイル */
+:root{
+  --bg:#EFE9DC; --ink:#1F2A21; --gold:#B8804C; --gold-2:#C8956C;
+  --paper:#F7F1E3; --ok:#4A6B4A; --warn:#D4A040; --err:#C45B4A; --sub:#8A8A82;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:'Inter','Noto Serif JP',serif}
+
+.screen{display:none;padding:30px 20px 52px;max-width:430px;margin:0 auto;min-height:100vh}
+.screen.active{display:block}
+
+.eyebrow{font-size:11px;letter-spacing:.24em;color:var(--gold);text-transform:uppercase;text-align:center;margin-bottom:10px}
+.title-en{font-family:'Playfair Display',serif;font-weight:800;font-size:40px;text-align:center;letter-spacing:.02em;line-height:1.05}
+.title-en em{font-style:italic;color:var(--gold)}
+.title-jp{font-family:'Noto Serif JP',serif;text-align:center;color:var(--sub);font-size:13px;letter-spacing:.35em;margin-top:8px}
+
+.hairline{width:54px;height:1px;background:var(--gold);margin:18px auto;position:relative}
+.hairline:after{content:'';position:absolute;top:3px;left:8px;right:8px;height:1px;background:rgba(184,128,76,.45)}
+
+.card{background:var(--paper);border:1px solid rgba(31,42,33,.12);border-radius:16px;padding:20px;margin:14px 0;
+  box-shadow:0 14px 34px rgba(31,42,33,.12),0 4px 10px rgba(31,42,33,.07),0 1px 2px rgba(31,42,33,.05)}
+.body-text{font-family:'Noto Serif JP',serif;font-size:14px;line-height:2.1;text-align:center}
+
+.btn{display:block;width:100%;padding:16px;border:none;border-radius:12px;background:var(--ink);color:var(--paper);
+  font-size:14px;letter-spacing:.16em;font-family:'Inter',sans-serif;
+  box-shadow:0 10px 24px rgba(31,42,33,.28),0 2px 6px rgba(31,42,33,.18),inset 0 1px 0 rgba(255,255,255,.12)}
+.btn.gold{background:linear-gradient(135deg,var(--gold-2),var(--gold));color:#fff}
+.btn.secondary{background:transparent;color:var(--ink);border:1px solid rgba(31,42,33,.3);box-shadow:none}
+.btn+.btn{margin-top:12px}
+
+.note{font-size:12px;color:var(--sub);line-height:1.9}
+.warn-box{background:rgba(196,91,74,.1);border:1px solid var(--err);border-radius:10px;padding:12px;font-size:13px;color:var(--err);margin-top:10px}
+
+.chip{display:inline-block;padding:7px 16px;border-radius:999px;font-size:12px;letter-spacing:.06em}
+.chip.ok{background:rgba(74,107,74,.12);color:var(--ok)}
+.chip.ng{background:rgba(196,91,74,.12);color:var(--err)}
+.chip.muted{background:rgba(31,42,33,.06);color:var(--sub)}
+
+.dots{display:flex;gap:12px;justify-content:center;margin:14px 0 4px}
+.dot{width:11px;height:11px;border-radius:50%;border:1px solid rgba(31,42,33,.35);background:transparent;transition:all .25s}
+.dot.ok{background:var(--ok);border-color:var(--ok)}
+.dot.ng{background:var(--err);border-color:var(--err)}
+
+.issue{display:flex;gap:10px;align-items:flex-start;padding:13px 0;border-bottom:1px solid rgba(31,42,33,.08)}
+.issue:last-child{border-bottom:none}
+.issue .mark{width:8px;height:8px;border-radius:50%;background:var(--gold);margin-top:7px;flex:none}
+.issue b{font-size:14px}
+.issue .desc{font-size:12px;color:var(--sub);line-height:1.7;margin-top:2px}
+.badge{font-size:10px;letter-spacing:.1em;color:#fff;background:linear-gradient(135deg,var(--gold-2),var(--gold));
+  border-radius:999px;padding:3px 10px;margin-left:8px;white-space:nowrap;vertical-align:middle}
+
+.stat-row{display:flex;justify-content:space-around;text-align:center;margin:12px 0 4px}
+.stat-row b{display:block;font-size:26px;font-family:'Playfair Display',serif;font-variant-numeric:tabular-nums}
+.stat-row span{font-size:10px;color:var(--sub);letter-spacing:.12em;text-transform:uppercase}
+
+.center{text-align:center}
+.mt8{margin-top:8px}.mt16{margin-top:16px}.mt24{margin-top:24px}

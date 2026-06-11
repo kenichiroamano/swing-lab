@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Golflev · The Pitch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,800;1,800&family=Noto+Serif+JP:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+/* このページ固有 */
+.dial-wrap{display:flex;justify-content:center;margin:6px 0}
+.dial-wrap svg{width:min(72vw,280px);height:auto}
+.live-chip-area{min-height:34px;text-align:center;margin-top:6px}
+.live-state{font-size:11px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;text-align:center;margin-bottom:4px}
+.swing-count{font-size:12px;color:var(--sub);letter-spacing:.14em;text-align:center}
+.rank-word{font-family:'Playfair Display',serif;font-weight:800;font-style:italic;font-size:44px;text-align:center;line-height:1.1}
+.rank-word.warn{color:var(--err)}
+.issue.selected{background:rgba(184,128,76,.07);border-radius:10px;padding-left:8px;padding-right:8px}
+#focusNote{display:none}
+#focusNote.show{display:block}
+</style>
+</head>
+<body>
+
+<!-- ① 紹介 -->
+<section class="screen active" id="sc-intro">
+  <div class="eyebrow" id="introEyebrow"></div>
+  <h1 class="title-en">The <em>Pitch</em></h1>
+  <div class="title-jp" id="introJp"></div>
+  <div class="hairline"></div>
+  <div class="dial-wrap"><svg id="dialIntro" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg"></svg></div>
+  <p class="body-text" id="introBody"></p>
+  <div class="card"><p class="note center" id="introNote"></p></div>
+  <button class="btn gold mt16" id="btnBegin"></button>
+</section>
+
+<!-- ② センサー許可 -->
+<section class="screen" id="sc-perm">
+  <div class="eyebrow">Permission</div>
+  <h1 class="title-en">The <em>Sensor</em></h1>
+  <div class="title-jp" id="permJp"></div>
+  <div class="hairline"></div>
+  <div class="card">
+    <p class="body-text" id="permBody"></p>
+    <button class="btn mt16" id="btnPerm"></button>
+    <div id="permError"></div>
+  </div>
+</section>
+
+<!-- ③ キャリブレーション -->
+<section class="screen" id="sc-address">
+  <div class="eyebrow">Calibration</div>
+  <h1 class="title-en">The <em>Address</em></h1>
+  <div class="title-jp" id="addrJp"></div>
+  <div class="hairline"></div>
+  <div class="card center">
+    <p class="body-text" id="addrBody"></p>
+    <div class="rank-word" id="calibCount" style="font-style:normal">—</div>
+    <button class="btn mt16" id="btnCalib"></button>
+    <div id="calibWarn"></div>
+  </div>
+</section>
+
+<!-- ④ ライブ計測 -->
+<section class="screen" id="sc-live">
+  <div class="live-state" id="liveState"></div>
+  <div class="swing-count"><span id="swingLabel"></span> <span id="swingNum">1</span> / 5</div>
+  <div class="dial-wrap"><svg id="dialLive" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg"></svg></div>
+  <div class="dots" id="dots"></div>
+  <div class="live-chip-area" id="chipArea"></div>
+  <button class="btn secondary mt16" id="btnReaddress"></button>
+</section>
+
+<!-- ⑤ 結果 -->
+<section class="screen" id="sc-result">
+  <div class="eyebrow">Set Complete</div>
+  <h1 class="rank-word" id="rankWord"></h1>
+  <div class="title-jp" id="rankJp"></div>
+  <div class="hairline"></div>
+  <div class="card">
+    <div class="stat-row">
+      <div><b id="statMean">—</b><span id="statMeanLabel"></span></div>
+      <div><b id="statSd">—</b><span id="statSdLabel"></span></div>
+      <div><b id="statZone">—</b><span id="statZoneLabel"></span></div>
+    </div>
+    <svg id="chart" width="100%" viewBox="0 0 300 150" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+  <div class="card">
+    <div class="eyebrow" style="text-align:left" id="issuesTitle"></div>
+    <div id="issuesList"></div>
+    <p class="note mt8" id="partialNote"></p>
+    <p class="note mt8" id="focusNote"></p>
+  </div>
+  <button class="btn gold" id="btnAgain"></button>
+  <button class="btn secondary" id="btnRecal2"></button>
+</section>
+
+<script src="core.js"></script>
+<script src="strings.js"></script>
+<script>
+/* ════════════════════════════════════════════════════════════
+   設定
+   ════════════════════════════════════════════════════════════ */
+const SET_SIZE=5, TARGET=60, ZONE_MIN=50, ZONE_MAX=70, MIN_BACK=30;
+const $=id=>document.getElementById(id);
+
+/* ════════════════════════════════════════════════════════════
+   時計文字盤（intro と live で共用）
+   針の回転: cssRot = -inPlane（バック− → 8時側、フォロー＋ → 4時側）
+   ════════════════════════════════════════════════════════════ */
+function buildDial(svg){
+  const NS='http://www.w3.org/2000/svg';
+  const C=120;
+  const pos=(deg,R)=>{ const r=deg*Math.PI/180; return [C-R*Math.sin(r), C+R*Math.cos(r)]; };
+  const el=(n,attrs)=>{ const e=document.createElementNS(NS,n); for(const k in attrs) e.setAttribute(k,attrs[k]); svg.appendChild(e); return e; };
+
+  // 文字盤（紙色＋二重リング）
+  el('circle',{cx:C,cy:C,r:114,fill:'#F7F1E3',stroke:'rgba(31,42,33,.25)','stroke-width':1});
+  el('circle',{cx:C,cy:C,r:108,fill:'none',stroke:'rgba(184,128,76,.5)','stroke-width':0.8});
+
+  // 時刻ティック（12本、8/6/4 は長め）
+  for(let k=0;k<12;k++){
+    const th=k*30; // 0=6時
+    const major=(th===0||th===60||th===300);
+    const [x1,y1]=pos(th, major?100:102);
+    const [x2,y2]=pos(th, 94);
+    el('line',{x1,y1,x2,y2,stroke: major?'#1F2A21':'rgba(31,42,33,.35)','stroke-width':major?2:1});
+  }
+
+  // 目標ゾーン（8時側・4時側 ±10°）
+  const zone=(a1,a2)=>{
+    const [x1,y1]=pos(a1,98),[x2,y2]=pos(a2,98);
+    el('path',{d:`M ${x1} ${y1} A 98 98 0 0 1 ${x2} ${y2}`,fill:'none',stroke:'#B8804C','stroke-width':5,'stroke-linecap':'round',opacity:.9});
+  };
+  zone(50,70); zone(-70,-50);
+
+  // 数字（Playfair）
+  const num=(deg,txt)=>{
+    const [x,y]=pos(deg,70);
+    const t=el('text',{x,y,'text-anchor':'middle','dominant-baseline':'central',
+      fill:'#1F2A21','font-size':22,'font-family':"'Playfair Display',serif",'font-weight':800});
+    t.textContent=txt;
+  };
+  num(60,'8'); num(-60,'4');
+  // アドレス位置（6時）の金ドット
+  const [dx,dy]=pos(0,98);
+  el('circle',{cx:dx,cy:dy,r:3,fill:'#B8804C'});
+
+  // 針
+  const g=document.createElementNS(NS,'g');
+  svg.appendChild(g);
+  const gl=(n,attrs)=>{ const e=document.createElementNS(NS,n); for(const k in attrs) e.setAttribute(k,attrs[k]); g.appendChild(e); return e; };
+  gl('line',{x1:C,y1:C,x2:C,y2:C+88,stroke:'#B8804C','stroke-width':3.5,'stroke-linecap':'round'});
+  gl('line',{x1:C,y1:C,x2:C,y2:C-22,stroke:'#B8804C','stroke-width':3,'stroke-linecap':'round'});
+  gl('circle',{cx:C,cy:C,r:6,fill:'#1F2A21'});
+  gl('circle',{cx:C,cy:C,r:2.2,fill:'#F7F1E3'});
+
+  return { setAngle:cssDeg=>g.setAttribute('transform',`rotate(${cssDeg} ${C} ${C})`) };
+}
+
+/* イントロのお手本アニメ（8時→4時、テンポ約2:1） */
+const introDial=buildDial($('dialIntro'));
+(function introAnim(){
+  // 区間: [開始角, 終了角, 時間ms, 終了後ホールドms, イージング]
+  const easeInOut=u=>u<0.5?2*u*u:1-Math.pow(-2*u+2,2)/2;
+  const easeIn=u=>u*u;
+  const segs=[
+    [0,  60, 950, 260, easeInOut], // テイクバック → 8時
+    [60,-60, 480, 700, easeIn],    // ダウン〜フォロー → 4時（加速）
+    [-60, 0, 850, 600, easeInOut]  // アドレスへ戻る
+  ];
+  let si=0, t0=null;
+  function frame(ts){
+    if(t0===null) t0=ts;
+    const [a0,a1,dur,hold,ease]=segs[si];
+    const dt=ts-t0;
+    if(dt<=dur){
+      introDial.setAngle(a0+(a1-a0)*ease(Math.min(1,dt/dur)));
+    } else if(dt>dur+hold){
+      si=(si+1)%segs.length; t0=ts;
+    }
+    if(STATE.phase==='intro') requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+
+/* ════════════════════════════════════════════════════════════
+   状態
+   ════════════════════════════════════════════════════════════ */
+const STATE={ phase:'intro', frame:null, swings:[], rCal:GLStore.get('rCal',0.65) };
+const SENSOR={ alpha:0,beta:0,gamma:0 };
+const MOTION={ acc:{x:0,y:0,z:0}, rot:{alpha:0,beta:0,gamma:0}, seen:false };
+let omegaS=0, lastT=null, lastA=null;
+let acSum=0, acCnt=0; // 三角形（肘）判定の蓄積
+const tracker=new SwingTracker();
+const liveDial=buildDial($('dialLive'));
+let chipTimer=null;
+
+function goto(phase){
+  STATE.phase=phase;
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $('sc-'+phase).classList.add('active');
+}
+
+/* ════════════════════════════════════════════════════════════
+   文言の流し込み（strings.js）
+   ════════════════════════════════════════════════════════════ */
+$('introEyebrow').textContent=STR.t('pitch.eyebrow');
+$('introJp').textContent=STR.t('pitch.title.jp');
+$('introBody').innerHTML=STR.t('pitch.intro.body');
+$('introNote').textContent=STR.t('pitch.intro.note');
+$('btnBegin').textContent=STR.t('pitch.btn.begin');
+$('permJp').textContent=STR.t('sensor.title.jp');
+$('permBody').innerHTML=STR.t('sensor.body');
+$('btnPerm').textContent=STR.t('sensor.btn');
+$('addrJp').textContent=STR.t('address.title.jp');
+$('addrBody').textContent=STR.t('address.body');
+$('btnCalib').textContent=STR.t('address.btn');
+$('swingLabel').textContent=STR.t('live.swing');
+$('btnReaddress').textContent=STR.t('result.btn.recal');
+$('statMeanLabel').textContent=STR.t('result.stat.mean');
+$('statSdLabel').textContent=STR.t('result.stat.sd');
+$('statZoneLabel').textContent=STR.t('result.stat.zone');
+$('issuesTitle').textContent=STR.t('result.issues');
+$('btnAgain').textContent=STR.t('result.btn.again');
+$('btnRecal2').textContent=STR.t('result.btn.recal');
+
+/* ════════════════════════════════════════════════════════════
+   センサー
+   ════════════════════════════════════════════════════════════ */
+async function requestPermission(){
+  try{
+    if(typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){
+      const r=await DeviceOrientationEvent.requestPermission();
+      if(r!=='granted'){ $('permError').innerHTML='<div class="warn-box">'+STR.t('sensor.denied')+'</div>'; return; }
+    }
+    if(typeof DeviceMotionEvent!=='undefined' && typeof DeviceMotionEvent.requestPermission==='function'){
+      try{ await DeviceMotionEvent.requestPermission(); }catch(e){}
+    }
+    window.addEventListener('deviceorientation', onOrient);
+    window.addEventListener('devicemotion', onMotion);
+    goto('address');
+  }catch(e){
+    $('permError').innerHTML='<div class="warn-box">'+e.message+'</div>';
+  }
+}
+function onOrient(e){
+  SENSOR.alpha=e.alpha||0; SENSOR.beta=e.beta||0; SENSOR.gamma=e.gamma||0;
+  if(STATE.phase==='live' && STATE.frame) tick();
+}
+function onMotion(e){
+  if(e.acceleration && e.acceleration.x!==null){
+    MOTION.acc.x=e.acceleration.x||0; MOTION.acc.y=e.acceleration.y||0; MOTION.acc.z=e.acceleration.z||0;
+    MOTION.seen=true;
+  }
+  if(e.rotationRate){
+    MOTION.rot.alpha=e.rotationRate.alpha||0;
+    MOTION.rot.beta=e.rotationRate.beta||0;
+    MOTION.rot.gamma=e.rotationRate.gamma||0;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   キャリブレーション（クォータニオン平均）
+   ════════════════════════════════════════════════════════════ */
+let calibTimer=null;
+function startCalib(){
+  GLAudio.ensure(); GLAudio.click();
+  $('calibWarn').innerHTML='';
+  const samples=[];
+  let remain=2.0;
+  $('calibCount').textContent=remain.toFixed(1);
+  if(calibTimer) clearInterval(calibTimer);
+  calibTimer=setInterval(()=>{
+    samples.push(QuatUtils.fromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma));
+    remain-=0.05;
+    $('calibCount').textContent=Math.max(0,remain).toFixed(1);
+    if(remain<=0){
+      clearInterval(calibTimer);
+      const f=makePlaneFrame(QuatUtils.average(samples));
+      if(!f){
+        $('calibWarn').innerHTML='<div class="warn-box">'+STR.t('address.vertical')+'</div>';
+        $('calibCount').textContent='—';
+        return;
+      }
+      STATE.frame=f;
+      $('calibCount').textContent='✓';
+      GLAudio.calibDone();
+      setTimeout(startSet, 700);
+    }
+  },50);
+}
+
+/* ════════════════════════════════════════════════════════════
+   ライブ計測（1セット5スイング）
+   ════════════════════════════════════════════════════════════ */
+function startSet(){
+  STATE.swings=[];
+  omegaS=0; lastT=null; lastA=null; tracker.reset();
+  renderDots(); $('swingNum').textContent='1';
+  $('chipArea').innerHTML='';
+  $('liveState').textContent=STR.t('live.ready');
+  goto('live');
+}
+
+function tick(){
+  const t=performance.now();
+  const qC=QuatUtils.fromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma);
+  const a=signedAngles(qC,STATE.frame);
+  if(lastT!==null){
+    const dt=(t-lastT)/1000;
+    if(dt>0.001 && dt<0.5){
+      const w=Math.abs(a.inPlane-lastA)/dt;
+      omegaS=omegaS*0.5+w*0.5;
+    }
+  }
+  lastT=t; lastA=a.inPlane;
+
+  // 三角形（肘）指標: スイング中のみ蓄積（手首ロール除外済みω）
+  if(tracker.state!=='idle' && MOTION.seen){
+    const wRad=magRotPerpRad(MOTION.rot);
+    if(wRad>=1.5){
+      const expected=wRad*wRad*STATE.rCal;
+      if(expected>=0.5){
+        const actual=Math.sqrt(MOTION.acc.x**2+MOTION.acc.y**2+MOTION.acc.z**2);
+        acSum+=Math.min(2,actual/expected); acCnt++;
+      }
+    }
+  }
+
+  const prev=tracker.state;
+  const r=tracker.feed(t,a.inPlane,omegaS);
+  if(prev==='idle' && tracker.state!=='idle'){ GLAudio.start(); acSum=0; acCnt=0; }
+  if(r) onSwing(r);
+
+  liveDial.setAngle(-GLMath.clamp(a.inPlane,-110,110));
+  $('liveState').textContent=tracker.state==='idle'?STR.t('live.ready'):(tracker.state==='back'?STR.t('live.back'):STR.t('live.through'));
+}
+
+function onSwing(r){
+  if(Math.abs(r.backAngle)<MIN_BACK){ showChip('muted',STR.t('live.tooSmall')); return; }
+  const acRatio=acCnt>=3? acSum/acCnt : null;
+  const sw={
+    back:r.backAngle, follow:r.followAngle, complete:r.complete,
+    broken: acRatio===null? null : acRatio<0.75,
+    decel: (r.complete && !r.slowSwing)? r.decel : null,
+    slow: r.slowSwing, tempo:r.tempoRatio
+  };
+  STATE.swings.push(sw);
+  GLAudio.end();
+
+  // リアルタイム指摘は1つだけ（優先: 三角形 → 緩み → 振り幅 → フォロー）
+  const b=Math.abs(sw.back);
+  if(sw.broken===true){ showChip('ng',STR.t('live.chip.broken')); GLAudio.warn(); }
+  else if(sw.decel===true){ showChip('ng',STR.t('live.chip.decel')); GLAudio.warn(); }
+  else if(b<ZONE_MIN){ showChip('ng',STR.t('live.chip.shallow')); }
+  else if(b>ZONE_MAX){ showChip('ng',STR.t('live.chip.deep')); }
+  else if(!sw.complete){ showChip('ng',STR.t('live.chip.noFollow')); }
+  else { showChip('ok',STR.t('live.chip.ok')); GLAudio.good(); }
+
+  renderDots();
+  if(STATE.swings.length>=SET_SIZE){
+    setTimeout(showResult, 1000);
+  } else {
+    $('swingNum').textContent=String(STATE.swings.length+1);
+  }
+}
+
+function swingOk(sw){
+  const b=Math.abs(sw.back);
+  return sw.broken!==true && sw.decel!==true && sw.complete && b>=ZONE_MIN && b<=ZONE_MAX;
+}
+function renderDots(){
+  $('dots').innerHTML=STATE.swings.map(sw=>'<div class="dot '+(swingOk(sw)?'ok':'ng')+'"></div>').join('')
+    + Array(SET_SIZE-STATE.swings.length).fill('<div class="dot"></div>').join('');
+}
+function showChip(cls,txt){
+  $('chipArea').innerHTML='<span class="chip '+cls+'">'+txt+'</span>';
+  if(chipTimer) clearTimeout(chipTimer);
+  chipTimer=setTimeout(()=>{ $('chipArea').innerHTML=''; }, 1600);
+}
+
+/* ════════════════════════════════════════════════════════════
+   結果
+   ════════════════════════════════════════════════════════════ */
+function showResult(){
+  const sw=STATE.swings;
+  const backs=sw.map(s=>Math.abs(s.back));
+  const mean=GLMath.avg(backs), sd=GLMath.std(backs);
+  const brokenCt=sw.filter(s=>s.broken===true).length;
+  const decelCt=sw.filter(s=>s.decel===true).length;
+  const slowCt=sw.filter(s=>s.slow).length;
+  const noFollowCt=sw.filter(s=>!s.complete).length;
+  const zoneCt=backs.filter(b=>b>=ZONE_MIN&&b<=ZONE_MAX).length;
+  const elbowUnknown=sw.every(s=>s.broken===null);
+
+  // ランク（ゲート: 三角形 → 緩み → ばらつき/ゾーン）
+  let rank;
+  if(brokenCt===0 && decelCt===0 && sd<=5 && zoneCt>=4) rank='perfect';
+  else if(brokenCt===0 && decelCt<=1 && sd<=8) rank='good';
+  else if(brokenCt<=1 && sd<=12) rank='almost';
+  else rank='tryagain';
+
+  const words={perfect:'Perfect.',good:'Good.',almost:'Almost.',tryagain:'Try again.'};
+  $('rankWord').textContent=words[rank];
+  $('rankWord').classList.toggle('warn',rank==='tryagain');
+  $('rankJp').textContent=STR.t('result.rank.'+rank);
+
+  $('statMean').textContent=Math.round(mean)+'°';
+  $('statSd').textContent='±'+sd.toFixed(1)+'°';
+  $('statZone').textContent=zoneCt+'/5';
+
+  drawChart(sw);
+
+  // 課題リスト（全部見せる＋おすすめバッジ＝土台側優先）
+  const issues=[];
+  if(brokenCt>0) issues.push({k:'elbow', label:STR.t('result.issue.elbow'), desc:`5回中${brokenCt}回、両肩とグリップの三角形が崩れました。`});
+  if(decelCt>0) issues.push({k:'decel', label:STR.t('result.issue.decel'), desc:`${decelCt}回、最下点の手前で減速しています。振り抜く意識を。`});
+  if(sd>5) issues.push({k:'spread', label:STR.t('result.issue.spread'), desc:`ばらつき ±${sd.toFixed(1)}°（目標 ±5°以内）。距離感はそろえることから。`});
+  if(zoneCt<4 && mean<ZONE_MIN) issues.push({k:'shallow', label:STR.t('result.issue.shallow'), desc:`平均 ${Math.round(mean)}°。8時（60°）までしっかり上げましょう。`});
+  if(zoneCt<4 && mean>ZONE_MAX) issues.push({k:'deep', label:STR.t('result.issue.deep'), desc:`平均 ${Math.round(mean)}°。振りすぎです。8時で止めましょう。`});
+  if(noFollowCt>0) issues.push({k:'follow', label:STR.t('result.issue.follow'), desc:`${noFollowCt}回、フォロー側（4時）まで振り切れていません。`});
+
+  const list=$('issuesList');
+  if(issues.length===0){
+    list.innerHTML='<p class="body-text">'+STR.t('result.noIssues')+'</p>';
+  } else {
+    list.innerHTML=issues.map((it,i)=>
+      '<div class="issue" data-k="'+it.k+'"><div class="mark"></div><div><b>'+it.label+'</b>'
+      +(i===0?'<span class="badge">'+STR.t('result.recommend')+'</span>':'')
+      +'<div class="desc">'+it.desc+'</div></div></div>'
+    ).join('');
+    // ユーザーが直す課題を選べる（タップでハイライト）
+    list.querySelectorAll('.issue').forEach(el=>{
+      el.addEventListener('click',()=>{
+        list.querySelectorAll('.issue').forEach(e2=>e2.classList.remove('selected'));
+        el.classList.add('selected');
+        $('focusNote').textContent=STR.t('result.focusNote');
+        $('focusNote').classList.add('show');
+        GLAudio.click();
+      });
+    });
+  }
+
+  // D7: 判定できなかったものは正直に明記
+  const partial=[];
+  if(elbowUnknown) partial.push(STR.t('result.partial.elbow'));
+  if(slowCt>0) partial.push(`緩み判定の保留が${slowCt}回（ゆっくりすぎる素振り）`);
+  $('partialNote').textContent=partial.join(' / ');
+  $('focusNote').classList.remove('show');
+
+  // 保存（統一スキーマv1）
+  GLStore.push('pitch:sets',{v:1,date:new Date().toISOString(),rank,mean:Math.round(mean),sd:+sd.toFixed(1),zone:zoneCt,broken:brokenCt,decel:decelCt},200);
+
+  if(rank==='perfect') GLAudio.success();
+  else if(rank==='good') GLAudio.good();
+  else GLAudio.warn();
+  goto('result');
+}
+
+/* 5球の振り幅チャート（中央=アドレス、左=バック、右=フォロー、帯=目標ゾーン） */
+function drawChart(sw){
+  const svg=$('chart');
+  svg.innerHTML='';
+  const NS='http://www.w3.org/2000/svg';
+  const el=(n,attrs,parent)=>{ const e=document.createElementNS(NS,n); for(const k in attrs) e.setAttribute(k,attrs[k]); (parent||svg).appendChild(e); return e; };
+  const cx=150, sc=1.05, rowH=26, top=14;
+  // 目標ゾーン帯（両側）
+  el('rect',{x:cx-ZONE_MAX*sc,y:4,width:(ZONE_MAX-ZONE_MIN)*sc,height:142,fill:'rgba(184,128,76,.13)',rx:4});
+  el('rect',{x:cx+ZONE_MIN*sc,y:4,width:(ZONE_MAX-ZONE_MIN)*sc,height:142,fill:'rgba(184,128,76,.13)',rx:4});
+  el('line',{x1:cx,y1:4,x2:cx,y2:146,stroke:'rgba(31,42,33,.3)','stroke-width':1,'stroke-dasharray':'2,3'});
+  sw.forEach((s,i)=>{
+    const y=top+i*rowH;
+    const bw=Math.min(110,Math.abs(s.back))*sc;
+    const fw=Math.min(110,Math.abs(s.follow))*sc;
+    const ok=swingOk(s);
+    el('rect',{x:cx-bw,y:y,width:bw,height:9,rx:4.5,fill:ok?'#B8804C':'#C45B4A',opacity:.95});
+    if(fw>1) el('rect',{x:cx,y:y,width:fw,height:9,rx:4.5,fill:ok?'rgba(184,128,76,.45)':'rgba(196,91,74,.45)'});
+    const t=el('text',{x:8,y:y+8,'font-size':9,fill:'#8A8A82','font-family':'Inter'});
+    t.textContent='#'+(i+1);
+  });
+}
+
+/* ════════════════════════════════════════════════════════════
+   ボタン
+   ════════════════════════════════════════════════════════════ */
+$('btnBegin').addEventListener('click',()=>{ GLAudio.ensure(); GLAudio.click(); goto('perm'); });
+$('btnPerm').addEventListener('click',requestPermission);
+$('btnCalib').addEventListener('click',startCalib);
+$('btnReaddress').addEventListener('click',()=>{ STATE.frame=null; $('calibCount').textContent='—'; goto('address'); });
+$('btnAgain').addEventListener('click',()=>{ GLAudio.click(); startSet(); });
+$('btnRecal2').addEventListener('click',()=>{ STATE.frame=null; $('calibCount').textContent='—'; goto('address'); });
+</script>
+</body>
+</html>
