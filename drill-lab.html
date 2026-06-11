@@ -37,7 +37,7 @@ button.secondary{background:transparent;color:var(--ink);border:1px solid rgba(3
 <body>
 
 <h1>Drill <em>Lab</em></h1>
-<div class="tag">技術検証B — 符号付き振り幅 / 切り返し / 緩み検出</div>
+<div class="tag">技術検証B v4 — 符号付き振り幅 / 切り返し / 緩み検出</div>
 
 <!-- STEP 1: 権限 -->
 <div class="card" id="permCard">
@@ -329,10 +329,11 @@ function addSwing(r){
   } else if(r.slowSwing){
     lines+='<span>緩み・テンポは保留：素振りがゆっくりすぎて判定できません。リズムよく（バック約1秒→ダウンやや速く）振ると判定できます</span>';
   } else {
-    const tempo=r.tempoRatio?r.tempoRatio.toFixed(1)+' : 1':'—';
-    lines+=`テンポ ${tempo}　`;
-    lines+=r.decel?`<span class="ng">緩みあり：最下点の ${r.peakLeadMs}ms 手前で減速（当てにいっています）</span>`
-                  :`<span class="ok">緩みなし：最下点の ${-r.peakLeadMs}ms 後まで加速できています</span>`;
+    const tempoOk=r.tempoRatio && r.tempoRatio>=0.3 && r.tempoRatio<=8;
+    lines+=`テンポ ${tempoOk?r.tempoRatio.toFixed(1)+' : 1':'—（途中で止まると計測できません）'}　`;
+    const lead=Math.round(r.peakLeadMs);
+    lines+=r.decel?`<span class="ng">緩みあり：最下点の ${lead}ms 手前で減速（当てにいっています）</span>`
+                  :`<span class="ok">緩みなし：最下点の ${-lead}ms 後まで加速できています</span>`;
   }
   const item=document.createElement('div');
   item.className='item';
