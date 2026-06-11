@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Golflev · The Dial — 時計案</title>
+<style>
+*{margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#EFE9DC;font-family:'Inter',-apple-system,sans-serif}
+#c{position:fixed;inset:0;width:100%;height:100%}
+.vig{position:fixed;inset:0;pointer-events:none;z-index:1;
+  background:radial-gradient(ellipse at 50% 42%, rgba(0,0,0,0) 55%, rgba(40,32,20,.18) 100%)}
+.overlay{position:fixed;top:0;left:0;right:0;text-align:center;padding:26px 16px 0;pointer-events:none;z-index:2}
+.eyebrow{font-size:11px;letter-spacing:.26em;color:#B8804C;text-transform:uppercase}
+.title{font-family:Georgia,'Times New Roman',serif;font-weight:800;font-style:italic;font-size:34px;color:#1F2A21;margin-top:4px}
+.note{position:fixed;bottom:20px;left:0;right:0;text-align:center;font-size:11px;letter-spacing:.1em;color:#8A8A82;z-index:2}
+</style>
+<script>window.__err=[];window.onerror=m=>window.__err.push(String(m));</script>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="vig"></div>
+<div class="overlay">
+  <div class="eyebrow">Material Study II</div>
+  <div class="title">The Dial</div>
+</div>
+<div class="note">時計案 — クリームの世界に合う方</div>
+
+<script type="module">
+import * as THREE from 'three';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+const canvas=document.getElementById('c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
+const isMobile=matchMedia('(pointer:coarse)').matches;
+renderer.setPixelRatio(Math.min(devicePixelRatio,isMobile?1.2:1.75));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=0.80;
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0xEFE9DC);
+scene.fog=new THREE.Fog(0xEFE9DC,11,22);
+
+const camera=new THREE.PerspectiveCamera(34,innerWidth/innerHeight,0.1,60);
+camera.position.set(0,5.2,7.6);
+camera.lookAt(0,0,0.2);
+
+const pmrem=new THREE.PMREMGenerator(renderer);
+scene.environment=pmrem.fromScene(new RoomEnvironment(),0.04).texture;
+
+const key=new THREE.DirectionalLight(0xfff0dd,2.4);
+key.position.set(3.5,8,3);
+key.castShadow=true;
+key.shadow.mapSize.set(1024,1024);
+key.shadow.camera.left=-5;key.shadow.camera.right=5;key.shadow.camera.top=5;key.shadow.camera.bottom=-5;
+key.shadow.radius=7; key.shadow.bias=-0.0004;
+scene.add(key);
+const rim=new THREE.PointLight(0xC8956C,18,24);
+rim.position.set(-4.5,2.4,-4);
+scene.add(rim);
+
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(60,60),
+  new THREE.MeshStandardMaterial({color:0xE6DECB,roughness:.55,metalness:0}));
+ground.rotation.x=-Math.PI/2; ground.position.y=-0.14; ground.receiveShadow=true;
+scene.add(ground);
+
+const GOLD=new THREE.MeshStandardMaterial({color:0xc09455,metalness:1.0,roughness:0.17,envMapIntensity:1.25});
+const GOLD_SOFT=new THREE.MeshStandardMaterial({color:0xa9803f,metalness:1.0,roughness:0.3,envMapIntensity:1.1});
+const INK=new THREE.MeshStandardMaterial({color:0x1F2A21,metalness:0.4,roughness:0.4});
+
+function dialTexture(){
+  const S=1024, cv=document.createElement('canvas'); cv.width=cv.height=S;
+  const x=cv.getContext('2d');
+  const g=x.createRadialGradient(S/2,S/2,40,S/2,S/2,S/2);
+  g.addColorStop(0,'#FBF6E9'); g.addColorStop(.75,'#F5EEDD'); g.addColorStop(1,'#EFE6D0');
+  x.fillStyle=g; x.fillRect(0,0,S,S);
+  x.save(); x.translate(S/2,S/2); x.globalAlpha=.05; x.strokeStyle='#8a7a56'; x.lineWidth=1;
+  for(let i=0;i<240;i++){ x.rotate(Math.PI*2/240); x.beginPath(); x.moveTo(60,0); x.lineTo(S/2-30,0); x.stroke(); }
+  x.restore();
+  x.save(); x.translate(S/2,S/2); x.strokeStyle='rgba(31,42,33,.55)';
+  for(let i=0;i<60;i++){
+    const major=i%5===0;
+    x.lineWidth=major?3:1.5; x.beginPath();
+    x.moveTo(0,major?-418:-424); x.lineTo(0,-436); x.stroke();
+    x.rotate(Math.PI*2/60);
+  }
+  x.restore();
+  x.fillStyle='#1F2A21'; x.textAlign='center'; x.textBaseline='middle';
+  x.font='italic 800 130px Georgia, serif';
+  const R=300;
+  x.fillText('8', S/2+Math.sin(Math.PI/3)*R, S/2+Math.cos(Math.PI/3)*R);
+  x.fillText('4', S/2-Math.sin(Math.PI/3)*R, S/2+Math.cos(Math.PI/3)*R);
+  x.font='600 34px Inter, sans-serif'; x.fillStyle='rgba(31,42,33,.85)';
+  x.save(); x.translate(S/2,S/2-150);
+  x.letterSpacing='14px'; x.fillText('G O L F L E V',7,0); x.restore();
+  x.font='500 21px Inter, sans-serif'; x.fillStyle='rgba(184,128,76,.9)';
+  x.fillText('T H E   P I T C H', S/2+4, S/2-104);
+  const tex=new THREE.CanvasTexture(cv);
+  tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=8;
+  return tex;
+}
+
+const watch=new THREE.Group();
+scene.add(watch);
+
+const facePlate=new THREE.Mesh(new THREE.CylinderGeometry(3,3.04,0.22,128),
+  new THREE.MeshStandardMaterial({color:0xD9CDB2,roughness:.55,envMapIntensity:.5}));
+facePlate.castShadow=true; facePlate.receiveShadow=true;
+watch.add(facePlate);
+
+const print=new THREE.Mesh(new THREE.CircleGeometry(2.86,128),
+  new THREE.MeshPhysicalMaterial({map:dialTexture(),roughness:.55,clearcoat:.45,clearcoatRoughness:.4,envMapIntensity:.35}));
+print.rotation.x=-Math.PI/2; print.position.y=0.112;
+watch.add(print);
+
+const bezel=new THREE.Mesh(new THREE.TorusGeometry(3.02,0.155,48,160),GOLD);
+bezel.rotation.x=Math.PI/2; bezel.position.y=0.07; bezel.castShadow=true;
+watch.add(bezel);
+const rehaut=new THREE.Mesh(new THREE.TorusGeometry(2.86,0.02,16,160),GOLD_SOFT);
+rehaut.rotation.x=Math.PI/2; rehaut.position.y=0.115;
+watch.add(rehaut);
+
+const glass=new THREE.Mesh(new THREE.SphereGeometry(3.0,72,18,0,Math.PI*2,0,0.62),
+  new THREE.MeshPhysicalMaterial({transparent:true,opacity:0.14,roughness:0.05,ior:1.5,depthWrite:false,
+    envMapIntensity:0.55,clearcoat:1,clearcoatRoughness:0.08}));
+glass.scale.set(1,0.16,1); glass.position.y=0.12;
+watch.add(glass);
+
+const dialPos=(th,R)=>[Math.sin(th*Math.PI/180)*R,0,Math.cos(th*Math.PI/180)*R];
+
+for(let k=0;k<12;k++){
+  const th=((k*30+180)%360)-180;
+  const major=(th===0||th===60||th===-60);
+  const m=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.035,major?0.3:0.16),major?INK:GOLD);
+  const [x,,z]=dialPos(th,2.52);
+  m.position.set(x,0.135,z);
+  m.rotation.y=-th*Math.PI/180;
+  m.castShadow=true;
+  watch.add(m);
+}
+
+function zoneArc(centerDeg){
+  const pts=[];
+  for(let a=centerDeg-10;a<=centerDeg+10;a+=2.5){
+    const [x,,z]=dialPos(a,2.62);
+    pts.push(new THREE.Vector3(x,0.135,z));
+  }
+  const arc=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),24,0.034,10,false),GOLD);
+  arc.castShadow=true;
+  watch.add(arc);
+}
+zoneArc(60); zoneArc(-60);
+
+const dot=new THREE.Mesh(new THREE.SphereGeometry(0.05,20,20),GOLD);
+{ const [dx,,dz]=dialPos(0,2.62); dot.position.set(dx,0.135,dz); }
+watch.add(dot);
+
+const hand=new THREE.Group();
+hand.position.y=0.165;
+watch.add(hand);
+const shaft=new THREE.Mesh(new THREE.CylinderGeometry(0.028,0.05,2.42,24),GOLD);
+shaft.rotation.x=Math.PI/2; shaft.position.z=1.21; shaft.castShadow=true;
+hand.add(shaft);
+const hosel=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.04,0.16,16),GOLD);
+hosel.rotation.x=Math.PI/2; hosel.position.z=2.42;
+hand.add(hosel);
+const head=new THREE.Mesh(new THREE.BoxGeometry(0.36,0.075,0.17),GOLD);
+head.position.set(0.12,-0.01,2.55); head.rotation.y=-0.38; head.castShadow=true;
+hand.add(head);
+const tail=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.5,20),GOLD);
+tail.rotation.x=Math.PI/2; tail.position.z=-0.3;
+hand.add(tail);
+const cap=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.17,0.1,40),INK);
+hand.add(cap);
+const capTop=new THREE.Mesh(new THREE.SphereGeometry(0.055,20,20),GOLD);
+capTop.position.y=0.07;
+hand.add(capTop);
+
+/* 毎フレームのジオメトリ生成をしない固定リボン（滑らかさ優先） */
+const TRAIL_MS=420, TRAIL_N=26;
+const trailGeo=new THREE.BufferGeometry();
+const tPos=new Float32Array(TRAIL_N*2*3);
+trailGeo.setAttribute('position',new THREE.BufferAttribute(tPos,3));
+{
+  const idx=[];
+  for(let i=0;i<TRAIL_N-1;i++){ const a=i*2,b=a+1,c=a+2,d=a+3; idx.push(a,b,c,b,d,c); }
+  trailGeo.setIndex(idx);
+}
+const trailMat=new THREE.MeshBasicMaterial({color:0xffd9a0,transparent:true,opacity:.7,
+  blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+const trailMesh=new THREE.Mesh(trailGeo,trailMat);
+trailMesh.frustumCulled=false;
+watch.add(trailMesh);
+let trailSamples=[];
+function updateTrail(now,deg){
+  trailSamples.push({t:now,d:deg});
+  while(trailSamples.length && now-trailSamples[0].t>TRAIL_MS) trailSamples.shift();
+  const m=trailSamples.length;
+  const visible=m>=3 && Math.abs(trailSamples[m-1].d-trailSamples[0].d)>2.5;
+  trailMesh.visible=visible;
+  if(!visible) return;
+  for(let i=0;i<TRAIL_N;i++){
+    const s=trailSamples[Math.max(0,m-TRAIL_N+i)]||trailSamples[0];
+    const age=Math.min(1,(now-s.t)/TRAIL_MS);
+    const w=0.5*(1-age)+0.03;
+    const [xi,,zi]=dialPos(s.d,2.44-w*0.09);
+    const [xo,,zo]=dialPos(s.d,2.44+w*0.09);
+    tPos[i*6]=xi;   tPos[i*6+1]=0.15; tPos[i*6+2]=zi;
+    tPos[i*6+3]=xo; tPos[i*6+4]=0.15; tPos[i*6+5]=zo;
+  }
+  trailGeo.attributes.position.needsUpdate=true;
+}
+
+{
+  const N=110, pos=new Float32Array(N*3);
+  for(let i=0;i<N;i++){
+    pos[i*3]=(Math.random()-0.5)*9;
+    pos[i*3+1]=Math.random()*3.4+0.2;
+    pos[i*3+2]=(Math.random()-0.5)*9;
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const dust=new THREE.Points(geo,new THREE.PointsMaterial({color:0xD8B070,size:0.022,
+    transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false}));
+  scene.add(dust);
+  dust.userData.anim=t=>{ dust.rotation.y=t*0.018; dust.position.y=Math.sin(t*0.35)*0.12; };
+  scene.userData.dust=dust;
+}
+
+const composer=new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene,camera));
+const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth/2,innerHeight/2),0.22,0.5,0.93);
+composer.addPass(bloom);
+
+const easeInOut=u=>u<0.5?2*u*u:1-Math.pow(-2*u+2,2)/2;
+const easeIn=u=>u*u;
+const segs=[ [0,60,950,320,easeInOut], [60,-60,500,780,easeIn], [-60,0,900,700,easeInOut] ];
+let si=0,t0=null,lastTs=null,handRender=0;
+function animate(ts){
+  if(t0===null)t0=ts;
+  const [a0,a1,dur,hold,ease]=segs[si];
+  const dt=ts-t0;
+  let d=a1;
+  if(dt<=dur) d=a0+(a1-a0)*ease(Math.min(1,dt/dur));
+  else if(dt>dur+hold){ si=(si+1)%segs.length; t0=ts; }
+  const dts=lastTs?Math.min(0.05,(ts-lastTs)/1000):0.016; lastTs=ts;
+  handRender+=(d-handRender)*Math.min(1,dts*13);
+  hand.rotation.y=handRender*Math.PI/180;
+  updateTrail(ts,handRender);
+  const t=ts*0.001;
+  const push=(si===1&&dt<=dur)?easeInOut(Math.min(1,dt/dur))*0.35:0;
+  camera.position.set(Math.sin(t*0.21)*0.5, 5.2+Math.sin(t*0.13)*0.1, 7.6-push);
+  camera.lookAt(0,0,0.2);
+  watch.rotation.z=Math.sin(t*0.09)*0.012;
+  if(scene.userData.dust) scene.userData.dust.userData.anim(t);
+  composer.render();
+  requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+  composer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>
