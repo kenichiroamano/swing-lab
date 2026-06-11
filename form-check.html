@@ -834,6 +834,18 @@ const QuatUtils = {
     const swing = QuatUtils.mul(q, QuatUtils.conj(twist));
     const twistAngle = 2 * Math.atan2(twist.y, twist.w) * 180 / Math.PI;
     return { swing, twist, twistAngle };
+  },
+  // 近接した姿勢サンプルの平均（Euler角の0/360°ラップ問題を回避）
+  average: quats => {
+    const ref = quats[0];
+    let w = 0, x = 0, y = 0, z = 0;
+    for (const q of quats){
+      const s = (q.w*ref.w + q.x*ref.x + q.y*ref.y + q.z*ref.z) < 0 ? -1 : 1;
+      w += s*q.w; x += s*q.x; y += s*q.y; z += s*q.z;
+    }
+    const len = Math.sqrt(w*w + x*x + y*y + z*z);
+    if (len < 1e-9) return ref;
+    return { w: w/len, x: x/len, y: y/len, z: z/len };
   }
 };
 
@@ -843,7 +855,7 @@ const mag3 = v => Math.sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
 function calcAngles(orient, baseline){
   if (!baseline) return { vertical:0, horizontal:0, wristCock:0, deviation:0 };
   const qC = QuatUtils.fromEuler(orient.alpha, orient.beta, orient.gamma);
-  const qB = QuatUtils.fromEuler(baseline.alpha, baseline.beta, baseline.gamma);
+  const qB = baseline.q || QuatUtils.fromEuler(baseline.alpha, baseline.beta, baseline.gamma);
   const qRel = QuatUtils.mul(QuatUtils.conj(qB), qC);
   const deviation = QuatUtils.angle(qRel);
   const { twistAngle } = QuatUtils.decomposeSwingTwist(qRel);
@@ -854,7 +866,7 @@ function calcAngles(orient, baseline){
   const shaftDot = clamp(shaftCur.x*shaftBl.x + shaftCur.y*shaftBl.y + shaftCur.z*shaftBl.z, -1, 1);
   const vertical = Math.acos(shaftDot) * 180 / Math.PI;
 
-  const gravDown = { x:0, y:-1, z:0 };
+  const gravDown = { x:0, y:0, z:-1 }; // 世界座標系はZ-up（W3C: X=東, Y=北, Z=上）。2026-06-10精査で修正
   const pnx = shaftBl.y*gravDown.z - shaftBl.z*gravDown.y;
   const pny = shaftBl.z*gravDown.x - shaftBl.x*gravDown.z;
   const pnz = shaftBl.x*gravDown.y - shaftBl.y*gravDown.x;
@@ -1138,6 +1150,11 @@ function magRotRate(){
 function magRotRate3(r){
   return Math.sqrt(r.alpha*r.alpha + r.beta*r.beta + r.gamma*r.gamma);
 }
+// 求心加速度モデル用：シャフト軸（デバイスY軸）まわりの回転＝手首ロールを除外した角速度 [rad/s]
+// 手首ロールはグリップに求心加速度を生まないため、含めると肘屈曲の誤検出になる（2026-06-10精査）
+function magRotPerpRad(r){
+  return Math.sqrt(r.alpha*r.alpha + r.beta*r.beta) * Math.PI / 180;
+}
 
 /* ════════════════════════════════════════════════════════════════
    ADDRESS CALIBRATION
@@ -1179,10 +1196,9 @@ function startAddressCalibration(){
           goto('home');
           return;
         }
+        // クォータニオン平均（Euler角の0/360°ラップで平均が壊れる問題を回避）
         STATE.baseline = {
-          alpha: avg(recent.map(s => s.alpha)),
-          beta: avg(recent.map(s => s.beta)),
-          gamma: avg(recent.map(s => s.gamma))
+          q: QuatUtils.average(recent.map(s => QuatUtils.fromEuler(s.alpha, s.beta, s.gamma)))
         };
         document.getElementById('countdownLabel').textContent = '記録完了';
         Audio.calibComplete();
@@ -1278,7 +1294,7 @@ function detectBreakRealtime(){
 
   let sumRatio = 0, count = 0;
   for (const d of recent){
-    const wRad = magRotRate3(d.rotRate) * Math.PI / 180;
+    const wRad = magRotPerpRad(d.rotRate);
     if (wRad < 1.5) continue;
     const expected = wRad * wRad * STATE.rCal;
     if (expected < 0.5) continue;
@@ -1306,9 +1322,9 @@ function detectBreakRealtime(){
     STATE.brokenAt = now;
     let flex = 0;
     if (ratio < 1 && ratio > 0.3){
-      const r = Math.sqrt(ratio);
+      // a_c = ω²r は r に線形 → rEff = ratio × rCal（sqrtは誤り。2026-06-10精査で修正）
       const u = STATE.rCal * 0.55, l = STATE.rCal * 0.45;
-      const rEff = r * STATE.rCal;
+      const rEff = ratio * STATE.rCal;
       const cosFlex = (rEff*rEff - u*u - l*l) / (2*u*l);
       if (cosFlex >= -1 && cosFlex <= 1){
         flex = Math.acos(cosFlex) * 180 / Math.PI;
@@ -1407,7 +1423,7 @@ function finalizeMeasurement(){
   // ─── r refinement (during the test swing OR ongoing) ───
   let maxOmega = 0, maxAcc = 0;
   for (const d of motionBuf){
-    const wRad = magRotRate3(d.rotRate) * Math.PI / 180;
+    const wRad = magRotPerpRad(d.rotRate);
     const acc = Math.sqrt(d.acc.x**2 + d.acc.y**2 + d.acc.z**2);
     if (wRad > maxOmega) maxOmega = wRad;
     if (acc > maxAcc) maxAcc = acc;
@@ -1431,7 +1447,7 @@ function finalizeMeasurement(){
   // ─── Indicators ───
   let acRatioSum = 0, acCount = 0;
   for (const d of motionBuf){
-    const wRad = magRotRate3(d.rotRate) * Math.PI / 180;
+    const wRad = magRotPerpRad(d.rotRate);
     if (wRad < 1.5) continue;
     const expected = wRad * wRad * STATE.rCal;
     if (expected < 0.5) continue;
@@ -1459,9 +1475,9 @@ function finalizeMeasurement(){
 
   let estFlex = 0;
   if (acRatio < 0.99 && acRatio > 0.3){
-    const ratio = Math.sqrt(acRatio);
+    // a_c = ω²r は r に線形（sqrtは誤り。2026-06-10精査で修正）
     const u = STATE.rCal * 0.55, l = STATE.rCal * 0.45;
-    const rEff = ratio * STATE.rCal;
+    const rEff = acRatio * STATE.rCal;
     const cosFlex = (rEff*rEff - u*u - l*l) / (2*u*l);
     if (cosFlex >= -1 && cosFlex <= 1){
       estFlex = Math.acos(cosFlex) * 180 / Math.PI;

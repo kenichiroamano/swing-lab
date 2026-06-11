@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Golflev — Drill Lab（技術検証B）</title>
+<style>
+:root{
+  --bg:#EFE9DC; --ink:#1F2A21; --gold:#B8804C; --paper:#F7F1E3;
+  --ok:#4A6B4A; --warn:#D4A040; --err:#C45B4A; --sub:#8A8A82;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--ink);font-family:'Inter','Noto Serif JP',serif;min-height:100vh;padding:20px 16px 40px}
+h1{font-size:22px;letter-spacing:.06em}
+h1 em{font-style:normal;color:var(--gold)}
+.tag{font-size:11px;color:var(--sub);letter-spacing:.12em;margin-bottom:18px}
+.card{background:var(--paper);border:1px solid rgba(31,42,33,.12);border-radius:14px;padding:18px;margin-bottom:14px;box-shadow:0 4px 14px rgba(31,42,33,.08)}
+button{display:block;width:100%;padding:14px;border:none;border-radius:10px;background:var(--ink);color:var(--paper);font-size:15px;letter-spacing:.08em;font-family:inherit}
+button.secondary{background:transparent;color:var(--ink);border:1px solid rgba(31,42,33,.3)}
+.bigAngle{font-size:64px;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;line-height:1.1}
+.bigAngle small{font-size:20px;color:var(--sub)}
+.metaRow{display:flex;justify-content:space-around;margin-top:10px;font-size:12px;color:var(--sub)}
+.metaRow b{display:block;font-size:16px;color:var(--ink);font-variant-numeric:tabular-nums;text-align:center}
+.stateLabel{text-align:center;font-size:12px;letter-spacing:.2em;color:var(--gold);margin-bottom:6px;text-transform:uppercase}
+.log{font-size:13px;line-height:1.7}
+.log .item{padding:10px 0;border-bottom:1px solid rgba(31,42,33,.1)}
+.log .ok{color:var(--ok)} .log .ng{color:var(--err)}
+.note{font-size:12px;color:var(--sub);line-height:1.7;margin-top:10px}
+.warnBox{background:rgba(196,91,74,.1);border:1px solid var(--err);border-radius:10px;padding:12px;font-size:13px;color:var(--err);margin-top:10px}
+#countNum{font-size:48px;font-weight:800;text-align:center}
+.hidden{display:none}
+</style>
+</head>
+<body>
+
+<h1>Drill <em>Lab</em></h1>
+<div class="tag">技術検証B — 符号付き振り幅 / 切り返し / 緩み検出</div>
+
+<!-- STEP 1: 権限 -->
+<div class="card" id="permCard">
+  <p style="font-size:14px;line-height:1.8;margin-bottom:14px">
+    センサーの使用許可が必要です。<br>
+    スマホを縦に持ち、画面を上に向けてください。
+  </p>
+  <button id="btnPerm">センサーを有効にする</button>
+  <div id="permError"></div>
+</div>
+
+<!-- STEP 2: キャリブレーション -->
+<div class="card hidden" id="calibCard">
+  <div class="stateLabel">Calibration</div>
+  <p style="font-size:14px;text-align:center;margin-bottom:10px">アドレスの構えで静止してください</p>
+  <div id="countNum">—</div>
+  <button id="btnCalib" style="margin-top:14px">キャリブレーション開始（2秒静止）</button>
+  <div id="calibWarn"></div>
+</div>
+
+<!-- STEP 3: ライブ計測 -->
+<div class="card hidden" id="liveCard">
+  <div class="stateLabel" id="liveState">Ready</div>
+  <div class="bigAngle"><span id="angleVal">0</span><small>°</small></div>
+  <div class="metaRow">
+    <div>面外逸脱<b id="outVal">0°</b></div>
+    <div>角速度<b id="omegaVal">0°/s</b></div>
+    <div>状態<b id="trackState">idle</b></div>
+  </div>
+  <div class="note">バック側が−、フォロー側が＋で表示されます（左利きは逆）。8時-4時ドリル：両側60°目安。振り終わりはフィニッシュで0.4秒静止。</div>
+  <button class="secondary" id="btnRecalib" style="margin-top:12px">再キャリブレーション</button>
+</div>
+
+<!-- スイングログ -->
+<div class="card hidden" id="logCard">
+  <div class="stateLabel">Swing Log</div>
+  <div class="log" id="logList"><div class="note">まだスイングがありません</div></div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   数学コア（form-check.html と同一、2026-06-11 単体テスト19件合格済み）
+   ════════════════════════════════════════════════════════════ */
+const QuatUtils = {
+  fromEuler: (alphaDeg, betaDeg, gammaDeg) => {
+    const d2r = Math.PI / 360;
+    const a=(alphaDeg||0)*d2r, b=(betaDeg||0)*d2r, g=(gammaDeg||0)*d2r;
+    const ca=Math.cos(a),sa=Math.sin(a),cb=Math.cos(b),sb=Math.sin(b),cg=Math.cos(g),sg=Math.sin(g);
+    return { w: ca*cb*cg - sa*sb*sg, x: ca*sb*cg - sa*cb*sg, y: ca*cb*sg + sa*sb*cg, z: ca*sb*sg + sa*cb*cg };
+  },
+  conj: q => ({ w:q.w, x:-q.x, y:-q.y, z:-q.z }),
+  mul: (a,b) => ({
+    w: a.w*b.w - a.x*b.x - a.y*b.y - a.z*b.z,
+    x: a.w*b.x + a.x*b.w + a.y*b.z - a.z*b.y,
+    y: a.w*b.y - a.x*b.z + a.y*b.w + a.z*b.x,
+    z: a.w*b.z + a.x*b.y - a.y*b.x + a.z*b.w
+  }),
+  rotVec: (q,v) => {
+    const tx=2*(q.y*v.z-q.z*v.y), ty=2*(q.z*v.x-q.x*v.z), tz=2*(q.x*v.y-q.y*v.x);
+    return { x: v.x+q.w*tx+(q.y*tz-q.z*ty), y: v.y+q.w*ty+(q.z*tx-q.x*tz), z: v.z+q.w*tz+(q.x*ty-q.y*tx) };
+  },
+  average: quats => {
+    const ref=quats[0]; let w=0,x=0,y=0,z=0;
+    for (const q of quats){
+      const s=(q.w*ref.w+q.x*ref.x+q.y*ref.y+q.z*ref.z)<0?-1:1;
+      w+=s*q.w; x+=s*q.x; y+=s*q.y; z+=s*q.z;
+    }
+    const len=Math.sqrt(w*w+x*x+y*y+z*z);
+    return len<1e-9?ref:{w:w/len,x:x/len,y:y/len,z:z/len};
+  }
+};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const norm3=v=>{const l=Math.sqrt(v.x*v.x+v.y*v.y+v.z*v.z);return{x:v.x/l,y:v.y/l,z:v.z/l};};
+const cross3=(a,b)=>({x:a.y*b.z-a.z*b.y,y:a.z*b.x-a.x*b.z,z:a.x*b.y-a.y*b.x});
+const dot3=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
+
+// スイングプレーン座標系をベースラインから構築（法線 = シャフト×重力、世界座標はZ-up）
+function makePlaneFrame(qB){
+  const shaftBl=QuatUtils.rotVec(qB,{x:0,y:1,z:0});
+  const pn=cross3(shaftBl,{x:0,y:0,z:-1});
+  const pnLen=Math.sqrt(dot3(pn,pn));
+  if(pnLen<0.15) return null; // シャフトが鉛直すぎ → 構え直し要求
+  const n={x:pn.x/pnLen,y:pn.y/pnLen,z:pn.z/pnLen};
+  const u=norm3(cross3(n,shaftBl));
+  return { shaftBl, n, u };
+}
+
+// 符号付き面内角度と面外逸脱角
+function signedAngles(qC, frame){
+  const s=QuatUtils.rotVec(qC,{x:0,y:1,z:0});
+  const inPlane=Math.atan2(dot3(s,frame.u), dot3(s,frame.shaftBl))*180/Math.PI;
+  const outPlane=Math.asin(clamp(dot3(s,frame.n),-1,1))*180/Math.PI;
+  return { inPlane, outPlane };
+}
+
+// スイング状態機械: idle → back → down → 終了
+class SwingTracker {
+  constructor(o={}){
+    this.startThresh=o.startThresh??30;
+    this.endThresh=o.endThresh??25;
+    this.endHoldMs=o.endHoldMs??400;
+    this.minTopAngle=o.minTopAngle??15;
+    this.topDropDeg=o.topDropDeg??6;
+    this.reset();
+  }
+  reset(){ this.state='idle'; this.swing=null; this.stillSince=null; }
+  feed(t, angle, omega){
+    if(this.state==='idle'){
+      if(omega>this.startThresh){
+        this.state='back';
+        this.swing={t0:t,ext:0,extT:t,top:null,bottom:null,peakW:0,peakWT:null,finish:0,side:0};
+      }
+      return null;
+    }
+    const s=this.swing;
+    if(this.state==='back'){
+      if(Math.abs(angle)>Math.abs(s.ext)){ s.ext=angle; s.extT=t; }
+      if(Math.abs(s.ext)>=this.minTopAngle
+         && Math.sign(angle)===Math.sign(s.ext)
+         && Math.abs(s.ext)-Math.abs(angle)>=this.topDropDeg){
+        s.top={t:s.extT,angle:s.ext};
+        s.side=Math.sign(s.ext);
+        this.state='down';
+      }
+    } else if(this.state==='down'){
+      if(omega>s.peakW){ s.peakW=omega; s.peakWT=t; }
+      if(s.bottom===null && Math.sign(angle)===-s.side && Math.abs(angle)>1) s.bottom={t};
+      if(s.bottom && Math.sign(angle)===-s.side && Math.abs(angle)>Math.abs(s.finish)) s.finish=angle;
+      if(omega<this.endThresh){
+        if(this.stillSince===null) this.stillSince=t;
+        else if(t-this.stillSince>=this.endHoldMs){
+          const r=this.finalize(); this.reset(); return r;
+        }
+      } else this.stillSince=null;
+    }
+    return null;
+  }
+  finalize(){
+    const s=this.swing;
+    const backMs=s.top?s.top.t-s.t0:null;
+    const downMs=(s.top&&s.bottom)?s.bottom.t-s.top.t:null;
+    return {
+      backAngle:s.top?s.top.angle:s.ext,
+      followAngle:s.finish,
+      tempoRatio:(backMs&&downMs&&downMs>0)?backMs/downMs:null,
+      decel:(s.bottom&&s.peakWT!==null)?(s.peakWT<s.bottom.t):null,
+      peakLeadMs:(s.bottom&&s.peakWT!==null)?(s.bottom.t-s.peakWT):null
+    };
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   UI グルーコード
+   ════════════════════════════════════════════════════════════ */
+const SENSOR={alpha:0,beta:0,gamma:0,has:false};
+let frame=null;
+let lastT=null, lastAngle=null, omegaS=0;
+const tracker=new SwingTracker();
+let swingCount=0;
+const $=id=>document.getElementById(id);
+
+async function requestPermission(){
+  try{
+    if (typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){
+      const r=await DeviceOrientationEvent.requestPermission();
+      if(r!=='granted'){ $('permError').innerHTML='<div class="warnBox">許可されませんでした。設定からやり直してください。</div>'; return; }
+    }
+    window.addEventListener('deviceorientation', onOrient);
+    $('permCard').classList.add('hidden');
+    $('calibCard').classList.remove('hidden');
+  }catch(e){
+    $('permError').innerHTML='<div class="warnBox">エラー: '+e.message+'</div>';
+  }
+}
+
+function onOrient(e){
+  SENSOR.alpha=e.alpha||0; SENSOR.beta=e.beta||0; SENSOR.gamma=e.gamma||0; SENSOR.has=true;
+  if(frame) tick();
+}
+
+let calibSamples=[], calibTimer=null;
+function startCalib(){
+  calibSamples=[]; $('calibWarn').innerHTML='';
+  let remain=2.0;
+  $('countNum').textContent=remain.toFixed(1);
+  if(calibTimer) clearInterval(calibTimer);
+  calibTimer=setInterval(()=>{
+    calibSamples.push(QuatUtils.fromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma));
+    remain-=0.05;
+    $('countNum').textContent=Math.max(0,remain).toFixed(1);
+    if(remain<=0){
+      clearInterval(calibTimer);
+      const qB=QuatUtils.average(calibSamples); // クォータニオン平均（ラップ問題なし）
+      const f=makePlaneFrame(qB);
+      if(!f){
+        $('calibWarn').innerHTML='<div class="warnBox">シャフトが鉛直に近すぎます。通常のアドレスの角度で構え直してください。</div>';
+        $('countNum').textContent='—';
+        return;
+      }
+      frame=f;
+      lastT=null; lastAngle=null; omegaS=0; tracker.reset();
+      $('calibCard').classList.add('hidden');
+      $('liveCard').classList.remove('hidden');
+      $('logCard').classList.remove('hidden');
+    }
+  },50);
+}
+
+function tick(){
+  const t=performance.now();
+  const qC=QuatUtils.fromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma);
+  const a=signedAngles(qC,frame);
+  if(lastT!==null){
+    const dt=(t-lastT)/1000;
+    if(dt>0.001 && dt<0.5){
+      const w=Math.abs(a.inPlane-lastAngle)/dt;
+      omegaS=omegaS*0.7+w*0.3; // 軽い平滑化
+    }
+  }
+  lastT=t; lastAngle=a.inPlane;
+  const res=tracker.feed(t,a.inPlane,omegaS);
+  if(res) addSwing(res);
+  render(a);
+}
+
+function render(a){
+  $('angleVal').textContent=(a.inPlane>=0?'+':'')+a.inPlane.toFixed(1);
+  $('outVal').textContent=a.outPlane.toFixed(1)+'°';
+  $('omegaVal').textContent=omegaS.toFixed(0)+'°/s';
+  $('trackState').textContent=tracker.state;
+  $('liveState').textContent=tracker.state==='idle'?'Ready':(tracker.state==='back'?'Backswing':'Through');
+}
+
+function addSwing(r){
+  swingCount++;
+  const list=$('logList');
+  if(swingCount===1) list.innerHTML='';
+  const tempo=r.tempoRatio?r.tempoRatio.toFixed(1)+' : 1':'—';
+  const decelTxt=r.decel===null?'<span>計測不可</span>'
+    : r.decel?`<span class="ng">緩みあり（ピークが最下点の ${r.peakLeadMs}ms 手前）</span>`
+            :`<span class="ok">緩みなし（ピークは最下点の ${-r.peakLeadMs}ms 後）</span>`;
+  const item=document.createElement('div');
+  item.className='item';
+  item.innerHTML=`<b>#${swingCount}</b>　バック ${r.backAngle.toFixed(1)}° / フォロー ${r.followAngle>=0?'+':''}${r.followAngle.toFixed(1)}°<br>テンポ ${tempo}　${decelTxt}`;
+  list.prepend(item);
+}
+
+$('btnPerm').addEventListener('click', requestPermission);
+$('btnCalib').addEventListener('click', startCalib);
+$('btnRecalib').addEventListener('click', ()=>{
+  frame=null;
+  $('liveCard').classList.add('hidden');
+  $('calibCard').classList.remove('hidden');
+  $('countNum').textContent='—';
+});
+</script>
+</body>
+</html>
