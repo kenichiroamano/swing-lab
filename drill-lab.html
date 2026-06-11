@@ -27,6 +27,9 @@ button.secondary{background:transparent;color:var(--ink);border:1px solid rgba(3
 .log .ok{color:var(--ok)} .log .ng{color:var(--err)}
 .note{font-size:12px;color:var(--sub);line-height:1.7;margin-top:10px}
 .warnBox{background:rgba(196,91,74,.1);border:1px solid var(--err);border-radius:10px;padding:12px;font-size:13px;color:var(--err);margin-top:10px}
+.card.tracking{border:2px solid var(--gold);box-shadow:0 4px 18px rgba(184,128,76,.35)}
+.steps{font-size:13px;line-height:2}
+.steps b{color:var(--gold);margin-right:6px}
 #countNum{font-size:48px;font-weight:800;text-align:center}
 .hidden{display:none}
 </style>
@@ -53,6 +56,17 @@ button.secondary{background:transparent;color:var(--ink);border:1px solid rgba(3
   <div id="countNum">—</div>
   <button id="btnCalib" style="margin-top:14px">キャリブレーション開始（2秒静止）</button>
   <div id="calibWarn"></div>
+</div>
+
+<!-- 使い方ガイド -->
+<div class="card hidden" id="guideCard">
+  <div class="stateLabel">How to use</div>
+  <div class="steps">
+    <div><b>1</b>スマホを縦に握り、アドレスの構えに戻る</div>
+    <div><b>2</b>そのまま振り始めるだけ。「ピッ」が計測開始の合図（開始ボタンはありません）</div>
+    <div><b>3</b>ゆっくり 8時→4時（両側60°目安）→ フィニッシュで止めて静止 →「ピポッ」で結果</div>
+  </div>
+  <div class="note">バックだけで止めても振り幅は記録されます。緩み・テンポはフォローまで振り切った時だけ計測できます。30°未満の小さな揺れ（フォワードプレス）は無視されます。</div>
 </div>
 
 <!-- STEP 3: ライブ計測 -->
@@ -136,8 +150,8 @@ class SwingTracker {
     this.startThresh=o.startThresh??30;
     this.endThresh=o.endThresh??25;
     this.endHoldMs=o.endHoldMs??400;
-    this.minTopAngle=o.minTopAngle??15;
-    this.topDropDeg=o.topDropDeg??6;
+    this.minTopAngle=o.minTopAngle??30; // フォワードプレス（小さな揺れ）をトップと誤認しないため30°未満では確定しない
+    this.topDropDeg=o.topDropDeg??8;
     this.reset();
   }
   reset(){ this.state='idle'; this.swing=null; this.stillSince=null; }
@@ -159,6 +173,13 @@ class SwingTracker {
         s.side=Math.sign(s.ext);
         this.state='down';
       }
+      // トップ（または途中）で静止したまま終わった場合もログに残す
+      if(omega<this.endThresh && Math.abs(s.ext)>=10){
+        if(this.stillSince===null) this.stillSince=t;
+        else if(t-this.stillSince>=this.endHoldMs){
+          const r=this.finalize(); this.reset(); return r;
+        }
+      } else this.stillSince=null;
     } else if(this.state==='down'){
       if(omega>s.peakW){ s.peakW=omega; s.peakWT=t; }
       if(s.bottom===null && Math.sign(angle)===-s.side && Math.abs(angle)>1) s.bottom={t};
@@ -179,6 +200,7 @@ class SwingTracker {
     return {
       backAngle:s.top?s.top.angle:s.ext,
       followAngle:s.finish,
+      complete:!!(s.top&&s.bottom),
       tempoRatio:(backMs&&downMs&&downMs>0)?backMs/downMs:null,
       decel:(s.bottom&&s.peakWT!==null)?(s.peakWT<s.bottom.t):null,
       peakLeadMs:(s.bottom&&s.peakWT!==null)?(s.bottom.t-s.peakWT):null
@@ -189,6 +211,28 @@ class SwingTracker {
 /* ════════════════════════════════════════════════════════════
    UI グルーコード
    ════════════════════════════════════════════════════════════ */
+let audioCtx=null;
+function ensureAudio(){
+  try{
+    audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended') audioCtx.resume();
+  }catch(e){}
+}
+function beep(freq,dur,delay){
+  if(!audioCtx) return;
+  try{
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.frequency.value=freq; o.connect(g); g.connect(audioCtx.destination);
+    const t0=audioCtx.currentTime+(delay||0);
+    g.gain.setValueAtTime(0.0001,t0);
+    g.gain.exponentialRampToValueAtTime(0.25,t0+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+    o.start(t0); o.stop(t0+dur+0.05);
+  }catch(e){}
+}
+const startBeep=()=>beep(880,0.10);
+const endBeep=()=>{ beep(660,0.09); beep(990,0.12,0.12); };
+
 const SENSOR={alpha:0,beta:0,gamma:0,has:false};
 let frame=null;
 let lastT=null, lastAngle=null, omegaS=0;
@@ -237,6 +281,7 @@ function startCalib(){
       frame=f;
       lastT=null; lastAngle=null; omegaS=0; tracker.reset();
       $('calibCard').classList.add('hidden');
+      $('guideCard').classList.remove('hidden');
       $('liveCard').classList.remove('hidden');
       $('logCard').classList.remove('hidden');
     }
@@ -255,8 +300,10 @@ function tick(){
     }
   }
   lastT=t; lastAngle=a.inPlane;
+  const prevState=tracker.state;
   const res=tracker.feed(t,a.inPlane,omegaS);
-  if(res) addSwing(res);
+  if(prevState==='idle' && tracker.state!=='idle') startBeep(); // 計測開始の合図
+  if(res){ addSwing(res); endBeep(); }                          // 計測完了の合図
   render(a);
 }
 
@@ -264,28 +311,36 @@ function render(a){
   $('angleVal').textContent=(a.inPlane>=0?'+':'')+a.inPlane.toFixed(1);
   $('outVal').textContent=a.outPlane.toFixed(1)+'°';
   $('omegaVal').textContent=omegaS.toFixed(0)+'°/s';
-  $('trackState').textContent=tracker.state;
-  $('liveState').textContent=tracker.state==='idle'?'Ready':(tracker.state==='back'?'Backswing':'Through');
+  const st=tracker.state;
+  $('trackState').textContent=st==='idle'?'待機':(st==='back'?'バック計測中':'フォロー計測中');
+  $('liveState').textContent=st==='idle'?'Ready — 振り始めると自動で計測':(st==='back'?'Backswing':'Through');
+  $('liveCard').classList.toggle('tracking', st!=='idle');
 }
 
 function addSwing(r){
   swingCount++;
   const list=$('logList');
   if(swingCount===1) list.innerHTML='';
-  const tempo=r.tempoRatio?r.tempoRatio.toFixed(1)+' : 1':'—';
-  const decelTxt=r.decel===null?'<span>計測不可</span>'
-    : r.decel?`<span class="ng">緩みあり（ピークが最下点の ${r.peakLeadMs}ms 手前）</span>`
-            :`<span class="ok">緩みなし（ピークは最下点の ${-r.peakLeadMs}ms 後）</span>`;
+  let lines=`<b>#${swingCount}</b>　バック ${r.backAngle.toFixed(1)}° / フォロー ${r.followAngle>=0?'+':''}${r.followAngle.toFixed(1)}°<br>`;
+  if(!r.complete){
+    lines+='<span>フォロー側まで振り切らずに終了（振り幅のみ記録。緩み・テンポはフォローまで振ると計測できます）</span>';
+  } else {
+    const tempo=r.tempoRatio?r.tempoRatio.toFixed(1)+' : 1':'—';
+    lines+=`テンポ ${tempo}　`;
+    lines+=r.decel?`<span class="ng">緩みあり：最下点の ${r.peakLeadMs}ms 手前で減速（当てにいっています）</span>`
+                  :`<span class="ok">緩みなし：最下点の ${-r.peakLeadMs}ms 後まで加速できています</span>`;
+  }
   const item=document.createElement('div');
   item.className='item';
-  item.innerHTML=`<b>#${swingCount}</b>　バック ${r.backAngle.toFixed(1)}° / フォロー ${r.followAngle>=0?'+':''}${r.followAngle.toFixed(1)}°<br>テンポ ${tempo}　${decelTxt}`;
+  item.innerHTML=lines;
   list.prepend(item);
 }
 
 $('btnPerm').addEventListener('click', requestPermission);
-$('btnCalib').addEventListener('click', startCalib);
+$('btnCalib').addEventListener('click', ()=>{ ensureAudio(); startCalib(); });
 $('btnRecalib').addEventListener('click', ()=>{
   frame=null;
+  $('guideCard').classList.add('hidden');
   $('liveCard').classList.add('hidden');
   $('calibCard').classList.remove('hidden');
   $('countNum').textContent='—';
