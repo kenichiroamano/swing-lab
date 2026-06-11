@@ -64,9 +64,9 @@ button.secondary{background:transparent;color:var(--ink);border:1px solid rgba(3
   <div class="steps">
     <div><b>1</b>スマホを縦に握り、アドレスの構えに戻る</div>
     <div><b>2</b>そのまま振り始めるだけ。「ピッ」が計測開始の合図（開始ボタンはありません）</div>
-    <div><b>3</b>ゆっくり 8時→4時（両側60°目安）→ フィニッシュで止めて静止 →「ピポッ」で結果</div>
+    <div><b>3</b>8時→4時を一往復、リズムよく（バック約1秒・ダウンはやや速く）→ フィニッシュで静止 →「ピポッ」で結果</div>
   </div>
-  <div class="note">バックだけで止めても振り幅は記録されます。緩み・テンポはフォローまで振り切った時だけ計測できます。30°未満の小さな揺れ（フォワードプレス）は無視されます。</div>
+  <div class="note">バックだけで止めても振り幅は記録されます。緩み・テンポはフォローまで振り切った時だけ計測できます。30°未満の小さな揺れ（フォワードプレス）は無視されます。<br><br>符号テスト：構えからテイクバック方向へゆっくり傾けると「−」、フォロー方向で「＋」になれば正常です。</div>
 </div>
 
 <!-- STEP 3: ライブ計測 -->
@@ -181,7 +181,8 @@ class SwingTracker {
         }
       } else this.stillSince=null;
     } else if(this.state==='down'){
-      if(omega>s.peakW){ s.peakW=omega; s.peakWT=t; }
+      // ピーク探索はトップ→最下点直後(250ms)まで。フィニッシュ後の揺れを拾わない
+      if((!s.bottom || t-s.bottom.t<=250) && omega>s.peakW){ s.peakW=omega; s.peakWT=t; }
       if(s.bottom===null && Math.sign(angle)===-s.side && Math.abs(angle)>1) s.bottom={t};
       if(s.bottom && Math.sign(angle)===-s.side && Math.abs(angle)>Math.abs(s.finish)) s.finish=angle;
       if(omega<this.endThresh){
@@ -201,6 +202,7 @@ class SwingTracker {
       backAngle:s.top?s.top.angle:s.ext,
       followAngle:s.finish,
       complete:!!(s.top&&s.bottom),
+      slowSwing:s.peakW<50, // ピーク速度が遅すぎると緩み・テンポ判定は信頼できない（D7: 判定保留）
       tempoRatio:(backMs&&downMs&&downMs>0)?backMs/downMs:null,
       decel:(s.bottom&&s.peakWT!==null)?(s.peakWT<s.bottom.t):null,
       peakLeadMs:(s.bottom&&s.peakWT!==null)?(s.bottom.t-s.peakWT):null
@@ -324,6 +326,8 @@ function addSwing(r){
   let lines=`<b>#${swingCount}</b>　バック ${r.backAngle.toFixed(1)}° / フォロー ${r.followAngle>=0?'+':''}${r.followAngle.toFixed(1)}°<br>`;
   if(!r.complete){
     lines+='<span>フォロー側まで振り切らずに終了（振り幅のみ記録。緩み・テンポはフォローまで振ると計測できます）</span>';
+  } else if(r.slowSwing){
+    lines+='<span>緩み・テンポは保留：素振りがゆっくりすぎて判定できません。リズムよく（バック約1秒→ダウンやや速く）振ると判定できます</span>';
   } else {
     const tempo=r.tempoRatio?r.tempoRatio.toFixed(1)+' : 1':'—';
     lines+=`テンポ ${tempo}　`;
