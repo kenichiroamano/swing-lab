@@ -40,8 +40,9 @@ import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 
 const canvas=document.getElementById('c');
-const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
-renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
+const isMobile=matchMedia('(pointer:coarse)').matches;
+renderer.setPixelRatio(Math.min(devicePixelRatio,isMobile?1.2:1.75));
 renderer.setSize(innerWidth,innerHeight);
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -65,7 +66,7 @@ scene.environment=pmrem.fromScene(new RoomEnvironment(),0.04).texture;
 const key=new THREE.DirectionalLight(0xfff0dd,2.4);
 key.position.set(3.5,8,3);
 key.castShadow=true;
-key.shadow.mapSize.set(2048,2048);
+key.shadow.mapSize.set(1024,1024);
 key.shadow.camera.left=-5;key.shadow.camera.right=5;key.shadow.camera.top=5;key.shadow.camera.bottom=-5;
 key.shadow.radius=7; key.shadow.bias=-0.0004;
 scene.add(key);
@@ -145,8 +146,8 @@ watch.add(rehaut);
 
 // 風防ガラス（ごく薄いドーム。屈折あり）
 const glass=new THREE.Mesh(new THREE.SphereGeometry(3.0,72,18,0,Math.PI*2,0,0.62),
-  new THREE.MeshPhysicalMaterial({transmission:1,roughness:0.05,thickness:0.12,ior:1.5,
-    transparent:true,envMapIntensity:0.5,clearcoat:1,clearcoatRoughness:0.08}));
+  new THREE.MeshPhysicalMaterial({transparent:true,opacity:0.14,roughness:0.05,ior:1.5,depthWrite:false,
+    envMapIntensity:0.55,clearcoat:1,clearcoatRoughness:0.08})); // 屈折(transmission)はシーン2回描画で重いため、軽量な艶ガラスに
 glass.scale.set(1,0.16,1); glass.position.y=0.12;
 watch.add(glass);
 
@@ -206,25 +207,39 @@ capTop.position.y=0.07;
 hand.add(capTop);
 
 /* ── 光の軌跡（爽快感の核。直近のスイング軌道が金色のリボンで尾を引く） ── */
-const TRAIL_MS=420;
-let trailSamples=[];
-let trailMesh=null;
-const trailMat=new THREE.MeshBasicMaterial({color:0xffd9a0,transparent:true,opacity:.85,
+/* 毎フレームのジオメトリ生成をやめ、固定リボンを書き換える（GC負荷ゼロ＝滑らかさ優先） */
+const TRAIL_MS=420, TRAIL_N=26;
+const trailGeo=new THREE.BufferGeometry();
+const tPos=new Float32Array(TRAIL_N*2*3);
+trailGeo.setAttribute('position',new THREE.BufferAttribute(tPos,3));
+{
+  const idx=[];
+  for(let i=0;i<TRAIL_N-1;i++){ const a=i*2,b=a+1,c=a+2,d=a+3; idx.push(a,b,c,b,d,c); }
+  trailGeo.setIndex(idx);
+}
+const trailMat=new THREE.MeshBasicMaterial({color:0xffd9a0,transparent:true,opacity:.7,
   blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+const trailMesh=new THREE.Mesh(trailGeo,trailMat);
+trailMesh.frustumCulled=false;
+watch.add(trailMesh);
+let trailSamples=[];
 function updateTrail(now,deg){
   trailSamples.push({t:now,d:deg});
-  trailSamples=trailSamples.filter(s=>now-s.t<TRAIL_MS);
-  if(trailMesh){ watch.remove(trailMesh); trailMesh.geometry.dispose(); trailMesh=null; }
-  if(trailSamples.length<3) return;
-  const span=Math.abs(trailSamples[trailSamples.length-1].d-trailSamples[0].d);
-  if(span<2.5) return;
-  const pts=trailSamples.map(s=>{
-    const [x,,z]=dialPos(s.d,2.44);
-    return new THREE.Vector3(x,0.15,z);
-  });
-  const curve=new THREE.CatmullRomCurve3(pts);
-  trailMesh=new THREE.Mesh(new THREE.TubeGeometry(curve,28,0.045,8,false),trailMat);
-  watch.add(trailMesh);
+  while(trailSamples.length && now-trailSamples[0].t>TRAIL_MS) trailSamples.shift();
+  const m=trailSamples.length;
+  const visible=m>=3 && Math.abs(trailSamples[m-1].d-trailSamples[0].d)>2.5;
+  trailMesh.visible=visible;
+  if(!visible) return;
+  for(let i=0;i<TRAIL_N;i++){
+    const s=trailSamples[Math.max(0,m-TRAIL_N+i)]||trailSamples[0];
+    const age=Math.min(1,(now-s.t)/TRAIL_MS);
+    const w=0.5*(1-age)+0.03; // 先端ほど太く、尾は細く消える
+    const [xi,,zi]=dialPos(s.d,2.44-w*0.09);
+    const [xo,,zo]=dialPos(s.d,2.44+w*0.09);
+    tPos[i*6]=xi;   tPos[i*6+1]=0.15; tPos[i*6+2]=zi;
+    tPos[i*6+3]=xo; tPos[i*6+4]=0.15; tPos[i*6+5]=zo;
+  }
+  trailGeo.attributes.position.needsUpdate=true;
 }
 
 /* ── 金の微粒子（ごく控えめに漂う） ── */
@@ -247,14 +262,14 @@ function updateTrail(now,deg){
 /* ── ブルーム（金のにじみ） ── */
 const composer=new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene,camera));
-const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.22,0.5,0.93);
+const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth/2,innerHeight/2),0.22,0.5,0.93);
 composer.addPass(bloom);
 
 /* ── お手本スイング＋カメラの呼吸 ── */
 const easeInOut=u=>u<0.5?2*u*u:1-Math.pow(-2*u+2,2)/2;
 const easeIn=u=>u*u;
 const segs=[ [0,60,950,320,easeInOut], [60,-60,500,780,easeIn], [-60,0,900,700,easeInOut] ];
-let si=0,t0=null;
+let si=0,t0=null,lastTs=null,handRender=0;
 function animate(ts){
   if(t0===null)t0=ts;
   const [a0,a1,dur,hold,ease]=segs[si];
@@ -262,8 +277,11 @@ function animate(ts){
   let d=a1;
   if(dt<=dur) d=a0+(a1-a0)*ease(Math.min(1,dt/dur));
   else if(dt>dur+hold){ si=(si+1)%segs.length; t0=ts; }
-  hand.rotation.y=d*Math.PI/180;
-  updateTrail(ts,d);
+  // バネ追従: 区間の継ぎ目の角を消し、止まり際を自然に丸める
+  const dts=lastTs?Math.min(0.05,(ts-lastTs)/1000):0.016; lastTs=ts;
+  handRender+=(d-handRender)*Math.min(1,dts*13);
+  hand.rotation.y=handRender*Math.PI/180;
+  updateTrail(ts,handRender);
   const t=ts*0.001;
   // ダウンスイング(si===1)でわずかに寄る = 爽快感
   const push=(si===1&&dt<=dur)?easeInOut(Math.min(1,dt/dur))*0.35:0;
