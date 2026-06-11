@@ -107,7 +107,8 @@ new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
   });
   /* 関節メッシュをボーンの重みで面単位に分割:
      金で残す = 首・肩・手首・指・足首（ken指定） / 白磁にする = 胸・腹・肘・膝など */
-  const GOLD_JOINT_RE=/Neck|Head|Shoulder|(Left|Right)Arm$|Hand|Foot|Toe/;
+  // 金の関節（ken確定）: 首・肩・肘・手首・指・膝・足首
+  const GOLD_JOINT_RE=/Neck|Head|Shoulder|(Left|Right)Arm$|(Left|Right)ForeArm$|Hand|(Left|Right)Leg$|Foot|Toe/;
   function splitJointFaces(mesh){
     const geo=mesh.geometry;
     if(!geo.attributes.skinIndex || !mesh.skeleton) return false; // FBXLoaderはインデックスなし形状を出すため index は必須にしない
