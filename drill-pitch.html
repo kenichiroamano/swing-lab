@@ -346,9 +346,6 @@ new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{ // チップ素材（ド�
    live: 計測角度でスクラブ（あなたの分身） */
 let liveAng=0, liveState='idle', topAng=-60;
 let renderT=ANCH.addr, lastTs=null;
-// お手本タイムライン: 8時(−60°)→4時(+60°)。モーキャプの自然な再生速度に合わせた尺
-const DSEG=[[0,-60,1100,350],[-60,60,1050,800],[60,0,950,700]];
-let demoSi=0, demoT0=null;
 Stage.mount=(id)=>{
   const el=document.getElementById(id);
   if(el && canvas.parentElement!==el){ el.appendChild(canvas); Stage.resize(); }
@@ -385,22 +382,10 @@ function animate(ts){
   const dts=lastTs?Math.min(0.05,(ts-lastTs)/1000):0.016; lastTs=ts;
   if(mixer&&action){
     if(Stage.mode==='demo'){
-      // お手本もスクラブで駆動（ライブと同じ経路＝お手本と分身の動きが一致する）
-      if(demoT0===null)demoT0=ts;
-      const seg=DSEG[demoSi];
-      const sdt=ts-demoT0;
-      const ease=demoSi===1?(u=>u*u):(u=>u<0.5?2*u*u:1-Math.pow(-2*u+2,2)/2);
-      let d=seg[1];
-      if(sdt<=seg[2]) d=seg[0]+(seg[1]-seg[0])*ease(Math.min(1,sdt/seg[2]));
-      else if(sdt>seg[2]+seg[3]){ demoSi=(demoSi+1)%DSEG.length; demoT0=ts; }
-      topAng=-60;
-      const st=demoSi===0?'back':(demoSi===1?'down':'idle');
-      const target=angleToTime(d,st);
-      renderT+=(target-renderT)*Math.min(1,dts*10);
-      action.paused=true;
-      action.time=clamp(renderT,0,clipDur-0.001);
-      mixer.update(0);
-      updateTrail(ts,clamp(-d,-110,110));
+      // お手本は最初の方式（v6）: アニメをそのまま自然再生（スクラブ駆動はチップ素材だと不自然になる）
+      action.paused=false;
+      mixer.timeScale=0.55;
+      mixer.update(dts);
     } else {
       // live: 最初の方式（v6）に復帰 — 素直なバネ追従のみ。コイル・速度上限・追加平滑化は撤去（ken判定）
       const target=angleToTime(liveAng,liveState);
