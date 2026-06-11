@@ -32,25 +32,27 @@ renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.05;
+renderer.toneMappingExposure=0.92;
 
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0xEFE9DC);
 scene.fog=new THREE.Fog(0xEFE9DC,9,18);
 
 const camera=new THREE.PerspectiveCamera(36,innerWidth/innerHeight,0.1,50);
-camera.position.set(0,4.4,5.6);
+camera.position.set(0,5.3,7.4);
 camera.lookAt(0,0,0.2);
 
 /* ── 環境（金属の映り込み用ソフトボックス） ── */
 const pmrem=new THREE.PMREMGenerator(renderer);
 const envScene=new THREE.Scene();
-const room=new THREE.Mesh(new THREE.SphereGeometry(30,16,16),new THREE.MeshBasicMaterial({color:0xf2e9d6,side:THREE.BackSide}));
+// 金属の輝きはコントラストから生まれる: 暗めの部屋＋強い帯状ソフトボックス＋暗いパネル
+const room=new THREE.Mesh(new THREE.SphereGeometry(30,16,16),new THREE.MeshBasicMaterial({color:0x8a7f6a,side:THREE.BackSide}));
 envScene.add(room);
-const soft=(w,h,c,x,y,z,ry)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({color:c}));m.position.set(x,y,z);m.lookAt(0,0,0);envScene.add(m);};
-soft(10,6,0xffffff,0,9,2);
-soft(6,8,0xffe9c8,-8,3,-2);
-soft(6,8,0xfff6ea,8,4,3);
+const soft=(w,h,c,x,y,z)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({color:c}));m.position.set(x,y,z);m.lookAt(0,0,0);envScene.add(m);};
+soft(14,3,0xffffff,0,9,2);      // 細長い天面ライト（時計のハイライト帯）
+soft(5,8,0xffd9a8,-9,3,-2);     // 暖色サイド
+soft(4,7,0xfff3e0,9,4,3);
+soft(8,5,0x2a2620,0,-2,-9);     // 暗いパネル（反射の締め）
 scene.environment=pmrem.fromScene(envScene).texture;
 
 /* ── ライト ── */
@@ -72,8 +74,8 @@ ground.rotation.x=-Math.PI/2; ground.position.y=-0.10; ground.receiveShadow=true
 scene.add(ground);
 
 /* ── マテリアル ── */
-const GOLD=new THREE.MeshStandardMaterial({color:0xC9A06A,metalness:1.0,roughness:0.26});
-const GOLD_SOFT=new THREE.MeshStandardMaterial({color:0xB8804C,metalness:0.9,roughness:0.38});
+const GOLD=new THREE.MeshStandardMaterial({color:0xb0793f,metalness:1.0,roughness:0.18});
+const GOLD_SOFT=new THREE.MeshStandardMaterial({color:0xa06f3e,metalness:0.95,roughness:0.32});
 const PAPER=new THREE.MeshStandardMaterial({color:0xF7F1E3,metalness:0.0,roughness:0.62});
 const INK=new THREE.MeshStandardMaterial({color:0x1F2A21,metalness:0.35,roughness:0.45});
 
@@ -106,14 +108,15 @@ for(let k=0;k<12;k++){
   watch.add(t);
 }
 
-// 目標ゾーン（両側 50–70°）
+// 目標ゾーン（両側 50–70°）— tickPosと同じ座標系で曲線を直接生成（回転の推測なし）
 function zoneArc(centerDeg){
-  const arc=new THREE.Mesh(new THREE.TorusGeometry(2.6,0.035,12,48,20*Math.PI/180),GOLD);
-  arc.rotation.x=-Math.PI/2;
-  // トーラスは+X起点で+Z方向へ掃引。中心θc(0=+Z,右=+)→ 方位=90-θc
-  const startAz=(90-centerDeg-10)*Math.PI/180;
-  arc.rotation.z=startAz; // rotX後のローカルzは世界Yまわり
-  arc.position.y=0.10;
+  const pts=[];
+  for(let a=centerDeg-10;a<=centerDeg+10;a+=2){
+    const [x,,z]=tickPos(a,2.6);
+    pts.push(new THREE.Vector3(x,0.10,z));
+  }
+  const curve=new THREE.CatmullRomCurve3(pts);
+  const arc=new THREE.Mesh(new THREE.TubeGeometry(curve,24,0.035,10,false),GOLD);
   watch.add(arc);
 }
 zoneArc(60);   // 右=8（ゴルファー視点）
