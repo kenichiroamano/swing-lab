@@ -259,11 +259,11 @@ function updateTrail(now,deg){
 
 /* ── 白磁のゴルファー（確定マテリアル: 白磁×金の関節） ── */
 let mixer=null, action=null, golfer=null, clipDur=1.93;
-// スクラブのアンカー（Golf Driveアニメ内の時刻。フレームサンプリングで較正、window.__anchorsで調整可）
-const ANCH=window.__anchors={addr:0.40, top:1.45, impact:1.85, finish:2.60};
+// スクラブのアンカー（Golf Chipアニメ。動きの「らしさ」優先で復帰。連動の見え方は背骨コイルが担う）
+const ANCH=window.__anchors={addr:0.78, top:0.90, impact:0.95, finish:1.45};
 const GOLD_JOINT_RE=/Neck|Head|Shoulder|(Left|Right)Arm$|(Left|Right)ForeArm$|Hand|(Left|Right)Leg$|Foot|Toe/;
 
-new FBXLoader().load('assets/golfer-drive.fbx',(fbx)=>{ // フルスイング素材（バックスイングの尺がある）
+new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{ // チップ素材（ドリルと同じコンパクトな動き。ken判定で復帰）
   golfer=fbx;
   golfer.scale.setScalar(0.0095);
   golfer.position.y=0.125;
@@ -324,7 +324,10 @@ new FBXLoader().load('assets/golfer-drive.fbx',(fbx)=>{ // フルスイング素
     clipDur=fbx.animations[0].duration;
     action.play();
   }
-  window.__clipInfo={dur:clipDur, anims:fbx.animations.length};
+  // 背骨ボーン（ユーザーの角度で体を1:1コイルさせる＝連動の主役）
+  spineBones.length=0;
+  golfer.traverse(c=>{ if(c.isBone && /Spine[12]?$/.test(c.name)) spineBones.push(c); });
+  window.__clipInfo={dur:clipDur, anims:fbx.animations.length, spines:spineBones.length};
   Stage.ready=true;
   const ld=document.getElementById('stageLoading');
   if(ld) ld.style.display='none';
@@ -334,7 +337,14 @@ new FBXLoader().load('assets/golfer-drive.fbx',(fbx)=>{ // フルスイング素
    demo: お手本ループ再生（イントロ）
    live: 計測角度でスクラブ（あなたの分身） */
 let liveAng=0, liveState='idle', topAng=-60;
-let renderT=ANCH.addr, lastTs=null;
+let renderT=ANCH.addr, lastTs=null, smoothAng=0;
+const spineBones=[];
+// 背骨コイル: ユーザーの角度に比例して胴体をひねる（mixer更新の後に加算する）
+function applyCoil(a){
+  const k=(window.__coil!==undefined)?window.__coil:0.0028; // rad/deg（3本合計で60°時に約±29°）
+  const c=a*k;
+  for(const b of spineBones) b.rotation.y+=c;
+}
 // お手本タイムライン: 8時(−60°)→4時(+60°)。モーキャプの自然な再生速度に合わせた尺
 const DSEG=[[0,-60,1100,350],[-60,60,1050,800],[60,0,950,700]];
 let demoSi=0, demoT0=null;
@@ -389,20 +399,18 @@ function animate(ts){
       action.paused=true;
       action.time=clamp(renderT,0,clipDur-0.001);
       mixer.update(0);
+      applyCoil(d);
       updateTrail(ts,clamp(-d,-110,110));
     } else {
-      // live: 計測角度→アニメ時刻。バネ追従＋再生速度の上限（モーキャプの約1.35倍まで）
-      // → 速く振っても彫像は自然なテンポで振り切り、すぐ追いつく（ぎこちなさの根治）
-      const target=angleToTime(liveAng,liveState);
-      let next=renderT+(target-renderT)*Math.min(1,dts*9);
-      const maxFwd=dts*1.35, maxBack=dts*2.2; // 巻き戻し（構え直し）はやや速めに許容
-      if(next-renderT>maxFwd) next=renderT+maxFwd;
-      else if(renderT-next>maxBack) next=renderT-maxBack;
-      renderT=next;
+      // live: 角度を平滑化（ノイズの震えを根絶）→ スクラブ即応＋背骨コイル1:1。速度上限は廃止
+      smoothAng+=(liveAng-smoothAng)*Math.min(1,dts*9);
+      const target=angleToTime(smoothAng,liveState);
+      renderT+=(target-renderT)*Math.min(1,dts*10);
       action.paused=true;
       action.time=clamp(renderT,0,clipDur-0.001);
       mixer.update(0);
-      updateTrail(ts,clamp(-liveAng,-110,110)); // 観客視点: バックは画面左へ
+      applyCoil(smoothAng);
+      updateTrail(ts,clamp(-smoothAng,-110,110)); // 観客視点: バックは画面左へ
     }
   }
   const t=ts*0.001;
