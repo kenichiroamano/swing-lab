@@ -9,9 +9,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,800;1,800&family=Noto+Serif+JP:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="theme.css">
 <style>
-/* The Pitch v2 — ゴルファー視点ダイヤル */
-.dial-wrap{display:flex;justify-content:center;margin:6px 0}
-.dial-wrap svg{width:min(74vw,290px);height:auto;filter:drop-shadow(0 18px 30px rgba(31,42,33,.18)) drop-shadow(0 4px 8px rgba(31,42,33,.10))}
+/* The Pitch v6 — 3Dステージ統合（白磁のゴルファー × 時計の文字盤 × 計測スクラブ） */
+.stage3d{width:100%;height:46vh;min-height:300px;position:relative;margin:4px 0}
+.stage3d canvas{width:100%!important;height:100%!important;display:block}
+.stage-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  color:#B8804C;font-size:11px;letter-spacing:.22em}
 .live-chip-area{min-height:34px;text-align:center;margin-top:4px}
 .live-state{font-size:11px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;text-align:center;margin-bottom:4px;min-height:14px}
 .swing-count{font-size:12px;color:var(--sub);letter-spacing:.14em;text-align:center}
@@ -23,6 +25,13 @@
 .stat-anim{opacity:0;transform:translateY(6px);transition:all .5s cubic-bezier(.22,.61,.36,1)}
 .stat-anim.in{opacity:1;transform:none}
 </style>
+<script>window.__err=[];window.onerror=m=>window.__err.push(String(m));</script>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+}}
+</script>
 </head>
 <body>
 
@@ -32,7 +41,7 @@
   <h1 class="title-en">The <em>Pitch</em></h1>
   <div class="title-jp" id="introJp"></div>
   <div class="hairline"></div>
-  <div class="dial-wrap"><svg id="dialIntro" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg"></svg></div>
+  <div class="stage3d" id="stageIntro"><div class="stage-loading" id="stageLoading">PREPARING THE GOLFER…</div></div>
   <p class="body-text" id="introBody"></p>
   <div class="card"><p class="note center" id="introNote"></p></div>
   <button class="btn gold mt16" id="btnBegin"></button>
@@ -69,7 +78,7 @@
 <section class="screen" id="sc-live">
   <div class="live-state" id="liveState"></div>
   <div class="swing-count"><span id="swingLabel"></span> <span id="swingNum">1</span> / 5</div>
-  <div class="dial-wrap"><svg id="dialLive" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg"></svg></div>
+  <div class="stage3d" id="stageLive"></div>
   <p class="note center" id="liveHint"></p>
   <div class="dots" id="dots"></div>
   <div class="live-chip-area" id="chipArea"></div>
@@ -103,154 +112,313 @@
 
 <script src="core.js"></script>
 <script src="strings.js"></script>
+
+<!-- ════════════ 3Dステージ（時計の文字盤 × 白磁のゴルファー × 計測スクラブ） ════════════ -->
+<script type="module">
+import * as THREE from 'three';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
+
+const Stage={ready:false, mode:'demo', queue:[]};
+window.Stage3D=Stage;
+
+const isMobile=matchMedia('(pointer:coarse)').matches;
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio,isMobile?1.2:1.75));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=0.84;
+const canvas=renderer.domElement;
+
+const scene=new THREE.Scene(); // 背景透過＝ページのクリームが生きる
+const camera=new THREE.PerspectiveCamera(38,1,0.1,60);
+camera.position.set(0,2.1,5.0);
+camera.lookAt(0,0.85,0);
+
+const pmrem=new THREE.PMREMGenerator(renderer);
+scene.environment=pmrem.fromScene(new RoomEnvironment(),0.04).texture;
+
+const key=new THREE.DirectionalLight(0xfff0dd,2.0);
+key.position.set(2.5,6,3);
+key.castShadow=true;
+key.shadow.mapSize.set(1024,1024);
+key.shadow.camera.left=-4;key.shadow.camera.right=4;key.shadow.camera.top=5;key.shadow.camera.bottom=-1;
+key.shadow.radius=6; key.shadow.bias=-0.0004;
+scene.add(key);
+const rim=new THREE.PointLight(0xC8956C,12,18);
+rim.position.set(-3.5,2,-3);
+scene.add(rim);
+
+// 影だけ受ける床（透明）
+const shadowGround=new THREE.Mesh(new THREE.PlaneGeometry(40,40),new THREE.ShadowMaterial({opacity:0.15}));
+shadowGround.rotation.x=-Math.PI/2; shadowGround.receiveShadow=true;
+scene.add(shadowGround);
+
+/* ── 時計の文字盤ステージ（観客視点: 8=左, 4=右） ── */
+const R=2.55;
+const GOLD=new THREE.MeshStandardMaterial({color:0xc09455,metalness:1.0,roughness:0.18,envMapIntensity:1.2});
+const GOLD_SOFT=new THREE.MeshStandardMaterial({color:0xa9803f,metalness:1.0,roughness:0.3,envMapIntensity:1.05});
+const INK=new THREE.MeshStandardMaterial({color:0x1F2A21,metalness:0.4,roughness:0.4});
+
+function dialTexture(){
+  const S=1024, cv=document.createElement('canvas'); cv.width=cv.height=S;
+  const x=cv.getContext('2d');
+  const g=x.createRadialGradient(S/2,S/2,40,S/2,S/2,S/2);
+  g.addColorStop(0,'#FBF6E9'); g.addColorStop(.75,'#F5EEDD'); g.addColorStop(1,'#EFE6D0');
+  x.fillStyle=g; x.fillRect(0,0,S,S);
+  x.save(); x.translate(S/2,S/2); x.globalAlpha=.05; x.strokeStyle='#8a7a56'; x.lineWidth=1;
+  for(let i=0;i<240;i++){ x.rotate(Math.PI*2/240); x.beginPath(); x.moveTo(60,0); x.lineTo(S/2-30,0); x.stroke(); }
+  x.restore();
+  x.save(); x.translate(S/2,S/2); x.strokeStyle='rgba(31,42,33,.5)';
+  for(let i=0;i<60;i++){
+    const major=i%5===0;
+    x.lineWidth=major?3:1.5; x.beginPath();
+    x.moveTo(0,major?-418:-424); x.lineTo(0,-436); x.stroke();
+    x.rotate(Math.PI*2/60);
+  }
+  x.restore();
+  // 観客視点: ゴルファーが正面を向くため、バックは画面左 → 8=左, 4=右
+  x.fillStyle='#1F2A21'; x.textAlign='center'; x.textBaseline='middle';
+  x.font='italic 800 120px Georgia, serif';
+  const NR=320;
+  x.fillText('8', S/2-Math.sin(Math.PI/3)*NR, S/2+Math.cos(Math.PI/3)*NR);
+  x.fillText('4', S/2+Math.sin(Math.PI/3)*NR, S/2+Math.cos(Math.PI/3)*NR);
+  x.font='600 30px Inter, sans-serif'; x.fillStyle='rgba(31,42,33,.8)';
+  x.save(); x.translate(S/2,S/2-210); x.letterSpacing='12px'; x.fillText('G O L F L E V',6,0); x.restore();
+  x.font='500 19px Inter, sans-serif'; x.fillStyle='rgba(184,128,76,.9)';
+  x.fillText('T H E   P I T C H', S/2+3, S/2-168);
+  const tex=new THREE.CanvasTexture(cv);
+  tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=8;
+  return tex;
+}
+
+const stageG=new THREE.Group();
+scene.add(stageG);
+const facePlate=new THREE.Mesh(new THREE.CylinderGeometry(R,R+0.03,0.12,128),
+  new THREE.MeshStandardMaterial({color:0xE3D8C0,roughness:.55,envMapIntensity:.5}));
+facePlate.position.y=0.06; facePlate.receiveShadow=true; facePlate.castShadow=true;
+stageG.add(facePlate);
+const print=new THREE.Mesh(new THREE.CircleGeometry(R-0.13,128),
+  new THREE.MeshPhysicalMaterial({map:dialTexture(),roughness:.55,clearcoat:.4,clearcoatRoughness:.4,envMapIntensity:.35}));
+print.rotation.x=-Math.PI/2; print.position.y=0.125;
+print.receiveShadow=true;
+stageG.add(print);
+const bezel=new THREE.Mesh(new THREE.TorusGeometry(R+0.01,0.10,40,160),GOLD);
+bezel.rotation.x=Math.PI/2; bezel.position.y=0.10; bezel.castShadow=true;
+stageG.add(bezel);
+
+// 座標系: θ=0が手前(6時)、+θ=画面右
+const dialPos=(th,rad)=>[Math.sin(th*Math.PI/180)*rad,0,Math.cos(th*Math.PI/180)*rad];
+
+// 目標ゾーン（観客視点: バック=左=θ負, フォロー=右=θ正）
+function zoneArc(centerDeg){
+  const pts=[];
+  for(let a=centerDeg-10;a<=centerDeg+10;a+=2.5){
+    const [x,,z]=dialPos(a,R-0.30);
+    pts.push(new THREE.Vector3(x,0.135,z));
+  }
+  const arc=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),24,0.03,10,false),GOLD);
+  stageG.add(arc);
+}
+zoneArc(-60); zoneArc(60);
+{ const [dx,,dz]=dialPos(0,R-0.30);
+  const dot=new THREE.Mesh(new THREE.SphereGeometry(0.045,20,20),GOLD);
+  dot.position.set(dx,0.135,dz); stageG.add(dot); }
+
+/* ── 金の軌跡リボン（あなたのスイングが光になる） ── */
+const TRAIL_MS=430, TRAIL_N=26;
+const trailGeo=new THREE.BufferGeometry();
+const tPos=new Float32Array(TRAIL_N*2*3);
+trailGeo.setAttribute('position',new THREE.BufferAttribute(tPos,3));
+{ const idx=[]; for(let i=0;i<TRAIL_N-1;i++){const a=i*2,b=a+1,c=a+2,d=a+3; idx.push(a,b,c,b,d,c);} trailGeo.setIndex(idx); }
+const trailMesh=new THREE.Mesh(trailGeo,new THREE.MeshBasicMaterial({color:0xffd9a0,transparent:true,opacity:.8,
+  blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
+trailMesh.frustumCulled=false;
+stageG.add(trailMesh);
+let trailSamples=[];
+function updateTrail(now,deg){
+  trailSamples.push({t:now,d:deg});
+  while(trailSamples.length && now-trailSamples[0].t>TRAIL_MS) trailSamples.shift();
+  const m=trailSamples.length;
+  const visible=m>=3 && Math.abs(trailSamples[m-1].d-trailSamples[0].d)>2.5;
+  trailMesh.visible=visible;
+  if(!visible) return;
+  for(let i=0;i<TRAIL_N;i++){
+    const s=trailSamples[Math.max(0,m-TRAIL_N+i)]||trailSamples[0];
+    const age=Math.min(1,(now-s.t)/TRAIL_MS);
+    const w=0.5*(1-age)+0.03;
+    const [xi,,zi]=dialPos(s.d,R-0.30-w*0.08);
+    const [xo,,zo]=dialPos(s.d,R-0.30+w*0.08);
+    tPos[i*6]=xi;   tPos[i*6+1]=0.14; tPos[i*6+2]=zi;
+    tPos[i*6+3]=xo; tPos[i*6+4]=0.14; tPos[i*6+5]=zo;
+  }
+  trailGeo.attributes.position.needsUpdate=true;
+}
+
+/* ── 白磁のゴルファー（確定マテリアル: 白磁×金の関節） ── */
+let mixer=null, action=null, golfer=null, clipDur=1.93;
+// スクラブのアンカー（Golf Chipアニメ内の時刻。実機確認で微調整可: window.__anchors）
+const ANCH=window.__anchors={addr:0.12, top:0.80, impact:1.12, finish:1.62};
+const GOLD_JOINT_RE=/Neck|Head|Shoulder|(Left|Right)Arm$|(Left|Right)ForeArm$|Hand|(Left|Right)Leg$|Foot|Toe/;
+
+new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
+  golfer=fbx;
+  golfer.scale.setScalar(0.0095);
+  golfer.position.y=0.125;
+  golfer.rotation.y=Math.PI/2; // 正面（観客視点）へ。逆向きなら window.__faceRot で調整
+  window.__faceRot=r=>{ golfer.rotation.y=r; return r; };
+  const bodyMat=new THREE.MeshPhysicalMaterial({color:0xF2E8D6,metalness:0,roughness:.3,clearcoat:.55,clearcoatRoughness:.35,envMapIntensity:.7});
+  const jointWhite=new THREE.MeshPhysicalMaterial({color:0xF2E8D6,metalness:0,roughness:.22,clearcoat:.7,clearcoatRoughness:.25,envMapIntensity:.8});
+  const jointGold=new THREE.MeshStandardMaterial({color:0xC8956C,metalness:.95,roughness:.3,envMapIntensity:1.0});
+  golfer.traverse(c=>{
+    if(!c.isMesh) return;
+    c.castShadow=true;
+    const n=((c.material&&c.material.name)||c.name||'').toLowerCase();
+    if(!n.includes('joint')){ c.material=bodyMat; return; }
+    // 関節を金/白磁に面単位で分割（インデックスなし形状対応・胴体中心は白磁）
+    const geo=c.geometry;
+    if(!geo.attributes.skinIndex || !c.skeleton){ c.material=jointGold; return; }
+    const boneNames=c.skeleton.bones.map(b=>b.name||'');
+    const si=geo.attributes.skinIndex, sw=geo.attributes.skinWeight, pos=geo.attributes.position;
+    const comp=(a,v,j)=>a.array[v*a.itemSize+j];
+    geo.computeBoundingBox();
+    const bb=geo.boundingBox;
+    const mins=[bb.min.x,bb.min.y,bb.min.z], maxs=[bb.max.x,bb.max.y,bb.max.z];
+    const sizes=[maxs[0]-mins[0],maxs[1]-mins[1],maxs[2]-mins[2]];
+    const up=sizes.indexOf(Math.max(...sizes));
+    const lat=[0,1,2].filter(a=>a!==up);
+    const H=sizes[up];
+    const c0=(maxs[lat[0]]+mins[lat[0]])/2, c1=(maxs[lat[1]]+mins[lat[1]])/2;
+    const inTorso=v=>{
+      const p=[comp(pos,v,0),comp(pos,v,1),comp(pos,v,2)];
+      const h=(p[up]-mins[up])/H;
+      const r=Math.hypot(p[lat[0]]-c0,p[lat[1]]-c1);
+      return h>0.44 && h<0.80 && r<0.095*H;
+    };
+    const hasIdx=!!geo.index;
+    const faceCount=hasIdx?geo.index.count/3:pos.count/3;
+    const vAt=hasIdx?(f,k)=>geo.index.array[f*3+k]:(f,k)=>f*3+k;
+    const goldIdx=[], whiteIdx=[];
+    for(let f=0;f<faceCount;f++){
+      let votes=0;
+      const tri=[vAt(f,0),vAt(f,1),vAt(f,2)];
+      for(const v of tri){
+        let best=0,bw=-1;
+        for(let j=0;j<4;j++){ const w=comp(sw,v,j); if(w>bw){bw=w;best=comp(si,v,j);} }
+        if(!inTorso(v) && GOLD_JOINT_RE.test(boneNames[best])) votes++;
+      }
+      (votes>=2?goldIdx:whiteIdx).push(tri[0],tri[1],tri[2]);
+    }
+    geo.setIndex(goldIdx.concat(whiteIdx));
+    geo.clearGroups();
+    geo.addGroup(0,goldIdx.length,0);
+    geo.addGroup(goldIdx.length,whiteIdx.length,1);
+    c.material=[jointGold,jointWhite];
+  });
+  scene.add(golfer);
+  if(fbx.animations&&fbx.animations.length){
+    mixer=new THREE.AnimationMixer(golfer);
+    action=mixer.clipAction(fbx.animations[0]);
+    clipDur=fbx.animations[0].duration;
+    action.play();
+  }
+  Stage.ready=true;
+  const ld=document.getElementById('stageLoading');
+  if(ld) ld.style.display='none';
+},undefined,e=>{ window.__err.push('FBX: '+(e.message||e)); });
+
+/* ── モード制御 ──
+   demo: お手本ループ再生（イントロ）
+   live: 計測角度でスクラブ（あなたの分身） */
+let liveAng=0, liveState='idle', topAng=-60;
+let renderT=ANCH.addr, lastTs=null;
+Stage.mount=(id)=>{
+  const el=document.getElementById(id);
+  if(el && canvas.parentElement!==el){ el.appendChild(canvas); Stage.resize(); }
+};
+Stage.resize=()=>{
+  const el=canvas.parentElement; if(!el) return;
+  const w=el.clientWidth, h=el.clientHeight;
+  renderer.setSize(w,h,false);
+  camera.aspect=w/h; camera.updateProjectionMatrix();
+};
+Stage.setMode=m=>{ Stage.mode=m; trailSamples=[]; };
+Stage.setLive=(ang,state)=>{
+  liveAng=ang;
+  if(liveState==='back'&&state==='down') topAng=Math.min(-10,liveAng); // 切り返し時のトップ角を記録
+  liveState=state;
+};
+addEventListener('resize',()=>Stage.resize());
+
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,u)=>a+(b-a)*u;
+function angleToTime(ang,state){
+  // バック側(負)=addr→top / ダウン=top→impact / フォロー側(正)=impact→finish
+  if(state==='back'||(state==='idle'&&ang<-3)) return lerp(ANCH.addr,ANCH.top,clamp(-ang/70,0,1));
+  if(state==='down'){
+    if(ang<-2) return lerp(ANCH.top,ANCH.impact,clamp(1-(ang/topAng),0,1));
+    return lerp(ANCH.impact,ANCH.finish,clamp(ang/70,0,1));
+  }
+  if(ang>3) return lerp(ANCH.impact,ANCH.finish,clamp(ang/70,0,1));
+  return ANCH.addr;
+}
+
+function animate(ts){
+  const dts=lastTs?Math.min(0.05,(ts-lastTs)/1000):0.016; lastTs=ts;
+  if(mixer&&action){
+    if(Stage.mode==='demo'){
+      action.paused=false;
+      mixer.timeScale=0.55;
+      mixer.update(dts);
+    } else {
+      // live: 計測角度→アニメ時刻（バネ追従でなめらかに）
+      const target=angleToTime(liveAng,liveState);
+      renderT+=(target-renderT)*Math.min(1,dts*12);
+      action.paused=true;
+      action.time=clamp(renderT,0,clipDur-0.001);
+      mixer.update(0);
+      updateTrail(ts,clamp(-liveAng,-110,110)); // 観客視点: バック(負)=左(θ負→-ang正…逆) → -ang
+    }
+  }
+  const t=ts*0.001;
+  camera.position.set(Math.sin(t*0.15)*0.35, 2.1+Math.sin(t*0.1)*0.05, 5.0);
+  camera.lookAt(0,0.85,0);
+  renderer.render(scene,camera);
+  requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+Stage.mount('stageIntro');
+</script>
+
+<!-- ════════════ 計測エンジン（検証済み・不変） ════════════ -->
 <script>
-/* The Pitch v2 — 計測v6（最下点緩和＋角度連続化）/ ゴルファー視点ダイヤル / バネ針＋金の軌跡 */
 const SET_SIZE=5, TARGET=60, ZONE_MIN=50, ZONE_MAX=70, MIN_BACK=30;
 const $=id=>document.getElementById(id);
 
-/* ════════════════════════════════════════════════════════════
-   時計文字盤（ゴルファー視点が既定）
-   表示回転 dispAngle = flip ? -inPlane : +inPlane
-   既定（右利き・見下ろし視点）: バック → 針は右（8）、フォロー → 左（4）
-   ════════════════════════════════════════════════════════════ */
-let FLIP=!!GLStore.get('dialFlip',false);
-
-function buildDial(svg){
-  svg.innerHTML='';
-  const NS='http://www.w3.org/2000/svg';
-  const C=120;
-  const pos=(deg,R)=>{ const r=deg*Math.PI/180; return [C-R*Math.sin(r), C+R*Math.cos(r)]; };
-  const el=(n,attrs,parent)=>{ const e=document.createElementNS(NS,n); for(const k in attrs) e.setAttribute(k,attrs[k]); (parent||svg).appendChild(e); return e; };
-
-  // 文字盤
-  el('circle',{cx:C,cy:C,r:114,fill:'#F7F1E3',stroke:'rgba(31,42,33,.25)','stroke-width':1});
-  el('circle',{cx:C,cy:C,r:108,fill:'none',stroke:'rgba(184,128,76,.5)','stroke-width':0.8});
-
-  // ティック（8/6/4位置は長め）
-  for(let k=0;k<12;k++){
-    const th=k*30;
-    const major=(th===0||th===60||th===300);
-    const [x1,y1]=pos(th, major?100:102);
-    const [x2,y2]=pos(th, 94);
-    el('line',{x1,y1,x2,y2,stroke:major?'#1F2A21':'rgba(31,42,33,.35)','stroke-width':major?2:1});
-  }
-
-  // 目標ゾーン（両側）
-  const zoneArc=(a1,a2)=>{
-    const [x1,y1]=pos(a1,98),[x2,y2]=pos(a2,98);
-    return el('path',{d:`M ${x1} ${y1} A 98 98 0 0 1 ${x2} ${y2}`,fill:'none',stroke:'#B8804C','stroke-width':5,'stroke-linecap':'round',opacity:.85});
-  };
-  const zoneL=zoneArc(50,70);    // 画面左下
-  const zoneR=zoneArc(-70,-50);  // 画面右下
-
-  // 数字: ゴルファー視点では 8=右、4=左。flipで入替
-  const num=(deg,txt)=>{
-    const [x,y]=pos(deg,70);
-    const t=el('text',{x,y,'text-anchor':'middle','dominant-baseline':'central',
-      fill:'#1F2A21','font-size':22,'font-family':"'Playfair Display',serif",'font-weight':800});
-    t.textContent=txt;
-  };
-  num(FLIP?60:-60,'8');
-  num(FLIP?-60:60,'4');
-
-  // アドレス位置（6時）の金ドット
-  const [dx,dy]=pos(0,98);
-  el('circle',{cx:dx,cy:dy,r:3,fill:'#B8804C'});
-
-  // 軌跡（針より下のレイヤー）— 金のインクのように残る
-  const trailWide=el('path',{d:'',fill:'none',stroke:'#B8804C','stroke-width':11,opacity:.16,'stroke-linecap':'round'});
-  const trailCore=el('path',{d:'',fill:'none',stroke:'#C8956C','stroke-width':3,opacity:.55,'stroke-linecap':'round'});
-
-  // 針（ゴルファー人形は2026-06-11夜にkenの判定で撤去。人体表現は3D質感方式で再挑戦する）
-  const g=document.createElementNS(NS,'g');
-  svg.appendChild(g);
-  el('line',{x1:C,y1:C,x2:C,y2:C+88,stroke:'#B8804C','stroke-width':3.5,'stroke-linecap':'round'},g);
-  el('line',{x1:C,y1:C,x2:C,y2:C-22,stroke:'#B8804C','stroke-width':3,'stroke-linecap':'round'},g);
-  el('circle',{cx:C,cy:C,r:6,fill:'#1F2A21'},g);
-  el('circle',{cx:C,cy:C,r:2.2,fill:'#F7F1E3'},g);
-
-  return {
-    setAngle(d){ g.setAttribute('transform',`rotate(${d} ${C} ${C})`); },
-    setTrail(d){
-      if(Math.abs(d)<3){ trailWide.setAttribute('d',''); trailCore.setAttribute('d',''); return; }
-      const R=80;
-      const [x0,y0]=pos(0,R), [x1,y1]=pos(d,R);
-      const sweep=d>0?1:0;
-      const path=`M ${x0} ${y0} A ${R} ${R} 0 0 ${sweep} ${x1} ${y1}`;
-      trailWide.setAttribute('d',path);
-      trailCore.setAttribute('d',path);
-    },
-    glow(side){ // side: 'L' | 'R' | null
-      zoneL.setAttribute('opacity', side==='L'?1:.85);
-      zoneL.setAttribute('stroke-width', side==='L'?6.5:5);
-      zoneR.setAttribute('opacity', side==='R'?1:.85);
-      zoneR.setAttribute('stroke-width', side==='R'?6.5:5);
-    }
-  };
-}
-
-let introDial=buildDial($('dialIntro'));
-let liveDial=buildDial($('dialLive'));
-
-/* イントロのお手本（ゴルファー視点: バック=右へ。テンポ約2:1） */
-(function introAnim(){
-  const easeInOut=u=>u<0.5?2*u*u:1-Math.pow(-2*u+2,2)/2;
-  const easeIn=u=>u*u;
-  let si=0,t0=null;
-  function frame(ts){
-    const back=FLIP?60:-60; // 表示角: バック方向
-    const segs=[
-      [0,back,950,260,easeInOut],
-      [back,-back,480,700,easeIn],
-      [-back,0,850,600,easeInOut]
-    ];
-    if(t0===null)t0=ts;
-    const [a0,a1,dur,hold,ease]=segs[si];
-    const dt=ts-t0;
-    let d=a1;
-    if(dt<=dur) d=a0+(a1-a0)*ease(Math.min(1,dt/dur));
-    else if(dt>dur+hold){ si=(si+1)%segs.length; t0=ts; }
-    introDial.setAngle(d); introDial.setTrail(d);
-    if(STATE.phase==='intro') requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
-})();
-
-/* ════════════════════════════════════════════════════════════
-   状態
-   ════════════════════════════════════════════════════════════ */
 const STATE={ phase:'intro', frame:null, swings:[], rCal:GLStore.get('rCal',0.65) };
 const SENSOR={ alpha:0,beta:0,gamma:0 };
 const MOTION={ acc:{x:0,y:0,z:0}, rot:{alpha:0,beta:0,gamma:0}, seen:false };
-let lastSide=-1; // 左右の判定（方位角のヒステリシス付き）
+let FLIP=!!GLStore.get('dialFlip',false);
+let lastSide=-1;
 let omegaS=0, lastT=null, lastA=null;
 let acSum=0, acCnt=0;
 const tracker=new SwingTracker();
 let chipTimer=null;
-let targetDisp=0, renderedDisp=0, curAngle=0;
 
 function goto(phase){
   STATE.phase=phase;
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   $('sc-'+phase).classList.add('active');
+  if(window.Stage3D){
+    if(phase==='intro'){ Stage3D.setMode('demo'); Stage3D.mount('stageIntro'); }
+    if(phase==='live'){ Stage3D.setMode('live'); Stage3D.mount('stageLive'); }
+    setTimeout(()=>Stage3D.resize&&Stage3D.resize(),60);
+  }
 }
 
-/* 針のバネ追従（常時レンダリングループ） */
-(function springLoop(){
-  renderedDisp+=(targetDisp-renderedDisp)*0.30;
-  if(STATE.phase==='live'){
-    liveDial.setAngle(renderedDisp);
-    liveDial.setTrail(renderedDisp);
-    const ab=Math.abs(curAngle);
-    if(ab>=ZONE_MIN&&ab<=ZONE_MAX) liveDial.glow(renderedDisp>0?'L':'R');
-    else liveDial.glow(null);
-  }
-  requestAnimationFrame(springLoop);
-})();
-
-/* ════════════════════════════════════════════════════════════
-   文言
-   ════════════════════════════════════════════════════════════ */
+/* 文言 */
 $('introEyebrow').textContent=STR.t('pitch.eyebrow');
 $('introJp').textContent=STR.t('pitch.title.jp');
 $('introBody').innerHTML=STR.t('pitch.intro.body');
@@ -273,9 +441,7 @@ $('issuesTitle').textContent=STR.t('result.issues');
 $('btnAgain').textContent=STR.t('result.btn.again');
 $('btnRecal2').textContent=STR.t('result.btn.recal');
 
-/* ════════════════════════════════════════════════════════════
-   センサー
-   ════════════════════════════════════════════════════════════ */
+/* センサー */
 async function requestPermission(){
   try{
     if(typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){
@@ -308,9 +474,7 @@ function onMotion(e){
   }
 }
 
-/* ════════════════════════════════════════════════════════════
-   キャリブレーション
-   ════════════════════════════════════════════════════════════ */
+/* キャリブレーション */
 let calibTimer=null;
 function startCalib(){
   GLAudio.ensure(); GLAudio.click();
@@ -339,13 +503,10 @@ function startCalib(){
   },50);
 }
 
-/* ════════════════════════════════════════════════════════════
-   ライブ計測
-   ════════════════════════════════════════════════════════════ */
+/* ライブ計測 */
 function startSet(){
   STATE.swings=[];
   omegaS=0; lastT=null; lastA=null; lastSide=-1; tracker.reset();
-  targetDisp=0; renderedDisp=0; curAngle=0;
   renderDots(); $('swingNum').textContent='1';
   $('chipArea').innerHTML='';
   $('liveState').textContent=STR.t('live.ready');
@@ -356,9 +517,9 @@ function tick(){
   const t=performance.now();
   const qC=QuatUtils.fromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma);
   const A=signedAngles(qC,STATE.frame);
-  // 大きさ=総シャフト角（回転不変）、左右=水平方位角の符号（ヒステリシス3°）
   if(Math.abs(A.azimuth)>3) lastSide=Math.sign(A.azimuth);
-  const ang=lastSide*A.mag;
+  let ang=lastSide*A.mag;
+  if(FLIP) ang=-ang;
 
   if(lastT!==null){
     const dt=(t-lastT)/1000;
@@ -385,8 +546,7 @@ function tick(){
   if(prev==='idle' && tracker.state!=='idle'){ GLAudio.start(); acSum=0; acCnt=0; }
   if(r) onSwing(r);
 
-  curAngle=ang;
-  targetDisp=GLMath.clamp(FLIP?-ang:ang,-110,110);
+  if(window.Stage3D) Stage3D.setLive(ang,tracker.state);
   $('liveState').textContent=tracker.state==='idle'?STR.t('live.ready'):(tracker.state==='back'?STR.t('live.back'):STR.t('live.through'));
 }
 
@@ -432,9 +592,7 @@ function showChip(cls,txt){
   chipTimer=setTimeout(()=>{ $('chipArea').innerHTML=''; }, 1700);
 }
 
-/* ════════════════════════════════════════════════════════════
-   結果
-   ════════════════════════════════════════════════════════════ */
+/* 結果 */
 function showResult(){
   const sw=STATE.swings;
   const backs=sw.map(s=>Math.abs(s.back));
@@ -504,14 +662,12 @@ function showResult(){
   else GLAudio.warn();
   goto('result');
 
-  // 演出: 統計の段階表示
   document.querySelectorAll('.stat-anim').forEach((el,i)=>{
     el.classList.remove('in');
     setTimeout(()=>el.classList.add('in'), 250+i*160);
   });
 }
 
-/* 5球チャート（中央=アドレス、左右=バック/フォロー、帯=目標ゾーン） */
 function drawChart(sw){
   const svg=$('chart');
   svg.innerHTML='';
@@ -543,17 +699,11 @@ function drawChart(sw){
   requestAnimationFrame(()=>requestAnimationFrame(()=>bars.forEach(b=>b.style.transform='scaleX(1)')));
 }
 
-/* ════════════════════════════════════════════════════════════
-   ボタン
-   ════════════════════════════════════════════════════════════ */
+/* ボタン */
 $('btnBegin').addEventListener('click',()=>{ GLAudio.ensure(); GLAudio.click(); goto('perm'); });
 $('btnPerm').addEventListener('click',requestPermission);
 $('btnCalib').addEventListener('click',startCalib);
-$('btnFlip').addEventListener('click',()=>{
-  FLIP=!FLIP; GLStore.set('dialFlip',FLIP);
-  liveDial=buildDial($('dialLive'));
-  GLAudio.click();
-});
+$('btnFlip').addEventListener('click',()=>{ FLIP=!FLIP; GLStore.set('dialFlip',FLIP); GLAudio.click(); });
 $('btnReaddress').addEventListener('click',()=>{ STATE.frame=null; $('calibCount').textContent='—'; goto('address'); });
 $('btnAgain').addEventListener('click',()=>{ GLAudio.click(); startSet(); });
 $('btnRecal2').addEventListener('click',()=>{ STATE.frame=null; $('calibCount').textContent='—'; goto('address'); });
