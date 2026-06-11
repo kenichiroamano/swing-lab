@@ -324,10 +324,21 @@ new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{ // チップ素材（ド�
     clipDur=fbx.animations[0].duration;
     action.play();
   }
-  window.__clipInfo={dur:clipDur, anims:fbx.animations.length, v:9};
+  window.__clipInfo={dur:clipDur, anims:fbx.animations.length, src:'chip', v:10};
   Stage.ready=true;
   const ld=document.getElementById('stageLoading');
   if(ld) ld.style.display='none';
+  // ken再出力のアニメ（Golf Chip (1)、Without Skin）があればそちらの動きを優先適用
+  new FBXLoader().load('assets/golfer-chip2.fbx',(animFbx)=>{
+    if(animFbx.animations && animFbx.animations.length && mixer){
+      mixer.stopAllAction();
+      action=mixer.clipAction(animFbx.animations[0]);
+      clipDur=animFbx.animations[0].duration;
+      renderT=Math.min(renderT,clipDur-0.01);
+      action.play();
+      window.__clipInfo={dur:clipDur, anims:animFbx.animations.length, src:'chip2', v:10};
+    }
+  },undefined,()=>{ /* 無ければ既存アニメのまま */ });
 },undefined,e=>{ window.__err.push('FBX: '+(e.message||e)); });
 
 /* ── モード制御 ──
