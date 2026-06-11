@@ -7,8 +7,15 @@
 html,body{height:100%}
 body{background:var(--bg);color:var(--ink);font-family:'Inter','Noto Serif JP',serif}
 
-.screen{display:none;padding:30px 20px 52px;max-width:430px;margin:0 auto;min-height:100vh}
-.screen.active{display:block}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse at 50% 30%, rgba(247,241,227,.0) 40%, rgba(31,42,33,.05) 100%)}
+.screen{display:none;padding:30px 20px 52px;max-width:430px;margin:0 auto;min-height:100vh;position:relative;z-index:1}
+.screen.active{display:block;animation:glFadeUp .5s cubic-bezier(.22,.61,.36,1)}
+@keyframes glFadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.btn{transition:transform .12s ease, box-shadow .12s ease}
+.btn:active{transform:scale(.985)}
+.link-btn{display:block;margin:14px auto 0;background:none;border:none;color:var(--sub);
+  font-size:11px;letter-spacing:.12em;text-decoration:underline;text-underline-offset:3px;font-family:'Inter',sans-serif}
 
 .eyebrow{font-size:11px;letter-spacing:.24em;color:var(--gold);text-transform:uppercase;text-align:center;margin-bottom:10px}
 .title-en{font-family:'Playfair Display',serif;font-weight:800;font-size:40px;text-align:center;letter-spacing:.02em;line-height:1.05}

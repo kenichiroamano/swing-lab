@@ -75,7 +75,20 @@ function magRotPerpRad(r){
   return Math.sqrt(r.alpha*r.alpha + r.beta*r.beta) * Math.PI / 180;
 }
 
-/* スイング状態機械（v5確定版）
+/* 角度の連続化（±180°ラップ除去）。フルフィニッシュ（+176°→+200°）でも符号が反転しない */
+class AngleUnwrapper {
+  constructor(){ this.acc=null; this.prev=null; }
+  reset(){ this.acc=null; this.prev=null; }
+  feed(a){
+    if(this.prev===null){ this.prev=a; this.acc=a; return a; }
+    let d=a-this.prev;
+    d=((d+540)%360)-180;
+    this.acc+=d; this.prev=a;
+    return this.acc;
+  }
+}
+
+/* スイング状態機械（v6: 最下点判定を緩和）
    idle → back（トップ検出: 30°以上＋8°戻り。フォワードプレス対策）
         → down（最下点通過・速度記録）→ 静止0.4sで確定
    緩み判定 = 最下点通過速度がピークの75%未満（時刻方式はセンサー遅延に弱いため不採用） */
@@ -117,8 +130,9 @@ class SwingTracker {
     } else if(this.state==='down'){
       if((!s.bottom || t-s.bottom.t<=250) && omega>s.peakW){ s.peakW=omega; s.peakWT=t; }
       if(!s.bottom && omega>s.maxPre) s.maxPre=omega;
-      if(s.bottom===null && Math.sign(angle)===-s.side && Math.abs(angle)>1){ s.bottom={t}; s.wBottom=omega; }
-      if(s.bottom && Math.sign(angle)===-s.side && Math.abs(angle)>Math.abs(s.finish)) s.finish=angle;
+      // 最下点 = アドレス±5°に入った時点（v6: 符号反転を待たない。アドレス付近で止める癖でも計測が成立する）
+      if(s.bottom===null && angle*s.side<=5){ s.bottom={t}; s.wBottom=omega; }
+      if(s.bottom && angle*s.side<0 && Math.abs(angle)>Math.abs(s.finish)) s.finish=angle;
       if(omega<this.endThresh){
         if(this.stillSince===null) this.stillSince=t;
         else if(t-this.stillSince>=this.endHoldMs){

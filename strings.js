@@ -22,6 +22,8 @@ const STR = {
     'address.vertical':     { ja:'シャフトが鉛直に近すぎます。通常のアドレスの角度で構え直してください。', en:'Shaft too vertical. Please address at a normal angle.' },
 
     'live.ready':           { ja:'振り始めると自動で計測',         en:'Swing to begin' },
+    'live.hint':            { ja:'8時 → 4時まで振り切って、フィニッシュで静止', en:'Swing 8 to 4, hold the finish' },
+    'live.flip':            { ja:'針の向きを反転',                 en:'Flip needle direction' },
     'live.back':            { ja:'バック計測中',                  en:'Backswing' },
     'live.through':         { ja:'フォロー計測中',                en:'Through' },
     'live.swing':           { ja:'スイング',                     en:'Swing' },
