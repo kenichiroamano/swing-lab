@@ -105,24 +105,56 @@ new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
       (n.includes('joint')?jointMeshes:bodyMeshes).push(c);
     }
   });
+  /* 関節メッシュをボーンの重みで面単位に分割:
+     金で残す = 首・肩・手首・指・足首（ken指定） / 白磁にする = 胸・腹・肘・膝など */
+  const GOLD_JOINT_RE=/Neck|Head|Shoulder|(Left|Right)Arm$|Hand|Foot|Toe/;
+  function splitJointFaces(mesh){
+    const geo=mesh.geometry;
+    if(!geo.index || !geo.attributes.skinIndex || !mesh.skeleton) return false;
+    const boneNames=mesh.skeleton.bones.map(b=>b.name||'');
+    const si=geo.attributes.skinIndex, sw=geo.attributes.skinWeight;
+    const comp=(a,v,j)=>a.array[v*a.itemSize+j];
+    const idx=Array.from(geo.index.array);
+    const goldIdx=[], whiteIdx=[];
+    for(let f=0;f<idx.length;f+=3){
+      let votes=0;
+      for(let k=0;k<3;k++){
+        const v=idx[f+k];
+        let best=0,bw=-1;
+        for(let j=0;j<4;j++){ const w=comp(sw,v,j); if(w>bw){bw=w;best=comp(si,v,j);} }
+        if(GOLD_JOINT_RE.test(boneNames[best])) votes++;
+      }
+      (votes>=2?goldIdx:whiteIdx).push(idx[f],idx[f+1],idx[f+2]);
+    }
+    geo.setIndex(goldIdx.concat(whiteIdx));
+    geo.clearGroups();
+    geo.addGroup(0,goldIdx.length,0);               // マテリアル0 = 金
+    geo.addGroup(goldIdx.length,whiteIdx.length,1); // マテリアル1 = 白磁
+    return true;
+  }
+  const splitOk=jointMeshes.map(m=>splitJointFaces(m));
+
   const THEMES={
-    porcelain:{ // 磁器: 全身アイボリー（ken指定: 胸・腹の金をやめ、関節も本体と同じ白に。艶だけ僅かに変えて立体感を残す）
+    porcelain:{ // 確定案: 白磁の体 × 金の象嵌（首・肩・手首・指・足首）
       body:new THREE.MeshPhysicalMaterial({color:0xF2E8D6,metalness:0,roughness:.3,clearcoat:.55,clearcoatRoughness:.35,envMapIntensity:.7}),
-      joint:new THREE.MeshPhysicalMaterial({color:0xF2E8D6,metalness:0,roughness:.22,clearcoat:.7,clearcoatRoughness:.25,envMapIntensity:.8})
+      jointGold:new THREE.MeshStandardMaterial({color:0xC8956C,metalness:.95,roughness:.3,envMapIntensity:1.0}),
+      jointWhite:new THREE.MeshPhysicalMaterial({color:0xF2E8D6,metalness:0,roughness:.22,clearcoat:.7,clearcoatRoughness:.25,envMapIntensity:.8})
     },
-    trophy:{ // トロフィー: シャンパンゴールドのサテン
+    trophy:{
       body:new THREE.MeshStandardMaterial({color:0xD9BE8E,metalness:.9,roughness:.42,envMapIntensity:1.0}),
-      joint:new THREE.MeshStandardMaterial({color:0xE6CD9C,metalness:1.0,roughness:.2,envMapIntensity:1.15})
+      jointGold:new THREE.MeshStandardMaterial({color:0xE6CD9C,metalness:1.0,roughness:.2,envMapIntensity:1.15}),
+      jointWhite:new THREE.MeshStandardMaterial({color:0xD9BE8E,metalness:.9,roughness:.42,envMapIntensity:1.0})
     },
-    bronze:{ // ブロンズ: 美術館の彫像
+    bronze:{
       body:new THREE.MeshStandardMaterial({color:0x4A3A28,metalness:.85,roughness:.48,envMapIntensity:.9}),
-      joint:new THREE.MeshStandardMaterial({color:0xC8956C,metalness:.95,roughness:.28,envMapIntensity:1.1})
+      jointGold:new THREE.MeshStandardMaterial({color:0xC8956C,metalness:.95,roughness:.28,envMapIntensity:1.1}),
+      jointWhite:new THREE.MeshStandardMaterial({color:0x4A3A28,metalness:.85,roughness:.48,envMapIntensity:.9})
     }
   };
   window.applyTheme=name=>{
     const th=THEMES[name]; if(!th) return;
     bodyMeshes.forEach(m=>m.material=th.body);
-    jointMeshes.forEach(m=>m.material=th.joint);
+    jointMeshes.forEach((m,i)=>{ m.material=splitOk[i]?[th.jointGold,th.jointWhite]:th.jointGold; });
     document.querySelectorAll('.tbtn').forEach(b=>b.classList.toggle('on',b.dataset.t===name));
   };
   document.querySelectorAll('.tbtn').forEach(b=>b.addEventListener('click',()=>applyTheme(b.dataset.t)));
