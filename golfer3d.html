@@ -91,9 +91,10 @@ new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
       c.castShadow=true;
       const n=((c.material&&c.material.name)||c.name||'').toLowerCase();
       if(n.includes('joint')){
-        c.material=new THREE.MeshStandardMaterial({color:0xC8956C,metalness:.95,roughness:.3,envMapIntensity:1.0});
+        c.material=new THREE.MeshStandardMaterial({color:0xC8956C,metalness:.95,roughness:.28,envMapIntensity:1.1});
       } else {
-        c.material=new THREE.MeshStandardMaterial({color:0x24352A,metalness:.2,roughness:.5,envMapIntensity:.5});
+        // モスグリーン（暗所でも緑と読める明度に。漆塗りのような軽い艶）
+        c.material=new THREE.MeshStandardMaterial({color:0x4A6B4A,metalness:.15,roughness:.38,envMapIntensity:.85});
       }
     }
   });
