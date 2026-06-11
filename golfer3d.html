@@ -110,7 +110,7 @@ new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
   const GOLD_JOINT_RE=/Neck|Head|Shoulder|(Left|Right)Arm$|Hand|Foot|Toe/;
   function splitJointFaces(mesh){
     const geo=mesh.geometry;
-    if(!geo.index || !geo.attributes.skinIndex || !mesh.skeleton) return false;
+    if(!geo.attributes.skinIndex || !mesh.skeleton) return false; // FBXLoaderはインデックスなし形状を出すため index は必須にしない
     const boneNames=mesh.skeleton.bones.map(b=>b.name||'');
     const si=geo.attributes.skinIndex, sw=geo.attributes.skinWeight, pos=geo.attributes.position;
     const comp=(a,v,j)=>a.array[v*a.itemSize+j];
@@ -130,18 +130,22 @@ new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
       const r=Math.hypot(p[lat[0]]-c0, p[lat[1]]-c1);             // 背骨軸からの距離
       return h>0.44 && h<0.80 && r<0.095*H;
     };
-    window.__jointDiag={H:+H.toFixed(1),up,bb:{min:mins.map(n=>+n.toFixed(1)),max:maxs.map(n=>+n.toFixed(1))}};
-    const idx=Array.from(geo.index.array);
+    // インデックスあり/なし両対応で面を走査
+    const hasIdx=!!geo.index;
+    const faceCount=hasIdx ? geo.index.count/3 : geo.attributes.position.count/3;
+    const vAt=hasIdx ? (f,k)=>geo.index.array[f*3+k] : (f,k)=>f*3+k;
+    window.__jointDiag={H:+H.toFixed(1),up,hasIdx,faces:faceCount,
+      bb:{min:mins.map(n=>+n.toFixed(1)),max:maxs.map(n=>+n.toFixed(1))}};
     const goldIdx=[], whiteIdx=[];
-    for(let f=0;f<idx.length;f+=3){
+    for(let f=0;f<faceCount;f++){
       let votes=0;
-      for(let k=0;k<3;k++){
-        const v=idx[f+k];
+      const tri=[vAt(f,0),vAt(f,1),vAt(f,2)];
+      for(const v of tri){
         let best=0,bw=-1;
         for(let j=0;j<4;j++){ const w=comp(sw,v,j); if(w>bw){bw=w;best=comp(si,v,j);} }
         if(!inTorso(v) && GOLD_JOINT_RE.test(boneNames[best])) votes++;
       }
-      (votes>=2?goldIdx:whiteIdx).push(idx[f],idx[f+1],idx[f+2]);
+      (votes>=2?goldIdx:whiteIdx).push(tri[0],tri[1],tri[2]);
     }
     geo.setIndex(goldIdx.concat(whiteIdx));
     geo.clearGroups();
