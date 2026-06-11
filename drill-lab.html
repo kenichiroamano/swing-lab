@@ -37,7 +37,7 @@ button.secondary{background:transparent;color:var(--ink);border:1px solid rgba(3
 <body>
 
 <h1>Drill <em>Lab</em></h1>
-<div class="tag">技術検証B v4 — 符号付き振り幅 / 切り返し / 緩み検出</div>
+<div class="tag">技術検証B v5 — 符号付き振り幅 / 切り返し / 緩み検出</div>
 
 <!-- STEP 1: 権限 -->
 <div class="card" id="permCard">
@@ -159,11 +159,12 @@ class SwingTracker {
     if(this.state==='idle'){
       if(omega>this.startThresh){
         this.state='back';
-        this.swing={t0:t,ext:0,extT:t,top:null,bottom:null,peakW:0,peakWT:null,finish:0,side:0};
+        this.swing={t0:t,ext:0,extT:t,top:null,bottom:null,peakW:0,peakWT:null,finish:0,side:0,maxPre:0,wBottom:0,lastT:t};
       }
       return null;
     }
     const s=this.swing;
+    s.lastT=t;
     if(this.state==='back'){
       if(Math.abs(angle)>Math.abs(s.ext)){ s.ext=angle; s.extT=t; }
       if(Math.abs(s.ext)>=this.minTopAngle
@@ -183,7 +184,8 @@ class SwingTracker {
     } else if(this.state==='down'){
       // ピーク探索はトップ→最下点直後(250ms)まで。フィニッシュ後の揺れを拾わない
       if((!s.bottom || t-s.bottom.t<=250) && omega>s.peakW){ s.peakW=omega; s.peakWT=t; }
-      if(s.bottom===null && Math.sign(angle)===-s.side && Math.abs(angle)>1) s.bottom={t};
+      if(!s.bottom && omega>s.maxPre) s.maxPre=omega; // 最下点前のピーク速度
+      if(s.bottom===null && Math.sign(angle)===-s.side && Math.abs(angle)>1){ s.bottom={t}; s.wBottom=omega; } // 最下点通過時の速度
       if(s.bottom && Math.sign(angle)===-s.side && Math.abs(angle)>Math.abs(s.finish)) s.finish=angle;
       if(omega<this.endThresh){
         if(this.stillSince===null) this.stillSince=t;
@@ -202,10 +204,13 @@ class SwingTracker {
       backAngle:s.top?s.top.angle:s.ext,
       followAngle:s.finish,
       complete:!!(s.top&&s.bottom),
-      slowSwing:s.peakW<50, // ピーク速度が遅すぎると緩み・テンポ判定は信頼できない（D7: 判定保留）
+      slowSwing:s.maxPre<50, // ピーク速度が遅すぎると緩み・テンポ判定は信頼できない（D7: 判定保留）
       tempoRatio:(backMs&&downMs&&downMs>0)?backMs/downMs:null,
-      decel:(s.bottom&&s.peakWT!==null)?(s.peakWT<s.bottom.t):null,
-      peakLeadMs:(s.bottom&&s.peakWT!==null)?(s.bottom.t-s.peakWT):null
+      // 緩み＝最下点通過速度がピークの75%未満（ピーク時刻方式はセンサー遅延に弱いため廃止）
+      decel:s.bottom?(s.wBottom < 0.75*s.maxPre):null,
+      wBottom:s.wBottom, maxPre:s.maxPre,
+      peakLeadMs:(s.bottom&&s.peakWT!==null)?(s.bottom.t-s.peakWT):null,
+      t0:s.t0, topT:s.top?s.top.t:null, bottomT:s.bottom?s.bottom.t:null, endT:s.lastT
     };
   }
 }
@@ -239,6 +244,7 @@ const SENSOR={alpha:0,beta:0,gamma:0,has:false};
 let frame=null;
 let lastT=null, lastAngle=null, omegaS=0;
 const tracker=new SwingTracker();
+const SAMPLES=[]; // 診断グラフ用の生データ（角度・速度）
 let swingCount=0;
 const $=id=>document.getElementById(id);
 
@@ -298,10 +304,12 @@ function tick(){
     const dt=(t-lastT)/1000;
     if(dt>0.001 && dt<0.5){
       const w=Math.abs(a.inPlane-lastAngle)/dt;
-      omegaS=omegaS*0.7+w*0.3; // 軽い平滑化
+      omegaS=omegaS*0.5+w*0.5; // 平滑化をさらに軽く（ピーク検出の遅れを減らす）
     }
   }
   lastT=t; lastAngle=a.inPlane;
+  SAMPLES.push({t, angle:a.inPlane, omega:omegaS});
+  if(SAMPLES.length>1500) SAMPLES.shift();
   const prevState=tracker.state;
   const res=tracker.feed(t,a.inPlane,omegaS);
   if(prevState==='idle' && tracker.state!=='idle') startBeep(); // 計測開始の合図
@@ -319,6 +327,27 @@ function render(a){
   $('liveCard').classList.toggle('tracking', st!=='idle');
 }
 
+// 診断用ミニグラフ：金=速度 / 緑=角度 / 赤点線=最下点
+function sparkline(r){
+  const seg=SAMPLES.filter(p=>p.t>=r.t0-150 && p.t<=r.endT+50);
+  if(seg.length<5) return '';
+  const w=280,h=56;
+  const t0=seg[0].t, t1=seg[seg.length-1].t;
+  if(t1-t0<1) return '';
+  const X=t=>((t-t0)/(t1-t0)*w);
+  const maxW=Math.max.apply(null,seg.map(p=>p.omega).concat([1]));
+  const maxA=Math.max.apply(null,seg.map(p=>Math.abs(p.angle)).concat([1]));
+  const pW=seg.map((p,i)=>(i?'L':'M')+X(p.t).toFixed(1)+','+(h-p.omega/maxW*h).toFixed(1)).join('');
+  const pA=seg.map((p,i)=>(i?'L':'M')+X(p.t).toFixed(1)+','+(h/2-p.angle/maxA*h/2).toFixed(1)).join('');
+  const bx=r.bottomT?X(r.bottomT):null;
+  let svg='<svg width="'+w+'" height="'+h+'" style="display:block;margin-top:6px;background:rgba(31,42,33,.05);border-radius:6px">';
+  svg+='<path d="'+pA+'" fill="none" stroke="#4A6B4A" stroke-width="1" opacity="0.6"/>';
+  svg+='<path d="'+pW+'" fill="none" stroke="#B8804C" stroke-width="1.5"/>';
+  if(bx!==null) svg+='<line x1="'+bx.toFixed(1)+'" y1="0" x2="'+bx.toFixed(1)+'" y2="'+h+'" stroke="#C45B4A" stroke-width="1" stroke-dasharray="3,2"/>';
+  svg+='</svg><span style="font-size:10px;color:var(--sub)">金=速度 / 緑=角度 / 赤点線=最下点通過</span>';
+  return svg;
+}
+
 function addSwing(r){
   swingCount++;
   const list=$('logList');
@@ -331,10 +360,11 @@ function addSwing(r){
   } else {
     const tempoOk=r.tempoRatio && r.tempoRatio>=0.3 && r.tempoRatio<=8;
     lines+=`テンポ ${tempoOk?r.tempoRatio.toFixed(1)+' : 1':'—（途中で止まると計測できません）'}　`;
-    const lead=Math.round(r.peakLeadMs);
-    lines+=r.decel?`<span class="ng">緩みあり：最下点の ${lead}ms 手前で減速（当てにいっています）</span>`
-                  :`<span class="ok">緩みなし：最下点の ${-lead}ms 後まで加速できています</span>`;
+    const pct=r.maxPre>0?Math.round(r.wBottom/r.maxPre*100):0;
+    lines+=r.decel?`<span class="ng">緩みあり：最下点の速度がピークの${pct}%（減速して当てています）</span>`
+                  :`<span class="ok">緩みなし：最下点まで加速できています（ピーク比${pct}%）</span>`;
   }
+  lines+=sparkline(r);
   const item=document.createElement('div');
   item.className='item';
   item.innerHTML=lines;
