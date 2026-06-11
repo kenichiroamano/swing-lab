@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Golflev · The Golfer — Mixamo統合テスト</title>
+<style>
+*{margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#EFE9DC;font-family:'Inter',-apple-system,sans-serif}
+#c{position:fixed;inset:0;width:100%;height:100%}
+.overlay{position:fixed;top:0;left:0;right:0;text-align:center;padding:26px 16px 0;pointer-events:none;z-index:2}
+.eyebrow{font-size:11px;letter-spacing:.26em;color:#B8804C;text-transform:uppercase}
+.title{font-family:Georgia,'Times New Roman',serif;font-weight:800;font-style:italic;font-size:34px;color:#1F2A21;margin-top:4px}
+.note{position:fixed;bottom:20px;left:0;right:0;text-align:center;font-size:11px;letter-spacing:.1em;color:#8A8A82;z-index:2}
+#loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  color:#B8804C;font-size:12px;letter-spacing:.2em;z-index:3;background:#EFE9DC}
+</style>
+<script>window.__err=[];window.onerror=m=>window.__err.push(String(m));</script>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="loading">LOADING THE GOLFER…</div>
+<div class="overlay">
+  <div class="eyebrow">Asset Study</div>
+  <div class="title">The Golfer</div>
+</div>
+<div class="note">Mixamoモーションキャプチャ × ブランド仕上げ（深緑の体・金の関節）</div>
+
+<script type="module">
+import * as THREE from 'three';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
+
+const canvas=document.getElementById('c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
+const isMobile=matchMedia('(pointer:coarse)').matches;
+renderer.setPixelRatio(Math.min(devicePixelRatio,isMobile?1.5:2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=0.88;
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0xEFE9DC);
+scene.fog=new THREE.Fog(0xEFE9DC,8,18);
+
+const camera=new THREE.PerspectiveCamera(35,innerWidth/innerHeight,0.1,60);
+camera.position.set(0,1.5,4.4);
+camera.lookAt(0,0.95,0);
+
+const pmrem=new THREE.PMREMGenerator(renderer);
+scene.environment=pmrem.fromScene(new RoomEnvironment(),0.04).texture;
+
+const key=new THREE.DirectionalLight(0xfff0dd,2.0);
+key.position.set(2.5,5,2.5);
+key.castShadow=true;
+key.shadow.mapSize.set(1024,1024);
+key.shadow.camera.left=-3;key.shadow.camera.right=3;key.shadow.camera.top=4;key.shadow.camera.bottom=-1;
+key.shadow.radius=6; key.shadow.bias=-0.0004;
+scene.add(key);
+const rim=new THREE.PointLight(0xC8956C,14,18);
+rim.position.set(-3,2,-3);
+scene.add(rim);
+
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(50,50),
+  new THREE.MeshStandardMaterial({color:0xE6DECB,roughness:.55}));
+ground.rotation.x=-Math.PI/2; ground.receiveShadow=true;
+scene.add(ground);
+
+// 足元の金のリング（時計の世界とつなぐ印）
+const GOLD=new THREE.MeshStandardMaterial({color:0xc09455,metalness:1.0,roughness:0.2,envMapIntensity:1.1});
+const ring=new THREE.Mesh(new THREE.TorusGeometry(1.15,0.02,16,128),GOLD);
+ring.rotation.x=Math.PI/2; ring.position.y=0.012;
+scene.add(ring);
+
+/* ── Mixamo FBX（Golf Chip）を直接読み込み、ブランド仕上げに ── */
+let mixer=null, golfer=null, clipDuration=0;
+new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
+  golfer=fbx;
+  golfer.scale.setScalar(0.01); // Mixamoはcm単位 → m
+  golfer.traverse(c=>{
+    if(c.isMesh){
+      c.castShadow=true;
+      const n=((c.material&&c.material.name)||c.name||'').toLowerCase();
+      if(n.includes('joint')){
+        c.material=new THREE.MeshStandardMaterial({color:0xC8956C,metalness:.95,roughness:.3,envMapIntensity:1.0});
+      } else {
+        c.material=new THREE.MeshStandardMaterial({color:0x24352A,metalness:.2,roughness:.5,envMapIntensity:.5});
+      }
+    }
+  });
+  scene.add(golfer);
+  if(fbx.animations && fbx.animations.length){
+    mixer=new THREE.AnimationMixer(golfer);
+    const action=mixer.clipAction(fbx.animations[0]);
+    clipDuration=fbx.animations[0].duration;
+    action.play();
+    mixer.timeScale=0.55; // ゆっくり上質に
+  }
+  window.__golfer={anims:fbx.animations.length, dur:clipDuration,
+    meshes:(()=>{let k=0;fbx.traverse(c=>{if(c.isMesh)k++});return k;})()};
+  document.getElementById('loading').style.display='none';
+},undefined,(e)=>{ window.__err.push('FBX load: '+(e.message||e)); });
+
+const clock=new THREE.Clock();
+function animate(){
+  const dt=clock.getDelta();
+  if(mixer) mixer.update(dt);
+  const t=clock.elapsedTime;
+  camera.position.set(Math.sin(t*0.16)*0.7, 1.5+Math.sin(t*0.1)*0.06, 4.4);
+  camera.lookAt(0,0.95,0);
+  renderer.render(scene,camera);
+  requestAnimationFrame(animate);
+}
+animate();
+
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>
