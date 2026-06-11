@@ -47,7 +47,7 @@ renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=0.95;
+renderer.toneMappingExposure=0.80;
 
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0xEFE9DC);
@@ -127,12 +127,12 @@ const watch=new THREE.Group();
 scene.add(watch);
 
 const facePlate=new THREE.Mesh(new THREE.CylinderGeometry(3,3.04,0.22,128),
-  new THREE.MeshStandardMaterial({color:0xEDE4CF,roughness:.5}));
+  new THREE.MeshStandardMaterial({color:0xD9CDB2,roughness:.55,envMapIntensity:.5}));
 facePlate.castShadow=true; facePlate.receiveShadow=true;
 watch.add(facePlate);
 
 const print=new THREE.Mesh(new THREE.CircleGeometry(2.86,128),
-  new THREE.MeshPhysicalMaterial({map:dialTexture(),roughness:.42,clearcoat:.7,clearcoatRoughness:.32}));
+  new THREE.MeshPhysicalMaterial({map:dialTexture(),roughness:.55,clearcoat:.45,clearcoatRoughness:.4,envMapIntensity:.35}));
 print.rotation.x=-Math.PI/2; print.position.y=0.112;
 watch.add(print);
 
@@ -145,8 +145,8 @@ watch.add(rehaut);
 
 // 風防ガラス（ごく薄いドーム。屈折あり）
 const glass=new THREE.Mesh(new THREE.SphereGeometry(3.0,72,18,0,Math.PI*2,0,0.62),
-  new THREE.MeshPhysicalMaterial({transmission:1,roughness:0.045,thickness:0.25,ior:1.5,
-    transparent:true,envMapIntensity:1.0,clearcoat:1,clearcoatRoughness:0.06}));
+  new THREE.MeshPhysicalMaterial({transmission:1,roughness:0.05,thickness:0.12,ior:1.5,
+    transparent:true,envMapIntensity:0.5,clearcoat:1,clearcoatRoughness:0.08}));
 glass.scale.set(1,0.16,1); glass.position.y=0.12;
 watch.add(glass);
 
@@ -247,7 +247,7 @@ function updateTrail(now,deg){
 /* ── ブルーム（金のにじみ） ── */
 const composer=new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene,camera));
-const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.32,0.65,0.86);
+const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.22,0.5,0.93);
 composer.addPass(bloom);
 
 /* ── お手本スイング＋カメラの呼吸 ── */
