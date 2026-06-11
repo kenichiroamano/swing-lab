@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Golflev · anim-lab（モーキャプ数値解析）</title>
+<style>body{font-family:monospace;background:#EFE9DC;color:#1F2A21;padding:16px;font-size:12px}pre{white-space:pre-wrap}</style>
+<script>window.__err=[];window.onerror=m=>window.__err.push(String(m));</script>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<h3>モーキャプ数値解析（右手ボーンの世界座標軌跡）</h3>
+<pre id="out">解析中…</pre>
+<script type="module">
+import * as THREE from 'three';
+import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
+
+const out=document.getElementById('out');
+const loader=new FBXLoader();
+const load=url=>new Promise((res,rej)=>loader.load(url,res,undefined,rej));
+
+(async()=>{
+  try{
+    const model=await load('assets/golfer-chip.fbx');     // 体＋オリジナルのチップアニメ
+    let chip2=null, drive=null;
+    try{ chip2=await load('assets/golfer-chip2.fbx'); }catch(e){}
+    try{ drive=await load('assets/golfer-drive.fbx'); }catch(e){}
+
+    model.scale.setScalar(0.01);
+    const scene=new THREE.Scene();
+    scene.add(model);
+    let hand=null, hips=null;
+    model.traverse(c=>{
+      if(c.isBone && /RightHand$/.test(c.name)) hand=c;
+      if(c.isBone && /Hips$/.test(c.name)) hips=c;
+    });
+    if(!hand){ out.textContent='RightHandボーンが見つからない'; return; }
+
+    const mixer=new THREE.AnimationMixer(model);
+    const clips=[];
+    if(model.animations.length) clips.push(['chip(オリジナル)', model.animations[0]]);
+    if(chip2&&chip2.animations.length) clips.push(['chip2(ken再出力)', chip2.animations[0]]);
+    if(drive&&drive.animations.length) clips.push(['drive', drive.animations[0]]);
+
+    const v=new THREE.Vector3();
+    const summary={};
+    let text='';
+    for(const [name,clip] of clips){
+      mixer.stopAllAction();
+      const action=mixer.clipAction(clip);
+      action.play(); action.paused=true;
+      const dur=clip.duration;
+      // アドレス基準（最初の0.15s平均）
+      const samples=[];
+      for(let t=0;t<=dur;t+=0.0666){
+        action.time=t; mixer.update(0);
+        model.updateWorldMatrix(true,true);
+        hand.getWorldPosition(v);
+        samples.push({t:+t.toFixed(2), x:v.x*100, y:v.y*100, z:v.z*100}); // cm
+      }
+      const base=samples.slice(0,3);
+      const bx=base.reduce((s,p)=>s+p.x,0)/base.length;
+      const by=base.reduce((s,p)=>s+p.y,0)/base.length;
+      const bz=base.reduce((s,p)=>s+p.z,0)/base.length;
+      // アドレスからの変位（水平距離・高さ・速度）
+      let lines=`\n■ ${name}  長さ${dur.toFixed(2)}s\n  t    横(x)   奥(z)   高さ(y)  アドレスからの距離\n`;
+      let prev=null;
+      const rows=[];
+      for(const p of samples){
+        const dx=p.x-bx, dz=p.z-bz, dy=p.y-by;
+        const dist=Math.hypot(dx,dy,dz);
+        const spd=prev?dist-prev:0;
+        prev=dist;
+        rows.push({t:p.t,dx,dz,dy,dist});
+        if(Math.round(p.t*10)%2===0) // 0.2s刻みで表示
+          lines+=`  ${p.t.toFixed(1)}  ${dx.toFixed(0).padStart(5)}  ${dz.toFixed(0).padStart(5)}  ${dy.toFixed(0).padStart(5)}   ${dist.toFixed(0).padStart(5)}cm\n`;
+      }
+      // フェーズ自動検出: インパクト=距離が再び最小に近づく点の前後で速度最大 / トップ=前半の距離最大
+      const half=rows.filter(r=>r.t<dur*0.66);
+      const top=half.reduce((a,b)=>b.dist>a.dist?b:a);
+      const tail=rows.filter(r=>r.t>top.t);
+      const nearAddr=tail.length?tail.reduce((a,b)=>b.dist<a.dist?b:a):null;
+      const follow=rows.reduce((a,b)=>b.dist>a.dist?b:a);
+      lines+=`  → テイクバック頂点: t=${top.t}s 距離${top.dist.toFixed(0)}cm (横${top.dx.toFixed(0)}/高さ${top.dy.toFixed(0)})\n`;
+      if(nearAddr) lines+=`  → インパクト付近(再接近): t=${nearAddr.t}s 距離${nearAddr.dist.toFixed(0)}cm\n`;
+      lines+=`  → 最大変位(フォロー含む): t=${follow.t}s 距離${follow.dist.toFixed(0)}cm\n`;
+      summary[name]={dur:+dur.toFixed(2), topT:top.t, topDist:+top.dist.toFixed(0), impactT:nearAddr?nearAddr.t:null, maxT:follow.t, maxDist:+follow.dist.toFixed(0)};
+      text+=lines;
+    }
+    window.__summary=summary;
+    out.textContent=text+'\n\nwindow.__summary に要約あり';
+  }catch(e){
+    out.textContent='ERROR: '+(e.message||e);
+    window.__err.push(String(e));
+  }
+})();
+</script>
+</body>
+</html>
