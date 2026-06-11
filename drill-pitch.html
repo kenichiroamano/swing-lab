@@ -222,7 +222,7 @@ let liveDial=buildDial($('dialLive'));
 const STATE={ phase:'intro', frame:null, swings:[], rCal:GLStore.get('rCal',0.65) };
 const SENSOR={ alpha:0,beta:0,gamma:0 };
 const MOTION={ acc:{x:0,y:0,z:0}, rot:{alpha:0,beta:0,gamma:0}, seen:false };
-const unwrap=new AngleUnwrapper();
+let lastSide=-1; // 左右の判定（方位角のヒステリシス付き）
 let omegaS=0, lastT=null, lastA=null;
 let acSum=0, acCnt=0;
 const tracker=new SwingTracker();
@@ -344,7 +344,7 @@ function startCalib(){
    ════════════════════════════════════════════════════════════ */
 function startSet(){
   STATE.swings=[];
-  omegaS=0; lastT=null; lastA=null; tracker.reset(); unwrap.reset();
+  omegaS=0; lastT=null; lastA=null; lastSide=-1; tracker.reset();
   targetDisp=0; renderedDisp=0; curAngle=0;
   renderDots(); $('swingNum').textContent='1';
   $('chipArea').innerHTML='';
@@ -355,8 +355,10 @@ function startSet(){
 function tick(){
   const t=performance.now();
   const qC=QuatUtils.fromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma);
-  const raw=signedAngles(qC,STATE.frame).inPlane;
-  const ang=unwrap.feed(raw); // 連続角度（±180ラップなし）
+  const A=signedAngles(qC,STATE.frame);
+  // 大きさ=総シャフト角（回転不変）、左右=水平方位角の符号（ヒステリシス3°）
+  if(Math.abs(A.azimuth)>3) lastSide=Math.sign(A.azimuth);
+  const ang=lastSide*A.mag;
 
   if(lastT!==null){
     const dt=(t-lastT)/1000;

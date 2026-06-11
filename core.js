@@ -62,12 +62,22 @@ function makePlaneFrame(qB){
   return { qB, shaftBl, n, u };
 }
 
-// 符号付き面内角度（バック−/フォロー＋）と面外逸脱角
+// シャフト角度の分解。
+// mag     = 総シャフト角（回転不変。振り幅の「大きさ」はこれを使う）
+// azimuth = 水平方位角（バック/フォローの「左右」はこの符号を使う。体の回転主体の動きでも確実に出る）
+// inPlane/outPlane = 鉛直プレーン基準の分解（参考値。左右判定には使わない — 2026-06-11精査で
+//   体の回転だけの動きでは inPlane の符号が左右を区別できないことが判明）
 function signedAngles(qC, frame){
   const s=QuatUtils.rotVec(qC,{x:0,y:1,z:0});
   const inPlane=Math.atan2(GLMath.dot3(s,frame.u), GLMath.dot3(s,frame.shaftBl))*180/Math.PI;
   const outPlane=Math.asin(GLMath.clamp(GLMath.dot3(s,frame.n),-1,1))*180/Math.PI;
-  return { inPlane, outPlane };
+  const mag=Math.acos(GLMath.clamp(GLMath.dot3(s,frame.shaftBl),-1,1))*180/Math.PI;
+  let azimuth=0;
+  const lb=Math.hypot(frame.shaftBl.x,frame.shaftBl.y), lh=Math.hypot(s.x,s.y);
+  if(lb>0.1 && lh>0.1){
+    azimuth=Math.atan2(frame.shaftBl.x*s.y-frame.shaftBl.y*s.x, frame.shaftBl.x*s.x+frame.shaftBl.y*s.y)*180/Math.PI;
+  }
+  return { inPlane, outPlane, mag, azimuth };
 }
 
 // 求心加速度モデル用：シャフト軸（Y）まわりの手首ロールを除外した角速度 [rad/s]
