@@ -108,14 +108,29 @@ new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
   /* 関節メッシュをボーンの重みで面単位に分割:
      金で残す = 首・肩・手首・指・足首（ken指定） / 白磁にする = 胸・腹・肘・膝など */
   const GOLD_JOINT_RE=/Neck|Head|Shoulder|(Left|Right)Arm$|Hand|Foot|Toe/;
-  // 胴体中心部（胸・腹の大きい球）は骨に関係なく白磁にする（バインドポーズ位置で判定。単位cm）
-  const TORSO_BOX={x:13, yMin:78, yMax:147};
   function splitJointFaces(mesh){
     const geo=mesh.geometry;
     if(!geo.index || !geo.attributes.skinIndex || !mesh.skeleton) return false;
     const boneNames=mesh.skeleton.bones.map(b=>b.name||'');
     const si=geo.attributes.skinIndex, sw=geo.attributes.skinWeight, pos=geo.attributes.position;
     const comp=(a,v,j)=>a.array[v*a.itemSize+j];
+    // 胴体中心部（胸・腹の球）は骨に関係なく白磁に。
+    // 座標系に依存しないよう、バウンディングボックスから 上方向軸・身長・背骨中心 を自動算出
+    geo.computeBoundingBox();
+    const bb=geo.boundingBox;
+    const mins=[bb.min.x,bb.min.y,bb.min.z], maxs=[bb.max.x,bb.max.y,bb.max.z];
+    const sizes=[maxs[0]-mins[0],maxs[1]-mins[1],maxs[2]-mins[2]];
+    const up=sizes.indexOf(Math.max(...sizes));      // 最長軸 = 身長方向（Tポーズでは腕の横幅も広いが、関節メッシュは縦が最長）
+    const lat=[0,1,2].filter(a=>a!==up);             // 横方向の2軸
+    const H=sizes[up];
+    const c0=(maxs[lat[0]]+mins[lat[0]])/2, c1=(maxs[lat[1]]+mins[lat[1]])/2;
+    const inTorso=v=>{
+      const p=[comp(pos,v,0),comp(pos,v,1),comp(pos,v,2)];
+      const h=(p[up]-mins[up])/H;                                 // 高さ割合 0=足元 1=頭
+      const r=Math.hypot(p[lat[0]]-c0, p[lat[1]]-c1);             // 背骨軸からの距離
+      return h>0.44 && h<0.80 && r<0.095*H;
+    };
+    window.__jointDiag={H:+H.toFixed(1),up,bb:{min:mins.map(n=>+n.toFixed(1)),max:maxs.map(n=>+n.toFixed(1))}};
     const idx=Array.from(geo.index.array);
     const goldIdx=[], whiteIdx=[];
     for(let f=0;f<idx.length;f+=3){
@@ -124,9 +139,7 @@ new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
         const v=idx[f+k];
         let best=0,bw=-1;
         for(let j=0;j<4;j++){ const w=comp(sw,v,j); if(w>bw){bw=w;best=comp(si,v,j);} }
-        const px=comp(pos,v,0), py=comp(pos,v,1);
-        const inTorso=Math.abs(px)<TORSO_BOX.x && py>TORSO_BOX.yMin && py<TORSO_BOX.yMax;
-        if(!inTorso && GOLD_JOINT_RE.test(boneNames[best])) votes++;
+        if(!inTorso(v) && GOLD_JOINT_RE.test(boneNames[best])) votes++;
       }
       (votes>=2?goldIdx:whiteIdx).push(idx[f],idx[f+1],idx[f+2]);
     }
