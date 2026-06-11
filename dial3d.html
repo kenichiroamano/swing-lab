@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-<title>Golflev · The Dial — Material Study II</title>
+<title>Golflev · The Orbit — Material Study III</title>
 <style>
 *{margin:0;padding:0}
-html,body{height:100%;overflow:hidden;background:#EFE9DC;font-family:'Inter',-apple-system,sans-serif}
+html,body{height:100%;overflow:hidden;background:#0B0F0D;font-family:'Inter',-apple-system,sans-serif}
 #c{position:fixed;inset:0;width:100%;height:100%}
 .vig{position:fixed;inset:0;pointer-events:none;z-index:1;
-  background:radial-gradient(ellipse at 50% 42%, rgba(0,0,0,0) 55%, rgba(40,32,20,.18) 100%)}
+  background:radial-gradient(ellipse at 50% 44%, rgba(0,0,0,0) 50%, rgba(0,0,0,.5) 100%)}
 .overlay{position:fixed;top:0;left:0;right:0;text-align:center;padding:26px 16px 0;pointer-events:none;z-index:2}
 .eyebrow{font-size:11px;letter-spacing:.26em;color:#B8804C;text-transform:uppercase}
-.title{font-family:Georgia,'Times New Roman',serif;font-weight:800;font-style:italic;font-size:34px;color:#1F2A21;margin-top:4px}
-.note{position:fixed;bottom:20px;left:0;right:0;text-align:center;font-size:11px;letter-spacing:.1em;color:#8A8A82;z-index:2}
+.title{font-family:Georgia,'Times New Roman',serif;font-weight:800;font-style:italic;font-size:34px;color:#F2EADB;margin-top:4px}
+.note{position:fixed;bottom:20px;left:0;right:0;text-align:center;font-size:11px;letter-spacing:.1em;color:#6f6a5e;z-index:2}
 </style>
 <script>window.__err=[];window.onerror=m=>window.__err.push(String(m));</script>
 <script type="importmap">
@@ -27,10 +27,10 @@ html,body{height:100%;overflow:hidden;background:#EFE9DC;font-family:'Inter',-ap
 <canvas id="c"></canvas>
 <div class="vig"></div>
 <div class="overlay">
-  <div class="eyebrow">Material Study II</div>
-  <div class="title">The Dial</div>
+  <div class="eyebrow">Material Study III</div>
+  <div class="title">The Orbit</div>
 </div>
-<div class="note">3D質感サンプル v3 — ガラス・刻印・光の軌跡</div>
+<div class="note">宇宙設計 — 黄金の観測儀 / 彗星の軌跡 / 星々</div>
 
 <script type="module">
 import * as THREE from 'three';
@@ -44,171 +44,183 @@ const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'h
 const isMobile=matchMedia('(pointer:coarse)').matches;
 renderer.setPixelRatio(Math.min(devicePixelRatio,isMobile?1.2:1.75));
 renderer.setSize(innerWidth,innerHeight);
-renderer.shadowMap.enabled=true;
-renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=0.80;
+renderer.toneMappingExposure=0.95;
 
 const scene=new THREE.Scene();
-scene.background=new THREE.Color(0xEFE9DC);
-scene.fog=new THREE.Fog(0xEFE9DC,11,22);
+scene.background=new THREE.Color(0x0B0F0D);
+scene.fog=new THREE.Fog(0x0B0F0D,15,34);
 
-const camera=new THREE.PerspectiveCamera(34,innerWidth/innerHeight,0.1,60);
-camera.position.set(0,5.2,7.6);
+const camera=new THREE.PerspectiveCamera(34,innerWidth/innerHeight,0.1,80);
+camera.position.set(0,4.6,7.8);
 camera.lookAt(0,0,0.2);
 
-/* ── 環境光（スタジオ） ── */
+/* ── 環境（金属の映り込み。強度は各マテリアル側で絞る） ── */
 const pmrem=new THREE.PMREMGenerator(renderer);
 scene.environment=pmrem.fromScene(new RoomEnvironment(),0.04).texture;
 
-/* ── ライト ── */
-const key=new THREE.DirectionalLight(0xfff0dd,2.4);
+/* ── ライト（宇宙: 控えめなキー＋金のリム） ── */
+const key=new THREE.DirectionalLight(0xfff0dd,1.0);
 key.position.set(3.5,8,3);
-key.castShadow=true;
-key.shadow.mapSize.set(1024,1024);
-key.shadow.camera.left=-5;key.shadow.camera.right=5;key.shadow.camera.top=5;key.shadow.camera.bottom=-5;
-key.shadow.radius=7; key.shadow.bias=-0.0004;
 scene.add(key);
-const rim=new THREE.PointLight(0xC8956C,18,24);
-rim.position.set(-4.5,2.4,-4);
+const rim=new THREE.PointLight(0xC8956C,30,30);
+rim.position.set(-5,2.5,-4.5);
 scene.add(rim);
 
-/* ── 地面 ── */
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(60,60),
-  new THREE.MeshStandardMaterial({color:0xE6DECB,roughness:.55,metalness:0}));
-ground.rotation.x=-Math.PI/2; ground.position.y=-0.14; ground.receiveShadow=true;
-scene.add(ground);
+/* ── 星々（遠景の殻＋近景の金の粒） ── */
+function starField(n,rMin,rMax,size,color,opacity){
+  const pos=new Float32Array(n*3);
+  for(let i=0;i<n;i++){
+    const r=rMin+Math.random()*(rMax-rMin);
+    const th=Math.random()*Math.PI*2, ph=Math.acos(2*Math.random()-1);
+    pos[i*3]=r*Math.sin(ph)*Math.cos(th);
+    pos[i*3+1]=r*Math.cos(ph)*0.7;
+    pos[i*3+2]=r*Math.sin(ph)*Math.sin(th);
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const p=new THREE.Points(g,new THREE.PointsMaterial({color,size,transparent:true,opacity,
+    blending:THREE.AdditiveBlending,depthWrite:false}));
+  scene.add(p);
+  return p;
+}
+const farStars=starField(900,22,40,0.07,0xEAE2CE,0.75);
+const nearStars=starField(180,9,18,0.11,0xD8B070,0.5);
+
+/* ── 星雲（ごく淡い金と深緑のグロー） ── */
+function nebula(colorA,alpha,scale,x,y,z){
+  const cv=document.createElement('canvas'); cv.width=cv.height=256;
+  const x2=cv.getContext('2d');
+  const g=x2.createRadialGradient(128,128,10,128,128,128);
+  g.addColorStop(0,colorA.replace('A',alpha));
+  g.addColorStop(1,colorA.replace('A','0'));
+  x2.fillStyle=g; x2.fillRect(0,0,256,256);
+  const tex=new THREE.CanvasTexture(cv);
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false,
+    blending:THREE.AdditiveBlending}));
+  sp.scale.set(scale,scale,1); sp.position.set(x,y,z);
+  scene.add(sp);
+}
+nebula('rgba(200,149,108,A)','0.16',22,-6,4,-12);
+nebula('rgba(46,92,64,A)','0.14',26,7,-2,-15);
 
 /* ── マテリアル ── */
-const GOLD=new THREE.MeshStandardMaterial({color:0xc09455,metalness:1.0,roughness:0.17,envMapIntensity:1.25});
-const GOLD_SOFT=new THREE.MeshStandardMaterial({color:0xa9803f,metalness:1.0,roughness:0.3,envMapIntensity:1.1});
-const INK=new THREE.MeshStandardMaterial({color:0x1F2A21,metalness:0.4,roughness:0.4});
+const GOLD=new THREE.MeshStandardMaterial({color:0xc09455,metalness:1.0,roughness:0.2,
+  envMapIntensity:.9,emissive:0x33220c,emissiveIntensity:.5});
+const GOLD_DIM=new THREE.MeshStandardMaterial({color:0x8f6c35,metalness:1.0,roughness:0.35,envMapIntensity:.7});
 
-/* ── 文字盤の印刷面（サンバースト仕上げ＋ミニッツトラック＋刻印） ── */
-function dialTexture(){
-  const S=1024, cv=document.createElement('canvas'); cv.width=cv.height=S;
-  const x=cv.getContext('2d');
-  // 下地（中心がわずかに明るいラッカー）
-  const g=x.createRadialGradient(S/2,S/2,40,S/2,S/2,S/2);
-  g.addColorStop(0,'#FBF6E9'); g.addColorStop(.75,'#F5EEDD'); g.addColorStop(1,'#EFE6D0');
-  x.fillStyle=g; x.fillRect(0,0,S,S);
-  // サンバースト（放射の髪の毛ほどの線）
-  x.save(); x.translate(S/2,S/2); x.globalAlpha=.05; x.strokeStyle='#8a7a56'; x.lineWidth=1;
-  for(let i=0;i<240;i++){ x.rotate(Math.PI*2/240); x.beginPath(); x.moveTo(60,0); x.lineTo(S/2-30,0); x.stroke(); }
-  x.restore();
-  // ミニッツトラック
-  x.save(); x.translate(S/2,S/2); x.strokeStyle='rgba(31,42,33,.55)';
-  for(let i=0;i<60;i++){
-    const major=i%5===0;
-    x.lineWidth=major?3:1.5; x.beginPath();
-    x.moveTo(0,major?-418:-424); x.lineTo(0,-436); x.stroke();
-    x.rotate(Math.PI*2/60);
-  }
-  x.restore();
-  // 数字 8 / 4（ゴルファー視点: 8=右、4=左。キャンバス下=6時）
-  x.fillStyle='#1F2A21'; x.textAlign='center'; x.textBaseline='middle';
-  x.font='italic 800 130px Georgia, serif';
-  const R=300;
-  x.fillText('8', S/2+Math.sin(Math.PI/3)*R, S/2+Math.cos(Math.PI/3)*R);
-  x.fillText('4', S/2-Math.sin(Math.PI/3)*R, S/2+Math.cos(Math.PI/3)*R);
-  // 刻印
-  x.font='600 34px Inter, sans-serif'; x.fillStyle='rgba(31,42,33,.85)';
-  x.save(); x.translate(S/2,S/2-150);
-  x.letterSpacing='14px'; x.fillText('G O L F L E V',7,0); x.restore();
-  x.font='500 21px Inter, sans-serif'; x.fillStyle='rgba(184,128,76,.9)';
-  x.fillText('T H E   P I T C H', S/2+4, S/2-104);
-  const tex=new THREE.CanvasTexture(cv);
-  tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=8;
-  return tex;
-}
-
-/* ── 時計本体 ── */
+/* ── 観測儀（アストロラーベ: 重なり合う黄金の環） ── */
 const watch=new THREE.Group();
 scene.add(watch);
 
-const facePlate=new THREE.Mesh(new THREE.CylinderGeometry(3,3.04,0.22,128),
-  new THREE.MeshStandardMaterial({color:0xD9CDB2,roughness:.55,envMapIntensity:.5}));
-facePlate.castShadow=true; facePlate.receiveShadow=true;
-watch.add(facePlate);
-
-const print=new THREE.Mesh(new THREE.CircleGeometry(2.86,128),
-  new THREE.MeshPhysicalMaterial({map:dialTexture(),roughness:.55,clearcoat:.45,clearcoatRoughness:.4,envMapIntensity:.35}));
-print.rotation.x=-Math.PI/2; print.position.y=0.112;
-watch.add(print);
-
-const bezel=new THREE.Mesh(new THREE.TorusGeometry(3.02,0.155,48,160),GOLD);
-bezel.rotation.x=Math.PI/2; bezel.position.y=0.07; bezel.castShadow=true;
-watch.add(bezel);
-const rehaut=new THREE.Mesh(new THREE.TorusGeometry(2.86,0.02,16,160),GOLD_SOFT);
-rehaut.rotation.x=Math.PI/2; rehaut.position.y=0.115;
-watch.add(rehaut);
-
-// 風防ガラス（ごく薄いドーム。屈折あり）
-const glass=new THREE.Mesh(new THREE.SphereGeometry(3.0,72,18,0,Math.PI*2,0,0.62),
-  new THREE.MeshPhysicalMaterial({transparent:true,opacity:0.14,roughness:0.05,ior:1.5,depthWrite:false,
-    envMapIntensity:0.55,clearcoat:1,clearcoatRoughness:0.08})); // 屈折(transmission)はシーン2回描画で重いため、軽量な艶ガラスに
-glass.scale.set(1,0.16,1); glass.position.y=0.12;
-watch.add(glass);
+const ringMain=new THREE.Mesh(new THREE.TorusGeometry(3.0,0.035,24,160),GOLD);
+ringMain.rotation.x=Math.PI/2;
+watch.add(ringMain);
+const ringInner=new THREE.Mesh(new THREE.TorusGeometry(2.6,0.012,16,160),GOLD_DIM);
+ringInner.rotation.x=Math.PI/2;
+watch.add(ringInner);
+// 傾いた環（ジャイロのようにゆっくり歳差運動する）
+const tiltGroup=new THREE.Group();
+watch.add(tiltGroup);
+const ringTilt=new THREE.Mesh(new THREE.TorusGeometry(3.35,0.014,16,160),GOLD_DIM);
+ringTilt.rotation.x=Math.PI/2+0.30;
+tiltGroup.add(ringTilt);
 
 // 座標系: θ=0が手前(6時)、+θ=右
 const dialPos=(th,R)=>[Math.sin(th*Math.PI/180)*R,0,Math.cos(th*Math.PI/180)*R];
 
-// アプライドの時マーカー（立体・金）
+// 時マーカー（宙に浮かぶ金の標）
 for(let k=0;k<12;k++){
   const th=((k*30+180)%360)-180;
   const major=(th===0||th===60||th===-60);
-  const m=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.035,major?0.3:0.16),major?INK:GOLD);
-  const [x,,z]=dialPos(th,2.52);
-  m.position.set(x,0.135,z);
+  const m=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.05,major?0.3:0.14),major?GOLD:GOLD_DIM);
+  const [x,,z]=dialPos(th,2.62);
+  m.position.set(x,0,z);
   m.rotation.y=-th*Math.PI/180;
-  m.castShadow=true;
   watch.add(m);
 }
 
-// 目標ゾーン（両側 50–70°、金のチューブ）
+// 目標ゾーン（両側 50–70°）
 function zoneArc(centerDeg){
   const pts=[];
   for(let a=centerDeg-10;a<=centerDeg+10;a+=2.5){
-    const [x,,z]=dialPos(a,2.62);
-    pts.push(new THREE.Vector3(x,0.135,z));
+    const [x,,z]=dialPos(a,2.84);
+    pts.push(new THREE.Vector3(x,0,z));
   }
-  const arc=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),24,0.034,10,false),GOLD);
-  arc.castShadow=true;
+  const arc=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),24,0.04,10,false),GOLD);
   watch.add(arc);
 }
 zoneArc(60); zoneArc(-60);
 
-// 6時（アドレス）の金ドット
-const dot=new THREE.Mesh(new THREE.SphereGeometry(0.05,20,20),GOLD);
-const [dx,,dz]=dialPos(0,2.62); dot.position.set(dx,0.135,dz);
+// アドレス（6時）の金の標星
+const dot=new THREE.Mesh(new THREE.SphereGeometry(0.055,20,20),GOLD);
+{ const [x,,z]=dialPos(0,2.84); dot.position.set(x,0,z); }
 watch.add(dot);
 
-/* ── クラブ針 ── */
+// 数字 8 / 4（発光するスプライト。常にカメラを向く）
+function glyph(txt,th,scale){
+  const cv=document.createElement('canvas'); cv.width=cv.height=256;
+  const x=cv.getContext('2d');
+  x.shadowColor='rgba(255,217,160,.9)'; x.shadowBlur=26;
+  x.fillStyle='#FFE2B0';
+  x.font='italic 800 150px Georgia, serif';
+  x.textAlign='center'; x.textBaseline='middle';
+  x.fillText(txt,128,138);
+  const tex=new THREE.CanvasTexture(cv);
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false}));
+  const [px,,pz]=dialPos(th,2.05);
+  sp.position.set(px,0.06,pz);
+  sp.scale.set(scale,scale,1);
+  watch.add(sp);
+}
+glyph('8',60,0.78);
+glyph('4',-60,0.78);
+
+// 刻印（中心上にかすかに浮かぶ）
+{
+  const cv=document.createElement('canvas'); cv.width=1024; cv.height=192;
+  const x=cv.getContext('2d');
+  x.fillStyle='rgba(242,234,219,.85)';
+  x.font='600 58px Inter, sans-serif'; x.textAlign='center';
+  x.letterSpacing='26px';
+  x.fillText('G O L F L E V',520,84);
+  x.font='500 34px Inter, sans-serif'; x.fillStyle='rgba(200,149,108,.95)'; x.letterSpacing='14px';
+  x.fillText('T H E   P I T C H',518,150);
+  const tex=new THREE.CanvasTexture(cv);
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false,opacity:.9}));
+  sp.position.set(0,0.95,0); sp.scale.set(2.6,0.49,1);
+  scene.add(sp);
+}
+
+/* ── 中心の太陽（ピボット） ── */
+const sun=new THREE.Mesh(new THREE.SphereGeometry(0.10,24,24),
+  new THREE.MeshStandardMaterial({color:0xffd9a0,metalness:.4,roughness:.25,
+    emissive:0xC8956C,emissiveIntensity:1.6}));
+watch.add(sun);
+const sunRing=new THREE.Mesh(new THREE.TorusGeometry(0.19,0.016,16,48),GOLD);
+sunRing.rotation.x=Math.PI/2;
+watch.add(sunRing);
+
+/* ── クラブ針（彗星のベクトル） ── */
 const hand=new THREE.Group();
-hand.position.y=0.165;
 watch.add(hand);
-const shaft=new THREE.Mesh(new THREE.CylinderGeometry(0.028,0.05,2.42,24),GOLD);
-shaft.rotation.x=Math.PI/2; shaft.position.z=1.21; shaft.castShadow=true;
+const shaft=new THREE.Mesh(new THREE.CylinderGeometry(0.024,0.045,2.45,20),GOLD);
+shaft.rotation.x=Math.PI/2; shaft.position.z=1.22;
 hand.add(shaft);
-const hosel=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.04,0.16,16),GOLD);
-hosel.rotation.x=Math.PI/2; hosel.position.z=2.42;
-hand.add(hosel);
-const head=new THREE.Mesh(new THREE.BoxGeometry(0.36,0.075,0.17),GOLD);
-head.position.set(0.12,-0.01,2.55); head.rotation.y=-0.38; head.castShadow=true;
+const head=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.07,0.16),GOLD);
+head.position.set(0.11,0,2.56); head.rotation.y=-0.38;
 hand.add(head);
-const tail=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.5,20),GOLD);
+const tip=new THREE.Mesh(new THREE.SphereGeometry(0.05,16,16),
+  new THREE.MeshStandardMaterial({color:0xffe2b0,emissive:0xC8956C,emissiveIntensity:2.2,metalness:.3,roughness:.3}));
+tip.position.set(0,0,2.46);
+hand.add(tip);
+const tail=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.045,0.5,18),GOLD);
 tail.rotation.x=Math.PI/2; tail.position.z=-0.3;
 hand.add(tail);
-const cap=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.17,0.1,40),INK);
-hand.add(cap);
-const capTop=new THREE.Mesh(new THREE.SphereGeometry(0.055,20,20),GOLD);
-capTop.position.y=0.07;
-hand.add(capTop);
 
-/* ── 光の軌跡（爽快感の核。直近のスイング軌道が金色のリボンで尾を引く） ── */
-/* 毎フレームのジオメトリ生成をやめ、固定リボンを書き換える（GC負荷ゼロ＝滑らかさ優先） */
-const TRAIL_MS=420, TRAIL_N=26;
+/* ── 彗星の尾（固定リボン書き換え。GC負荷ゼロ） ── */
+const TRAIL_MS=460, TRAIL_N=26;
 const trailGeo=new THREE.BufferGeometry();
 const tPos=new Float32Array(TRAIL_N*2*3);
 trailGeo.setAttribute('position',new THREE.BufferAttribute(tPos,3));
@@ -217,7 +229,7 @@ trailGeo.setAttribute('position',new THREE.BufferAttribute(tPos,3));
   for(let i=0;i<TRAIL_N-1;i++){ const a=i*2,b=a+1,c=a+2,d=a+3; idx.push(a,b,c,b,d,c); }
   trailGeo.setIndex(idx);
 }
-const trailMat=new THREE.MeshBasicMaterial({color:0xffd9a0,transparent:true,opacity:.7,
+const trailMat=new THREE.MeshBasicMaterial({color:0xffd9a0,transparent:true,opacity:.85,
   blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
 const trailMesh=new THREE.Mesh(trailGeo,trailMat);
 trailMesh.frustumCulled=false;
@@ -233,39 +245,25 @@ function updateTrail(now,deg){
   for(let i=0;i<TRAIL_N;i++){
     const s=trailSamples[Math.max(0,m-TRAIL_N+i)]||trailSamples[0];
     const age=Math.min(1,(now-s.t)/TRAIL_MS);
-    const w=0.5*(1-age)+0.03; // 先端ほど太く、尾は細く消える
-    const [xi,,zi]=dialPos(s.d,2.44-w*0.09);
-    const [xo,,zo]=dialPos(s.d,2.44+w*0.09);
-    tPos[i*6]=xi;   tPos[i*6+1]=0.15; tPos[i*6+2]=zi;
-    tPos[i*6+3]=xo; tPos[i*6+4]=0.15; tPos[i*6+5]=zo;
+    const w=0.55*(1-age)+0.03;
+    const [xi,,zi]=dialPos(s.d,2.46-w*0.1);
+    const [xo,,zo]=dialPos(s.d,2.46+w*0.1);
+    tPos[i*6]=xi;   tPos[i*6+1]=0; tPos[i*6+2]=zi;
+    tPos[i*6+3]=xo; tPos[i*6+4]=0; tPos[i*6+5]=zo;
   }
   trailGeo.attributes.position.needsUpdate=true;
 }
 
-/* ── 金の微粒子（ごく控えめに漂う） ── */
-{
-  const N=110, pos=new Float32Array(N*3);
-  for(let i=0;i<N;i++){
-    pos[i*3]=(Math.random()-0.5)*9;
-    pos[i*3+1]=Math.random()*3.4+0.2;
-    pos[i*3+2]=(Math.random()-0.5)*9;
-  }
-  const geo=new THREE.BufferGeometry();
-  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
-  const dust=new THREE.Points(geo,new THREE.PointsMaterial({color:0xD8B070,size:0.022,
-    transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false}));
-  scene.add(dust);
-  dust.userData.anim=t=>{ dust.rotation.y=t*0.018; dust.position.y=Math.sin(t*0.35)*0.12; };
-  scene.userData.dust=dust;
-}
+/* ── 金の微粒子（漂う宇宙塵） ── */
+const dust=starField(150,3,8,0.05,0xD8B070,0.55);
 
-/* ── ブルーム（金のにじみ） ── */
+/* ── ブルーム（暗闇でこそ効く） ── */
 const composer=new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene,camera));
-const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth/2,innerHeight/2),0.22,0.5,0.93);
+const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth/2,innerHeight/2),0.55,0.65,0.74);
 composer.addPass(bloom);
 
-/* ── お手本スイング＋カメラの呼吸 ── */
+/* ── お手本スイング＋カメラの航行 ── */
 const easeInOut=u=>u<0.5?2*u*u:1-Math.pow(-2*u+2,2)/2;
 const easeIn=u=>u*u;
 const segs=[ [0,60,950,320,easeInOut], [60,-60,500,780,easeIn], [-60,0,900,700,easeInOut] ];
@@ -277,18 +275,20 @@ function animate(ts){
   let d=a1;
   if(dt<=dur) d=a0+(a1-a0)*ease(Math.min(1,dt/dur));
   else if(dt>dur+hold){ si=(si+1)%segs.length; t0=ts; }
-  // バネ追従: 区間の継ぎ目の角を消し、止まり際を自然に丸める
   const dts=lastTs?Math.min(0.05,(ts-lastTs)/1000):0.016; lastTs=ts;
   handRender+=(d-handRender)*Math.min(1,dts*13);
   hand.rotation.y=handRender*Math.PI/180;
   updateTrail(ts,handRender);
+
   const t=ts*0.001;
-  // ダウンスイング(si===1)でわずかに寄る = 爽快感
-  const push=(si===1&&dt<=dur)?easeInOut(Math.min(1,dt/dur))*0.35:0;
-  camera.position.set(Math.sin(t*0.21)*0.5, 5.2+Math.sin(t*0.13)*0.1, 7.6-push);
+  const push=(si===1&&dt<=dur)?easeInOut(Math.min(1,dt/dur))*0.4:0;
+  camera.position.set(Math.sin(t*0.18)*0.6, 4.6+Math.sin(t*0.11)*0.15, 7.8-push);
   camera.lookAt(0,0,0.2);
-  watch.rotation.z=Math.sin(t*0.09)*0.012;
-  if(scene.userData.dust) scene.userData.dust.userData.anim(t);
+  tiltGroup.rotation.y=t*0.07;          // 傾いた環の歳差
+  farStars.rotation.y=t*0.004;
+  nearStars.rotation.y=-t*0.008;
+  dust.rotation.y=t*0.02;
+  sun.material.emissiveIntensity=1.6+Math.sin(t*1.8)*0.25; // 太陽の脈
   composer.render();
   requestAnimationFrame(animate);
 }
