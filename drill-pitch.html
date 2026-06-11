@@ -335,8 +335,8 @@ new FBXLoader().load('assets/golfer-drive.fbx',(fbx)=>{ // フルスイング素
    live: 計測角度でスクラブ（あなたの分身） */
 let liveAng=0, liveState='idle', topAng=-60;
 let renderT=ANCH.addr, lastTs=null;
-// お手本タイムライン: 8時(−60°)→4時(+60°)をテンポ約2:1で往復。ライブと同じスクラブ経路を通す
-const DSEG=[[0,-60,950,340],[-60,60,540,820],[60,0,950,700]];
+// お手本タイムライン: 8時(−60°)→4時(+60°)。モーキャプの自然な再生速度に合わせた尺
+const DSEG=[[0,-60,1100,350],[-60,60,1050,800],[60,0,950,700]];
 let demoSi=0, demoT0=null;
 Stage.mount=(id)=>{
   const el=document.getElementById(id);
@@ -391,13 +391,18 @@ function animate(ts){
       mixer.update(0);
       updateTrail(ts,clamp(-d,-110,110));
     } else {
-      // live: 計測角度→アニメ時刻（バネ追従でなめらかに）
+      // live: 計測角度→アニメ時刻。バネ追従＋再生速度の上限（モーキャプの約1.35倍まで）
+      // → 速く振っても彫像は自然なテンポで振り切り、すぐ追いつく（ぎこちなさの根治）
       const target=angleToTime(liveAng,liveState);
-      renderT+=(target-renderT)*Math.min(1,dts*12);
+      let next=renderT+(target-renderT)*Math.min(1,dts*9);
+      const maxFwd=dts*1.35, maxBack=dts*2.2; // 巻き戻し（構え直し）はやや速めに許容
+      if(next-renderT>maxFwd) next=renderT+maxFwd;
+      else if(renderT-next>maxBack) next=renderT-maxBack;
+      renderT=next;
       action.paused=true;
       action.time=clamp(renderT,0,clipDur-0.001);
       mixer.update(0);
-      updateTrail(ts,clamp(-liveAng,-110,110)); // 観客視点: バック(負)=左(θ負→-ang正…逆) → -ang
+      updateTrail(ts,clamp(-liveAng,-110,110)); // 観客視点: バックは画面左へ
     }
   }
   const t=ts*0.001;
