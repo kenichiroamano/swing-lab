@@ -108,11 +108,13 @@ new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
   /* 関節メッシュをボーンの重みで面単位に分割:
      金で残す = 首・肩・手首・指・足首（ken指定） / 白磁にする = 胸・腹・肘・膝など */
   const GOLD_JOINT_RE=/Neck|Head|Shoulder|(Left|Right)Arm$|Hand|Foot|Toe/;
+  // 胴体中心部（胸・腹の大きい球）は骨に関係なく白磁にする（バインドポーズ位置で判定。単位cm）
+  const TORSO_BOX={x:13, yMin:78, yMax:147};
   function splitJointFaces(mesh){
     const geo=mesh.geometry;
     if(!geo.index || !geo.attributes.skinIndex || !mesh.skeleton) return false;
     const boneNames=mesh.skeleton.bones.map(b=>b.name||'');
-    const si=geo.attributes.skinIndex, sw=geo.attributes.skinWeight;
+    const si=geo.attributes.skinIndex, sw=geo.attributes.skinWeight, pos=geo.attributes.position;
     const comp=(a,v,j)=>a.array[v*a.itemSize+j];
     const idx=Array.from(geo.index.array);
     const goldIdx=[], whiteIdx=[];
@@ -122,7 +124,9 @@ new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
         const v=idx[f+k];
         let best=0,bw=-1;
         for(let j=0;j<4;j++){ const w=comp(sw,v,j); if(w>bw){bw=w;best=comp(si,v,j);} }
-        if(GOLD_JOINT_RE.test(boneNames[best])) votes++;
+        const px=comp(pos,v,0), py=comp(pos,v,1);
+        const inTorso=Math.abs(px)<TORSO_BOX.x && py>TORSO_BOX.yMin && py<TORSO_BOX.yMax;
+        if(!inTorso && GOLD_JOINT_RE.test(boneNames[best])) votes++;
       }
       (votes>=2?goldIdx:whiteIdx).push(idx[f],idx[f+1],idx[f+2]);
     }
