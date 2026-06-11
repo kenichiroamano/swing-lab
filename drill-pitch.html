@@ -161,16 +161,46 @@ function buildDial(svg){
   const trailWide=el('path',{d:'',fill:'none',stroke:'#B8804C','stroke-width':11,opacity:.16,'stroke-linecap':'round'});
   const trailCore=el('path',{d:'',fill:'none',stroke:'#C8956C','stroke-width':3,opacity:.55,'stroke-linecap':'round'});
 
-  // 針
+  // ゴルファー（クラブ＝針。肩=文字盤中心を支点に、計測角度どおりに振る運動学モデル）
+  // 設計: 頭は動かない / 肩が回る / 両腕+グリップの三角形を維持 — Lv1で教えている理想形そのもの
   const g=document.createElementNS(NS,'g');
   svg.appendChild(g);
-  el('line',{x1:C,y1:C,x2:C,y2:C+88,stroke:'#B8804C','stroke-width':3.5,'stroke-linecap':'round'},g);
-  el('line',{x1:C,y1:C,x2:C,y2:C-22,stroke:'#B8804C','stroke-width':3,'stroke-linecap':'round'},g);
-  el('circle',{cx:C,cy:C,r:6,fill:'#1F2A21'},g);
-  el('circle',{cx:C,cy:C,r:2.2,fill:'#F7F1E3'},g);
+  const INK='#1F2A21';
+  el('line',{x1:C-36,y1:208,x2:C+36,y2:208,stroke:'rgba(31,42,33,.22)','stroke-width':1},g); // 地面
+  const legL=el('line',{stroke:INK,'stroke-width':3,'stroke-linecap':'round'},g);
+  const legR=el('line',{stroke:INK,'stroke-width':3,'stroke-linecap':'round'},g);
+  const hips=el('line',{stroke:INK,'stroke-width':3.2,'stroke-linecap':'round'},g);
+  const torso=el('line',{stroke:INK,'stroke-width':3.2,'stroke-linecap':'round'},g);
+  const shoulders=el('line',{stroke:INK,'stroke-width':3.2,'stroke-linecap':'round'},g);
+  const armL=el('line',{stroke:INK,'stroke-width':2.7,'stroke-linecap':'round'},g);
+  const armR=el('line',{stroke:INK,'stroke-width':2.7,'stroke-linecap':'round'},g);
+  const club=el('line',{stroke:'#B8804C','stroke-width':3.5,'stroke-linecap':'round'},g);
+  const gripDot=el('circle',{r:3.2,fill:INK},g);
+  el('line',{x1:C,y1:108.5,x2:C,y2:117,stroke:INK,'stroke-width':3,'stroke-linecap':'round'},g); // 首
+  el('circle',{cx:C,cy:100,r:8.5,fill:'#F7F1E3',stroke:INK,'stroke-width':3},g);                  // 頭（動かない）
+  function setPose(d){
+    const r=d*Math.PI/180;
+    const dirx=-Math.sin(r), diry=Math.cos(r);
+    const gx=C+30*dirx,  gy=C+30*diry;   // グリップ（腕の半径30）
+    const tx=C+88*dirx,  ty=C+88*diry;   // クラブ先端（針先と同一半径88）
+    const phi=d*0.45*Math.PI/180;        // 肩の回転（振り幅の約45%）
+    const sx=21*Math.cos(phi), sy=21*Math.sin(phi);
+    const hx=C+GLMath.clamp(d*0.05,-4,4); // 腰のスウェイ（ごく控えめ）
+    shoulders.setAttribute('x1',C-sx); shoulders.setAttribute('y1',120-sy);
+    shoulders.setAttribute('x2',C+sx); shoulders.setAttribute('y2',120+sy);
+    armL.setAttribute('x1',C-sx); armL.setAttribute('y1',120-sy); armL.setAttribute('x2',gx); armL.setAttribute('y2',gy);
+    armR.setAttribute('x1',C+sx); armR.setAttribute('y1',120+sy); armR.setAttribute('x2',gx); armR.setAttribute('y2',gy);
+    club.setAttribute('x1',gx); club.setAttribute('y1',gy); club.setAttribute('x2',tx); club.setAttribute('y2',ty);
+    gripDot.setAttribute('cx',gx); gripDot.setAttribute('cy',gy);
+    torso.setAttribute('x1',C); torso.setAttribute('y1',119); torso.setAttribute('x2',hx); torso.setAttribute('y2',158);
+    hips.setAttribute('x1',hx-12); hips.setAttribute('y1',158); hips.setAttribute('x2',hx+12); hips.setAttribute('y2',158);
+    legL.setAttribute('x1',hx-12); legL.setAttribute('y1',158); legL.setAttribute('x2',C-16); legL.setAttribute('y2',206);
+    legR.setAttribute('x1',hx+12); legR.setAttribute('y1',158); legR.setAttribute('x2',C+16); legR.setAttribute('y2',206);
+  }
+  setPose(0);
 
   return {
-    setAngle(d){ g.setAttribute('transform',`rotate(${d} ${C} ${C})`); },
+    setAngle(d){ setPose(d); },
     setTrail(d){
       if(Math.abs(d)<3){ trailWide.setAttribute('d',''); trailCore.setAttribute('d',''); return; }
       const R=80;
