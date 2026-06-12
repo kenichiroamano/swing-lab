@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Golflev · Fitting Lab（採寸・較正）</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#EFE9DC;color:#1F2A21;font-family:'Inter',-apple-system,sans-serif;min-height:100vh;padding:24px 18px 40px}
+.eyebrow{font-size:11px;letter-spacing:.26em;color:#B8804C;text-transform:uppercase;text-align:center}
+h1{font-family:Georgia,serif;font-style:italic;font-weight:800;font-size:26px;text-align:center;margin:4px 0 18px}
+.card{background:#fff;border-radius:16px;padding:18px;margin:0 auto 14px;max-width:480px;box-shadow:0 2px 10px rgba(31,42,33,.06)}
+.btn{display:block;width:100%;padding:15px;border-radius:999px;border:none;background:#1F2A21;color:#F7F1E3;
+  font-size:14px;letter-spacing:.08em;font-family:inherit;margin-top:10px}
+.btn.sub{background:transparent;border:1px solid rgba(31,42,33,.35);color:#1F2A21}
+.btn.rec{background:#C45B4A}
+.btn:disabled{opacity:.4}
+.modegrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px}
+.mbtn{padding:13px 6px;border-radius:12px;border:2px solid rgba(31,42,33,.2);background:#F7F1E3;
+  font-size:12px;font-family:inherit;color:#1F2A21;text-align:center;line-height:1.5}
+.mbtn.on{border-color:#B8804C;background:#fff;font-weight:700}
+.mbtn .ct{display:block;font-size:16px;font-weight:800;margin-top:2px;color:#B8804C}
+.status{text-align:center;font-size:14px;letter-spacing:.06em;color:#B8804C;min-height:22px;margin:12px 0 4px;font-weight:600}
+.live{display:flex;justify-content:space-around;text-align:center;margin-top:8px}
+.live b{font-size:20px;font-variant-numeric:tabular-nums}
+.live span{display:block;font-size:10px;color:#8A8A82;letter-spacing:.1em}
+.guide{font-size:12px;line-height:1.85;color:#5a5a52;background:#F7F1E3;border-radius:10px;padding:12px;margin-top:10px}
+.guide b{color:#1F2A21}
+#recList{font-size:12px;line-height:1.9;max-height:150px;overflow-y:auto;margin-bottom:8px}
+.note{font-size:11px;color:#8A8A82;line-height:1.7;margin-top:8px}
+.hidden{display:none}
+.warn-box{background:#FBEAE6;color:#C45B4A;border-radius:10px;padding:10px;font-size:12px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="eyebrow">Fitting Lab</div>
+<h1>採寸・較正</h1>
+
+<div id="scrPerm" class="card">
+  <p style="font-size:13px;line-height:1.9">スマホのセンサーで、あなたの腕の長さ・可動域・スイングの素性を採取します。<br>本体と同じ計算で記録し、JSONで書き出します。</p>
+  <button class="btn" id="btnPerm">センサーを許可して開始</button>
+  <div id="permError"></div>
+</div>
+
+<div id="scrMain" class="hidden">
+  <div class="card">
+    <div class="modegrid">
+      <button class="mbtn on" data-m="circle">B1 腕の円運動<span class="ct" id="ctCircle">0</span></button>
+      <button class="mbtn" data-m="rom">B2 可動域スイープ<span class="ct" id="ctRom">0</span></button>
+      <button class="mbtn" data-m="address">B3 アドレス静止<span class="ct" id="ctAddr">0</span></button>
+      <button class="mbtn" data-m="swing">B4 正常スイング<span class="ct" id="ctSwing">0</span></button>
+    </div>
+    <div class="guide" id="guide"></div>
+    <div class="status" id="status">「●録画開始」を押して動作 → 「■停止」</div>
+    <div class="live">
+      <div><b id="lvAng">0°</b><span>角度/向き</span></div>
+      <div><b id="lvW">0</b><span>角速度</span></div>
+      <div><b id="lvT">0.0</b><span>記録秒</span></div>
+    </div>
+    <button class="btn" id="btnRec">● 録画開始</button>
+  </div>
+  <div class="card">
+    <div id="recList">（まだ記録なし）</div>
+    <button class="btn" id="btnExport" disabled>書き出し（JSONを共有）</button>
+    <button class="btn sub" id="btnUndo" disabled>直前の1件を取り消す</button>
+    <p class="note">各モードの目安回数を採ったら「書き出し」。自動保存されるので途中で閉じてもOK。<br>同時に正面から動画を撮っておくと答え合わせができます。</p>
+  </div>
+</div>
+
+<script src="core.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const SENSOR={alpha:0,beta:0,gamma:0};
+const MOTION={acc:{x:0,y:0,z:0},rot:{alpha:0,beta:0,gamma:0},seen:false};
+let MODE='circle';
+let recording=false, recStart=0, BUF=[], baseQuat=null;
+const RECS=[];
+
+const GUIDE={
+  circle:'<b>B1 腕の円運動（採寸）</b><br>利き腕(右)を伸ばしてスマホを握り、肩を中心に<b>大きくゆっくり円を3周</b>。一定速で。録画→3周→停止。目安2回。',
+  rom:'<b>B2 可動域スイープ</b><br>スマホを握り、痛くない範囲でゆっくり1往復ずつ：<b>前へ上げる→戻す</b>、録画ごとに1方向でOK（前方挙上/側方挙上/外旋）。各1回。',
+  address:'<b>B3 アドレス静止</b><br>いつもの構えで<b>2秒静止</b>。録画→構えたまま静止→停止。グリップの座標オフセットを採る。目安1回。',
+  swing:'<b>B4 正常スイング</b><br>三角形をキープした8時-4時を<b>1回</b>振ってフィニッシュで静止→停止。あなたの正常な「返し角」基準。目安5回。'
+};
+const CTID={circle:'ctCircle',rom:'ctRom',address:'ctAddr',swing:'ctSwing'};
+
+function setMode(m){
+  MODE=m;
+  document.querySelectorAll('.mbtn').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
+  $('guide').innerHTML=GUIDE[m];
+}
+
+async function requestPermission(){
+  try{
+    GLAudio.ensure();
+    if(typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){
+      const r=await DeviceOrientationEvent.requestPermission();
+      if(r!=='granted'){ $('permError').innerHTML='<div class="warn-box">センサーが許可されませんでした。</div>'; return; }
+    }
+    if(typeof DeviceMotionEvent!=='undefined' && typeof DeviceMotionEvent.requestPermission==='function'){
+      try{ await DeviceMotionEvent.requestPermission(); }catch(e){}
+    }
+    window.addEventListener('deviceorientation',onOrient);
+    window.addEventListener('devicemotion',onMotion);
+    $('scrPerm').classList.add('hidden'); $('scrMain').classList.remove('hidden');
+    setMode('circle'); restore(); renderList();
+  }catch(e){ $('permError').innerHTML='<div class="warn-box">'+e.message+'</div>'; }
+}
+function onOrient(e){
+  SENSOR.alpha=e.alpha||0; SENSOR.beta=e.beta||0; SENSOR.gamma=e.gamma||0;
+  tick();
+}
+function onMotion(e){
+  if(e.acceleration && e.acceleration.x!==null){
+    MOTION.acc.x=e.acceleration.x||0; MOTION.acc.y=e.acceleration.y||0; MOTION.acc.z=e.acceleration.z||0; MOTION.seen=true;
+  }
+  if(e.rotationRate){
+    MOTION.rot.alpha=e.rotationRate.alpha||0; MOTION.rot.beta=e.rotationRate.beta||0; MOTION.rot.gamma=e.rotationRate.gamma||0;
+  }
+}
+
+function tick(){
+  const t=performance.now();
+  const qC=QuatUtils.fromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma);
+  const w=Math.hypot(MOTION.rot.alpha,MOTION.rot.beta);
+  // 表示用: ベースライン基準のシャフト角（録画開始時の姿勢を基準に）
+  let ang=0;
+  if(baseQuat){
+    const f=makePlaneFrame(baseQuat);
+    if(f){ const A=signedAngles(qC,f); ang=A.mag*(A.azimuth<0?-1:1); }
+  }
+  $('lvAng').textContent=Math.round(ang)+'°';
+  $('lvW').textContent=Math.round(w);
+  if(recording){
+    $('lvT').textContent=((t-recStart)/1000).toFixed(1);
+    BUF.push({
+      t:Math.round(t-recStart),
+      o:[+SENSOR.alpha.toFixed(2),+SENSOR.beta.toFixed(2),+SENSOR.gamma.toFixed(2)],
+      r:[+MOTION.rot.alpha.toFixed(2),+MOTION.rot.beta.toFixed(2),+MOTION.rot.gamma.toFixed(2)],
+      a:[+MOTION.acc.x.toFixed(3),+MOTION.acc.y.toFixed(3),+MOTION.acc.z.toFixed(3)]
+    });
+  }
+}
+
+function toggleRec(){
+  if(!recording){
+    // 録画開始: 直近の姿勢をベースラインに
+    baseQuat=QuatUtils.fromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma);
+    recording=true; recStart=performance.now(); BUF=[];
+    GLAudio.start();
+    $('btnRec').textContent='■ 停止'; $('btnRec').classList.add('rec');
+    $('status').textContent='● 録画中… 動作してください';
+  } else {
+    recording=false;
+    GLAudio.end();
+    $('btnRec').textContent='● 録画開始'; $('btnRec').classList.remove('rec');
+    if(BUF.length>=10){
+      RECS.push({ mode:MODE, time:new Date().toISOString(),
+        baseOrient:[+SENSOR.alpha.toFixed(2),+SENSOR.beta.toFixed(2),+SENSOR.gamma.toFixed(2)],
+        dur:Math.round(BUF[BUF.length-1].t), n:BUF.length, samples:BUF.slice() });
+      persist(); renderList();
+      $('status').textContent='記録しました（'+BUF.length+'サンプル）。次へ';
+    } else {
+      $('status').textContent='短すぎます — 記録しませんでした';
+    }
+  }
+}
+
+function renderList(){
+  const c={circle:0,rom:0,address:0,swing:0};
+  RECS.forEach(r=>c[r.mode]++);
+  $('ctCircle').textContent=c.circle; $('ctRom').textContent=c.rom;
+  $('ctAddr').textContent=c.address; $('ctSwing').textContent=c.swing;
+  const MN={circle:'B1円',rom:'B2可動域',address:'B3アドレス',swing:'B4スイング'};
+  $('recList').innerHTML=RECS.length===0?'（まだ記録なし）':
+    RECS.map((r,i)=>'<div>#'+(i+1)+' '+MN[r.mode]+' — '+(r.dur/1000).toFixed(1)+'s / '+r.n+'サンプル</div>').join('');
+  $('btnExport').disabled=RECS.length===0;
+  $('btnUndo').disabled=RECS.length===0;
+}
+
+function persist(){ try{ localStorage.setItem('golflev:fitting',JSON.stringify(RECS)); }catch(e){} }
+function restore(){ try{ const s=localStorage.getItem('golflev:fitting'); if(s){ const a=JSON.parse(s); if(Array.isArray(a)) RECS.push(...a);} }catch(e){} }
+
+async function exportJson(){
+  const data={ meta:{kind:'golflev-fitting',v:1,date:new Date().toISOString(),
+    subject:'ken', body:{height:179,wingspan:178,shoulder:50,upperArm:32,foreArm:24,hand:19,shoulderH:149,sternumH:123,dominant:'R'},
+    ua:navigator.userAgent }, records:RECS };
+  const name='golflev-fitting-'+new Date().toISOString().slice(0,10)+'.json';
+  const json=JSON.stringify(data);
+  try{
+    const file=new File([json],name,{type:'application/json'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:name}); return; }
+  }catch(e){ if(e&&e.name==='AbortError') return; }
+  const blob=new Blob([json],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000);
+}
+
+document.querySelectorAll('.mbtn').forEach(b=>b.addEventListener('click',()=>{ setMode(b.dataset.m); GLAudio.click(); }));
+$('btnPerm').addEventListener('click',requestPermission);
+$('btnRec').addEventListener('click',toggleRec);
+$('btnExport').addEventListener('click',exportJson);
+$('btnUndo').addEventListener('click',()=>{ RECS.pop(); persist(); renderList(); GLAudio.click(); });
+</script>
+</body>
+</html>
