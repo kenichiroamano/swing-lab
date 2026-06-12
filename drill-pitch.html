@@ -77,7 +77,7 @@
 <!-- ④ ライブ計測 -->
 <section class="screen" id="sc-live">
   <div class="live-state" id="liveState"></div>
-  <div class="swing-count"><span id="swingLabel"></span> <span id="swingNum">1</span> / 5</div>
+  <div class="swing-count"><span id="swingLabel"></span> <span id="swingNum">1</span> / 3</div>
   <div class="stage3d" id="stageLive"></div>
   <p class="note center" id="liveHint"></p>
   <div class="dots" id="dots"></div>
@@ -510,7 +510,7 @@ Stage.mount('stageIntro');
 
 <!-- ════════════ 計測エンジン（検証済み・不変） ════════════ -->
 <script>
-const SET_SIZE=5, TARGET=60, ZONE_MIN=50, ZONE_MAX=70, MIN_BACK=30;
+const SET_SIZE=3, TARGET=60, ZONE_MIN=50, ZONE_MAX=70, MIN_BACK=30; // 3球/セット（気軽に反復。ken判断 2026-06-12）
 const $=id=>document.getElementById(id);
 
 const STATE={ phase:'intro', frame:null, swings:[], rCal:GLStore.get('rCal',0.65) };
@@ -773,9 +773,9 @@ function showResult(){
   const zoneCt=backs.filter(b=>b>=ZONE_MIN&&b<=ZONE_MAX).length;
   const elbowUnknown=sw.every(s=>s.broken===null);
 
-  let rank;
-  if(brokenCt===0 && decelCt===0 && sd<=5 && zoneCt>=4) rank='perfect';
-  else if(brokenCt===0 && decelCt<=1 && sd<=8) rank='good';
+  let rank; // 3球セット用基準
+  if(brokenCt===0 && decelCt===0 && sd<=5 && zoneCt>=3) rank='perfect';
+  else if(brokenCt===0 && decelCt<=1 && sd<=8 && zoneCt>=2) rank='good';
   else if(brokenCt<=1 && sd<=12) rank='almost';
   else rank='tryagain';
 
@@ -786,16 +786,16 @@ function showResult(){
 
   $('statMean').textContent=Math.round(mean)+'°';
   $('statSd').textContent='±'+sd.toFixed(1)+'°';
-  $('statZone').textContent=zoneCt+'/5';
+  $('statZone').textContent=zoneCt+'/'+SET_SIZE;
 
   drawChart(sw);
 
   const issues=[];
-  if(brokenCt>0) issues.push({k:'elbow', label:STR.t('result.issue.elbow'), desc:`5回中${brokenCt}回、両肩とグリップの三角形が崩れました。`});
+  if(brokenCt>0) issues.push({k:'elbow', label:STR.t('result.issue.elbow'), desc:`${SET_SIZE}回中${brokenCt}回、両肩とグリップの三角形が崩れました。`});
   if(decelCt>0) issues.push({k:'decel', label:STR.t('result.issue.decel'), desc:`${decelCt}回、最下点の手前で減速しています。振り抜く意識を。`});
   if(sd>5) issues.push({k:'spread', label:STR.t('result.issue.spread'), desc:`ばらつき ±${sd.toFixed(1)}°（目標 ±5°以内）。距離感はそろえることから。`});
-  if(zoneCt<4 && mean<ZONE_MIN) issues.push({k:'shallow', label:STR.t('result.issue.shallow'), desc:`平均 ${Math.round(mean)}°。8時（60°）までしっかり上げましょう。`});
-  if(zoneCt<4 && mean>ZONE_MAX) issues.push({k:'deep', label:STR.t('result.issue.deep'), desc:`平均 ${Math.round(mean)}°。振りすぎです。8時で止めましょう。`});
+  if(zoneCt<SET_SIZE && mean<ZONE_MIN) issues.push({k:'shallow', label:STR.t('result.issue.shallow'), desc:`平均 ${Math.round(mean)}°。8時（60°）までしっかり上げましょう。`});
+  if(zoneCt<SET_SIZE && mean>ZONE_MAX) issues.push({k:'deep', label:STR.t('result.issue.deep'), desc:`平均 ${Math.round(mean)}°。振りすぎです。8時で止めましょう。`});
   if(noFollowCt>0) issues.push({k:'follow', label:STR.t('result.issue.follow'), desc:`${noFollowCt}回、フォロー側（4時）まで振り切れていません。`});
 
   const list=$('issuesList');

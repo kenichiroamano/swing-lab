@@ -6,7 +6,7 @@ const STR = {
     'pitch.eyebrow':        { ja:'Level 2 — Drill',            en:'Level 2 — Drill' },
     'pitch.title.jp':       { ja:'ピッチ',                       en:'The Pitch' },
     'pitch.intro.body':     { ja:'8時から、4時へ。<br>アプローチの距離感は、<br>この振り幅から生まれる。', en:'From 8 to 4.<br>Distance control begins<br>with this swing width.' },
-    'pitch.intro.note':     { ja:'両側60°のゾーンに、5回そろえて振る。それが今日の課題です。', en:'Five swings, both sides inside the 60° zone. That is today’s work.' },
+    'pitch.intro.note':     { ja:'両側60°のゾーンに、3回そろえて振る。それが今日の課題です。', en:'Three swings, both sides inside the 60° zone. That is today’s work.' },
     'pitch.btn.begin':      { ja:'はじめる',                     en:'Begin' },
 
     'sensor.title.jp':      { ja:'センサー',                     en:'The Sensor' },
@@ -39,7 +39,7 @@ const STR = {
     'live.chip.over':       { ja:'振りかぶり過ぎ — 8時で止める',    en:'Too far back — stop at 8' },
 
     'result.title.jp':      { ja:'結果',                        en:'The Result' },
-    'result.rank.perfect':  { ja:'5球がそろっています',            en:'Five matching swings.' },
+    'result.rank.perfect':  { ja:'3球がそろっています',            en:'Three matching swings.' },
     'result.rank.good':     { ja:'よい再現性です',                en:'Good consistency.' },
     'result.rank.almost':   { ja:'も う 少 し',                  en:'Almost.' },
     'result.rank.tryagain': { ja:'も う 一 度',                  en:'Once more.' },
