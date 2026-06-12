@@ -521,6 +521,8 @@ let lastSide=-1;
 let omegaS=0, lastT=null, lastA=null;
 // アーミング: スイング確定後、構えに戻って静止するまで次の計測を開始しない（戻し動作の誤計測対策 2026-06-12）
 let armed=false, armSince=null, overshootWarned=false, triEMA=1;
+let rearmPhase='wait-still', angAtEnd=0, disarmT=0;
+const rearmSamples=[];
 let acSum=0, acCnt=0;
 const tracker=new SwingTracker();
 let chipTimer=null;
@@ -651,18 +653,31 @@ function tick(){
   lastT=t; lastA=ang;
 
   // ── 未アーミング中はトラッカーに流さない（戻し動作・構え直しを計測しない） ──
+  // 再アーミング = ①一度動く（フィニッシュ静止と区別。6秒で省略可）→ ②静止0.5s →
+  // ③静止した今の構えを新しい基準に再ゼロ化 → セット。
+  // 🔴角度<12°を条件にしない: ジャイロのヨードリフトや握り直しで構えに戻っても角度が
+  // ゼロに戻らず、永久にアーミングされないバグ（判定不能スイング後のフリーズ）の修正
   if(!armed){
-    if(Math.abs(ang)<12 && omegaS<15){
-      if(armSince===null) armSince=t;
-      else if(t-armSince>=350){
-        armed=true; overshootWarned=false; triEMA=1; acSum=0; acCnt=0;
-        GLAudio.click();
-        showChip('ok',STR.t('live.set'));
+    if(rearmPhase==='wait-move'){
+      if(omegaS>40 || Math.abs(ang-angAtEnd)>15 || t-disarmT>6000){
+        rearmPhase='wait-still'; armSince=null;
       }
-    } else armSince=null;
-    if(window.Stage3D){ Stage3D.setLive(ang,'idle'); if(Stage3D.setTriangle) Stage3D.setTriangle(null); }
-    if(!armed) $('liveState').textContent=STR.t('live.return');
-    else $('liveState').textContent=STR.t('live.ready');
+    } else {
+      if(omegaS<15){
+        if(armSince===null){ armSince=t; rearmSamples.length=0; }
+        rearmSamples.push(qC);
+        if(t-armSince>=500){
+          const f=makePlaneFrame(QuatUtils.average(rearmSamples));
+          if(f) STATE.frame=f; // 再ゼロ化（シャフトが鉛直すぎる等で作れなければ旧基準のまま）
+          armed=true; overshootWarned=false; triEMA=1; acSum=0; acCnt=0;
+          lastA=0; omegaS=0;
+          GLAudio.click();
+          showChip('ok',STR.t('live.set'));
+        }
+      } else armSince=null;
+    }
+    if(window.Stage3D){ Stage3D.setLive(armed?0:ang,'idle'); if(Stage3D.setTriangle) Stage3D.setTriangle(null); }
+    $('liveState').textContent=armed?STR.t('live.ready'):STR.t('live.return');
     return;
   }
 
@@ -702,7 +717,9 @@ function tick(){
 }
 
 function onSwing(r){
-  armed=false; armSince=null; // 次のスイングは「構えに戻して静止」で再アーミング
+  // 次のスイングは「（動いて）構えに戻して静止」で再アーミング＋再ゼロ化
+  armed=false; armSince=null; disarmT=performance.now(); angAtEnd=lastA;
+  rearmPhase=Math.abs(lastA)<12?'wait-still':'wait-move'; // 既に構え付近なら移動待ちを省略
   if(Math.abs(r.backAngle)<MIN_BACK){ showChip('muted',STR.t('live.tooSmall')); return; }
   const acRatio=acCnt>=3? acSum/acCnt : null;
   const sw={
