@@ -53,7 +53,8 @@ h1{font-family:Georgia,serif;font-style:italic;font-weight:800;font-size:26px;te
     <p style="font-size:12px;color:#8A8A82;letter-spacing:.05em">いまから振るスイングのラベルを選んでから振る：</p>
     <div class="labelrow">
       <button class="lbtn on" data-l="normal">正常<br>（三角形キープ）<span class="ct" id="ctNormal">0</span></button>
-      <button class="lbtn" data-l="cw">チキンウィング<br>（わざと肘を曲げる）<span class="ct" id="ctCw">0</span></button>
+      <button class="lbtn" data-l="cw">左肘<br>チキンW（フォローで）<span class="ct" id="ctCw">0</span></button>
+      <button class="lbtn" data-l="re">右肘<br>（テイクバックで）<span class="ct" id="ctRe">0</span></button>
     </div>
     <div class="status" id="capStatus">構えに戻して、静止</div>
     <div class="live">
@@ -67,7 +68,7 @@ h1{font-family:Georgia,serif;font-style:italic;font-weight:800;font-size:26px;te
     <button class="btn" id="btnExport" disabled>書き出し（JSONを保存）</button>
     <button class="btn sub" id="btnUndo" disabled>直前の1件を取り消す</button>
     <button class="btn sub" id="btnRecal">構え直す（再キャリブレーション）</button>
-    <p class="note">目安：正常10回＋チキンウィング10回。普段の8時-4時のテンポで。<br>
+    <p class="note">目安：正常10回＋左肘チキンW 10回＋右肘くずれ10回。普段の8時-4時のテンポで。<br>
     保存したJSONファイルをチャットでClaudeに渡してください。<br>
     （C: 三脚で動画も撮っておくと答え合わせができます）</p>
   </div>
@@ -207,7 +208,8 @@ function tick(){
           if(f) STATE.frame=f;
           armed=true; acSum=0; acCnt=0; lastA=0; omegaS=0;
           GLAudio.click();
-          $('capStatus').textContent='セット — 「'+(LABEL==='normal'?'正常':'チキンウィング')+'」で振る';
+          const LN={normal:'正常',cw:'左肘チキンW',re:'右肘くずれ'};
+          $('capStatus').textContent='セット — 「'+LN[LABEL]+'」で振る';
         }
       } else armSince=null;
     }
@@ -248,13 +250,14 @@ function onSwing(r){
 }
 
 function renderList(){
-  const n=RECS.filter(x=>x.label==='normal').length;
-  const c=RECS.filter(x=>x.label==='cw').length;
-  $('ctNormal').textContent=n; $('ctCw').textContent=c;
+  $('ctNormal').textContent=RECS.filter(x=>x.label==='normal').length;
+  $('ctCw').textContent=RECS.filter(x=>x.label==='cw').length;
+  $('ctRe').textContent=RECS.filter(x=>x.label==='re').length;
+  const LN={normal:'正常',cw:'左肘CW',re:'右肘'};
   $('recList').innerHTML=RECS.length===0?'（まだ記録なし）':
     RECS.map((x,i)=>{
       const s=x.summary;
-      return '<div class="'+(x.label==='cw'?'cw':'ok')+'">#'+(i+1)+' '+(x.label==='cw'?'チキンW':'正常')
+      return '<div class="'+(x.label==='normal'?'ok':'cw')+'">#'+(i+1)+' '+LN[x.label]
         +' — バック'+Math.abs(s.back)+'° / 半径比 '+(s.acRatio===null?'—':s.acRatio)+' (n='+s.acN+')</div>';
     }).join('');
   $('btnExport').disabled=RECS.length===0;
