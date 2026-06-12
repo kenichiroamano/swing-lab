@@ -88,7 +88,8 @@ scene.add(ringFloor);
    視聴者から見た「時計の文字盤」を縦に。下半分の弧。
    光球が振り幅角度どおりに弧を滑り、±60°で金ゾーンに届く。
    言葉・数字なしで「ここまで振る」が伝わる。 */
-const ARC_R=1.42, ARC_CY=1.62, ARC_Z=-0.55;
+/* 中心=手元の支点(約1.05m)、半径=クラブ相当(0.85m) → 弧がクラブヘッドの実軌道と重なる */
+const ARC_R=0.85, ARC_CY=1.05, ARC_Z=-0.55;
 const arcGroup=new THREE.Group();
 arcGroup.position.set(0,ARC_CY,ARC_Z);
 scene.add(arcGroup);
@@ -98,13 +99,13 @@ const arcMat=new THREE.MeshStandardMaterial({color:0xB8804C,metalness:.9,roughne
 const arcMesh=new THREE.Mesh(new THREE.TorusGeometry(ARC_R,0.012,10,96,144*d2r),arcMat);
 arcMesh.rotation.z=(198)*d2r; // 弧の開始角: 270°-72°=198°
 arcGroup.add(arcMesh);
-// 目標ゾーン（±50°〜±68°）— 金の弧
+// 目標ゾーン（±55°〜±65°、8時/4時ピンポイント）— 金の弧
 const zoneMatL=new THREE.MeshStandardMaterial({color:0xC8956C,metalness:1,roughness:.22,emissive:0xC8956C,emissiveIntensity:.25});
 const zoneMatR=zoneMatL.clone();
-const zoneL=new THREE.Mesh(new THREE.TorusGeometry(ARC_R,0.030,12,32,18*d2r),zoneMatL);
-zoneL.rotation.z=(202)*d2r;  // θ=-68°..-50°
-const zoneR=new THREE.Mesh(new THREE.TorusGeometry(ARC_R,0.030,12,32,18*d2r),zoneMatR);
-zoneR.rotation.z=(320)*d2r;  // θ=+50°..+68°
+const zoneL=new THREE.Mesh(new THREE.TorusGeometry(ARC_R,0.026,12,24,10*d2r),zoneMatL);
+zoneL.rotation.z=(205)*d2r;  // θ=-65°..-55°
+const zoneR=new THREE.Mesh(new THREE.TorusGeometry(ARC_R,0.026,12,24,10*d2r),zoneMatR);
+zoneR.rotation.z=(325)*d2r;  // θ=+55°..+65°
 arcGroup.add(zoneL,zoneR);
 // 6時の小さな基準点
 const dotMat=new THREE.MeshStandardMaterial({color:0x1F2A21,metalness:.4,roughness:.4});
@@ -113,7 +114,7 @@ baseDot.position.set(0,-ARC_R,0);
 arcGroup.add(baseDot);
 // 光球（振り子）
 const ballMat=new THREE.MeshStandardMaterial({color:0xF7F1E3,metalness:.2,roughness:.15,emissive:0xC8956C,emissiveIntensity:1.0});
-const ball=new THREE.Mesh(new THREE.SphereGeometry(0.052,24,24),ballMat);
+const ball=new THREE.Mesh(new THREE.SphereGeometry(0.042,24,24),ballMat);
 arcGroup.add(ball);
 const ballGlow=new THREE.PointLight(0xC8956C,4,2.2);
 ball.add(ballGlow);
@@ -122,8 +123,8 @@ function setBall(angDeg){
   ballAng+=(angDeg-ballAng)*0.35;
   const a=ballAng*d2r;
   ball.position.set(ARC_R*Math.sin(a), -ARC_R*Math.cos(a), 0);
-  zoneMatL.emissiveIntensity=ballAng<=-50?1.4:.25;
-  zoneMatR.emissiveIntensity=ballAng>=50?1.4:.25;
+  zoneMatL.emissiveIntensity=ballAng<=-55?1.4:.25;
+  zoneMatR.emissiveIntensity=ballAng>=55?1.4:.25;
 }
 
 /* 白磁×金の確定マテリアル */
