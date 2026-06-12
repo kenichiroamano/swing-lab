@@ -61,9 +61,13 @@ h1{font-family:Georgia,serif;font-style:italic;font-weight:800;font-size:26px;te
   </div>
   <div class="card">
     <div id="recList">（まだ記録なし）</div>
-    <button class="btn" id="btnExport" disabled>書き出し（JSONを共有）</button>
+    <button class="btn" id="btnExport" disabled>① ファイルに保存</button>
+    <button class="btn sub" id="btnShare" disabled>② 共有（メール等）で送る</button>
+    <button class="btn sub" id="btnShow" disabled>③ 中身を表示（最終手段・全選択コピー）</button>
     <button class="btn sub" id="btnUndo" disabled>直前の1件を取り消す</button>
-    <p class="note">各モードの目安回数を採ったら「書き出し」。自動保存されるので途中で閉じてもOK。<br>同時に正面から動画を撮っておくと答え合わせができます。</p>
+    <div id="exportMsg" class="guide hidden"></div>
+    <textarea id="rawBox" class="hidden" readonly style="width:100%;height:120px;margin-top:8px;font-size:10px;font-family:monospace;border:1px solid #ccc;border-radius:8px;padding:6px"></textarea>
+    <p class="note"><b>送り方：</b>①を押すとファイルが「ダウンロード」に保存される → 「ファイル」アプリからメールで自分宛てに送る。<br>※ 共有シートで「<b>コピー</b>」は選ばない（名前だけになる）。「メール」か「"ファイル"に保存」を選ぶ。<br>保存後、画面に出る<b>サイズ(KB)</b>が数十KB以上あれば中身は正常です。</p>
   </div>
 </div>
 
@@ -174,33 +178,60 @@ function renderList(){
   const MN={circle:'B1円',rom:'B2可動域',address:'B3アドレス',swing:'B4スイング'};
   $('recList').innerHTML=RECS.length===0?'（まだ記録なし）':
     RECS.map((r,i)=>'<div>#'+(i+1)+' '+MN[r.mode]+' — '+(r.dur/1000).toFixed(1)+'s / '+r.n+'サンプル</div>').join('');
-  $('btnExport').disabled=RECS.length===0;
-  $('btnUndo').disabled=RECS.length===0;
+  const empty=RECS.length===0;
+  $('btnExport').disabled=empty; $('btnShare').disabled=empty;
+  $('btnShow').disabled=empty; $('btnUndo').disabled=empty;
 }
 
 function persist(){ try{ localStorage.setItem('golflev:fitting',JSON.stringify(RECS)); }catch(e){} }
 function restore(){ try{ const s=localStorage.getItem('golflev:fitting'); if(s){ const a=JSON.parse(s); if(Array.isArray(a)) RECS.push(...a);} }catch(e){} }
 
-async function exportJson(){
+function buildExport(){
   const data={ meta:{kind:'golflev-fitting',v:1,date:new Date().toISOString(),
     subject:'ken', body:{height:179,wingspan:178,shoulder:50,upperArm:32,foreArm:24,hand:19,shoulderH:149,sternumH:123,dominant:'R'},
     ua:navigator.userAgent }, records:RECS };
   const name='golflev-fitting-'+new Date().toISOString().slice(0,10)+'.json';
   const json=JSON.stringify(data);
-  try{
-    const file=new File([json],name,{type:'application/json'});
-    if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:name}); return; }
-  }catch(e){ if(e&&e.name==='AbortError') return; }
+  return {name,json,kb:(json.length/1024).toFixed(1)};
+}
+function showMsg(html){ const m=$('exportMsg'); m.classList.remove('hidden'); m.innerHTML=html; }
+
+// ① ファイルに保存（最も確実: <a download> でダウンロードに保存）
+function downloadJson(){
+  const {name,json,kb}=buildExport();
   const blob=new Blob([json],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name;
   document.body.appendChild(a); a.click();
-  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000);
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1500);
+  GLAudio.good();
+  showMsg('<b>保存しました</b>：'+name+'<br>サイズ <b>'+kb+' KB</b>（数十KB以上なら中身は正常）<br>→「ファイル」アプリの<b>ダウンロード</b>にあります。長押し→共有→メールで自分宛てに。');
+}
+// ② 共有（ファイル添付。テキストは渡さない＝名前だけ事故の防止）
+async function shareJson(){
+  const {name,json,kb}=buildExport();
+  try{
+    const file=new File([json],name,{type:'application/json'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file]});  // titleもtextも付けない＝ファイルのみ
+      showMsg('共有しました（'+kb+' KB）。送信先で<b>添付ファイル</b>が付いているか確認してください。コピーは選ばないこと。');
+      return;
+    }
+    showMsg('この端末は共有にファイルを載せられません。<b>①ファイルに保存</b>を使ってください。');
+  }catch(e){ if(e&&e.name==='AbortError') return; showMsg('共有がキャンセル/失敗。<b>①ファイルに保存</b>を使ってください。'); }
+}
+// ③ 中身を表示（最終手段: 全文を表示して全選択コピー）
+function showRaw(){
+  const {json,kb}=buildExport();
+  const box=$('rawBox'); box.classList.remove('hidden'); box.value=json; box.focus(); box.select();
+  showMsg('全文を表示しました（'+kb+' KB）。全選択してコピー→メール本文に貼り付けて送ってもOKです。');
 }
 
 document.querySelectorAll('.mbtn').forEach(b=>b.addEventListener('click',()=>{ setMode(b.dataset.m); GLAudio.click(); }));
 $('btnPerm').addEventListener('click',requestPermission);
 $('btnRec').addEventListener('click',toggleRec);
-$('btnExport').addEventListener('click',exportJson);
+$('btnExport').addEventListener('click',downloadJson);
+$('btnShare').addEventListener('click',shareJson);
+$('btnShow').addEventListener('click',showRaw);
 $('btnUndo').addEventListener('click',()=>{ RECS.pop(); persist(); renderList(); GLAudio.click(); });
 </script>
 </body>
