@@ -420,6 +420,7 @@ new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{ // チップ素材（ド�
    live: 計測角度でスクラブ（あなたの分身） */
 let liveAng=0, liveState='idle', topAng=-60;
 let renderT=ANCH.addr, lastTs=null;
+let camY=2.1, camZ=5.0, camLY=0.85; // モード別カメラのスムーズ遷移用
 Stage.mount=(id)=>{
   const el=document.getElementById(id);
   if(el && canvas.parentElement!==el){ el.appendChild(canvas); Stage.resize(); }
@@ -493,8 +494,13 @@ function animate(ts){
     flashMat.color.setHex(0xC8956C); flashMat.emissive.setHex(0xC8956C); flashMat=null;
   }
   const t=ts*0.001;
-  camera.position.set(Math.sin(t*0.15)*0.35, 2.1+Math.sin(t*0.1)*0.05, 5.0);
-  camera.lookAt(0,0.85,0);
+  // ライブ計測中はカメラが寄る（彫像と三角形を主役に。イントロは時計全体の引き構図）
+  const ct=Stage.mode==='live' ? {y:1.55, z:3.45, ly:0.95, sway:0.20} : {y:2.1, z:5.0, ly:0.85, sway:0.35};
+  camY+=(ct.y-camY)*Math.min(1,dts*2.5);
+  camZ+=(ct.z-camZ)*Math.min(1,dts*2.5);
+  camLY+=(ct.ly-camLY)*Math.min(1,dts*2.5);
+  camera.position.set(Math.sin(t*0.15)*ct.sway, camY+Math.sin(t*0.1)*0.05, camZ);
+  camera.lookAt(0,camLY,0);
   renderer.render(scene,camera);
   requestAnimationFrame(animate);
 }
