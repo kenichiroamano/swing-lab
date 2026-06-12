@@ -250,13 +250,50 @@ const gaugeBall=new THREE.Mesh(new THREE.SphereGeometry(0.04,24,24),
 arcGroup.add(gaugeBall);
 const gaugeGlow=new THREE.PointLight(0xC8956C,4,2.0);
 gaugeBall.add(gaugeGlow);
-let gaugeAng=0;
+let gaugeAng=0, flashUntil=0, flashMat=null;
 function setBall(angDeg){
   gaugeAng+=(angDeg-gaugeAng)*0.35;
   const a=gaugeAng*d2rA;
   gaugeBall.position.set(ARC_R*Math.sin(a),-ARC_R*Math.cos(a),0);
   zoneMatL.emissiveIntensity=gaugeAng<=-55?1.4:.25;
   zoneMatR.emissiveIntensity=gaugeAng>=55?1.4:.25;
+}
+/* 振りかぶり過ぎ: 該当側ゾーンをテラコッタで0.7秒点滅 */
+Stage.flashOver=(side)=>{
+  if(flashMat){ flashMat.color.setHex(0xC8956C); flashMat.emissive.setHex(0xC8956C); }
+  flashMat=side<0?zoneMatL:zoneMatR;
+  flashMat.color.setHex(0xC45B4A); flashMat.emissive.setHex(0xC45B4A); flashMat.emissiveIntensity=1.7;
+  flashUntil=performance.now()+700;
+};
+/* 三角形インジケータ: 肩2点＋グリップ中点を結ぶ線。形=彫像のフォーム、色=ユーザーの評価
+   （金=三角形を保てている / テラコッタ=崩れ=チキンウィング傾向）。null=非表示 */
+const triMat=new THREE.MeshBasicMaterial({color:0xC8956C,transparent:true,opacity:.55,blending:THREE.AdditiveBlending,depthWrite:false});
+const triEdges=[0,1,2].map(()=>{
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(0.009,0.009,1,6,1,true),triMat);
+  m.visible=false; m.frustumCulled=false; scene.add(m); return m;
+});
+let triStatus=null, triBones=null;
+Stage.setTriangle=s=>{ triStatus=s; };
+const _tv1=new THREE.Vector3(),_tv2=new THREE.Vector3(),_tv3=new THREE.Vector3(),_tv4=new THREE.Vector3(),_tmid=new THREE.Vector3(),_tdir=new THREE.Vector3(),_tup=new THREE.Vector3(0,1,0);
+function triEdge(m,a,b){
+  _tdir.subVectors(b,a);
+  const len=_tdir.length(); if(len<0.01){ m.visible=false; return; }
+  m.position.copy(a).addScaledVector(_tdir,0.5);
+  m.scale.set(1,len,1);
+  m.quaternion.setFromUnitVectors(_tup,_tdir.normalize());
+  m.visible=true;
+}
+function updateTriangle(){
+  if(!triBones || triStatus===null){ triEdges.forEach(m=>m.visible=false); return; }
+  triBones.ls.getWorldPosition(_tv1); triBones.rs.getWorldPosition(_tv2);
+  triBones.lh.getWorldPosition(_tv3); triBones.rh.getWorldPosition(_tv4);
+  _tmid.addVectors(_tv3,_tv4).multiplyScalar(0.5);
+  triEdge(triEdges[0],_tv1,_tv2);
+  triEdge(triEdges[1],_tv2,_tmid);
+  triEdge(triEdges[2],_tmid,_tv1);
+  const ng=triStatus==='ng';
+  triMat.color.setHex(ng?0xC45B4A:0xC8956C);
+  triMat.opacity=ng?0.95:0.55;
 }
 
 /* ── 金の軌跡リボン（あなたのスイングが光になる） ── */
@@ -350,6 +387,11 @@ new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{ // チップ素材（ド�
     c.material=[jointGold,jointWhite];
   });
   scene.add(golfer);
+  { const bn={};
+    golfer.traverse(c=>{ if(c.isBone){
+      if(/LeftArm$/.test(c.name))bn.ls=c; if(/RightArm$/.test(c.name))bn.rs=c;
+      if(/LeftHand$/.test(c.name))bn.lh=c; if(/RightHand$/.test(c.name))bn.rh=c; } });
+    if(bn.ls&&bn.rs&&bn.lh&&bn.rh) triBones=bn; }
   if(fbx.animations&&fbx.animations.length){
     mixer=new THREE.AnimationMixer(golfer);
     action=mixer.clipAction(fbx.animations[0]);
@@ -446,6 +488,10 @@ function animate(ts){
       updateTrail(ts,clamp(liveAng,-110,110)); // バック=負=画面左（符号統一により二重反転を撤去）
     }
   }
+  updateTriangle();
+  if(flashMat && performance.now()>flashUntil){
+    flashMat.color.setHex(0xC8956C); flashMat.emissive.setHex(0xC8956C); flashMat=null;
+  }
   const t=ts*0.001;
   camera.position.set(Math.sin(t*0.15)*0.35, 2.1+Math.sin(t*0.1)*0.05, 5.0);
   camera.lookAt(0,0.85,0);
@@ -467,6 +513,8 @@ const MOTION={ acc:{x:0,y:0,z:0}, rot:{alpha:0,beta:0,gamma:0}, seen:false };
 let FLIP=!!GLStore.get('dialFlip',false);
 let lastSide=-1;
 let omegaS=0, lastT=null, lastA=null;
+// アーミング: スイング確定後、構えに戻って静止するまで次の計測を開始しない（戻し動作の誤計測対策 2026-06-12）
+let armed=false, armSince=null, overshootWarned=false, triEMA=1;
 let acSum=0, acCnt=0;
 const tracker=new SwingTracker();
 let chipTimer=null;
@@ -596,27 +644,59 @@ function tick(){
   }
   lastT=t; lastA=ang;
 
+  // ── 未アーミング中はトラッカーに流さない（戻し動作・構え直しを計測しない） ──
+  if(!armed){
+    if(Math.abs(ang)<12 && omegaS<15){
+      if(armSince===null) armSince=t;
+      else if(t-armSince>=350){
+        armed=true; overshootWarned=false; triEMA=1; acSum=0; acCnt=0;
+        GLAudio.click();
+        showChip('ok',STR.t('live.set'));
+      }
+    } else armSince=null;
+    if(window.Stage3D){ Stage3D.setLive(ang,'idle'); if(Stage3D.setTriangle) Stage3D.setTriangle(null); }
+    if(!armed) $('liveState').textContent=STR.t('live.return');
+    else $('liveState').textContent=STR.t('live.ready');
+    return;
+  }
+
   if(tracker.state!=='idle' && MOTION.seen){
     const wRad=magRotPerpRad(MOTION.rot);
     if(wRad>=1.5){
       const expected=wRad*wRad*STATE.rCal;
       if(expected>=0.5){
         const actual=Math.sqrt(MOTION.acc.x**2+MOTION.acc.y**2+MOTION.acc.z**2);
-        acSum+=Math.min(2,actual/expected); acCnt++;
+        const ratio=Math.min(2,actual/expected);
+        acSum+=ratio; acCnt++;
+        triEMA=triEMA*0.8+ratio*0.2; // リアルタイム三角形インジケータ用
       }
     }
   }
 
   const prev=tracker.state;
   const r=tracker.feed(t,ang,omegaS);
-  if(prev==='idle' && tracker.state!=='idle'){ GLAudio.start(); acSum=0; acCnt=0; }
+  if(prev==='idle' && tracker.state!=='idle'){ GLAudio.start(); acSum=0; acCnt=0; triEMA=1; }
   if(r) onSwing(r);
 
-  if(window.Stage3D) Stage3D.setLive(ang,tracker.state);
+  // 振りかぶり過ぎ警告（ゾーン上限+5°超で一度だけ。iOS Safariはバイブ非対応のため音+表示で代替）
+  if(tracker.state==='back' && !overshootWarned && Math.abs(ang)>ZONE_MAX+5){
+    overshootWarned=true;
+    GLAudio.warn();
+    if(navigator.vibrate) try{ navigator.vibrate(150); }catch(e){}
+    showChip('ng',STR.t('live.chip.over'));
+    if(window.Stage3D && Stage3D.flashOver) Stage3D.flashOver(ang<0?-1:1);
+  }
+
+  if(window.Stage3D){
+    Stage3D.setLive(ang,tracker.state);
+    // 三角形インジケータ: 形は彫像、色があなたの評価（金=保てている / 赤=崩れ）。データ不足時は表示しない
+    if(Stage3D.setTriangle) Stage3D.setTriangle(tracker.state==='idle'?null:(acCnt>=3?(triEMA<0.75?'ng':'ok'):null));
+  }
   $('liveState').textContent=tracker.state==='idle'?STR.t('live.ready'):(tracker.state==='back'?STR.t('live.back'):STR.t('live.through'));
 }
 
 function onSwing(r){
+  armed=false; armSince=null; // 次のスイングは「構えに戻して静止」で再アーミング
   if(Math.abs(r.backAngle)<MIN_BACK){ showChip('muted',STR.t('live.tooSmall')); return; }
   const acRatio=acCnt>=3? acSum/acCnt : null;
   const sw={

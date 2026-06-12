@@ -34,6 +34,9 @@ const STR = {
     'live.chip.shallow':    { ja:'浅い — もう少し上まで',          en:'Shallow' },
     'live.chip.deep':       { ja:'深い — 8時で止める',            en:'Too deep' },
     'live.chip.noFollow':   { ja:'フォローまで振り切る',           en:'Swing through' },
+    'live.return':          { ja:'構えに戻して、静止',             en:'Return to address' },
+    'live.set':             { ja:'セット — どうぞ',               en:'Set — go' },
+    'live.chip.over':       { ja:'振りかぶり過ぎ — 8時で止める',    en:'Too far back — stop at 8' },
 
     'result.title.jp':      { ja:'結果',                        en:'The Result' },
     'result.rank.perfect':  { ja:'5球がそろっています',            en:'Five matching swings.' },
