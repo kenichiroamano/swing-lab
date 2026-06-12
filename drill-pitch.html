@@ -443,7 +443,7 @@ function animate(ts){
       action.time=clamp(renderT,0,clipDur-0.001);
       mixer.update(0);
       setBall(liveAng);
-      updateTrail(ts,clamp(-liveAng,-110,110)); // 観客視点: バックは画面左へ
+      updateTrail(ts,clamp(liveAng,-110,110)); // バック=負=画面左（符号統一により二重反転を撤去）
     }
   }
   const t=ts*0.001;
@@ -581,7 +581,9 @@ function tick(){
   const t=performance.now();
   const qC=QuatUtils.fromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma);
   const A=signedAngles(qC,STATE.frame);
-  if(Math.abs(A.azimuth)>3) lastSide=Math.sign(A.azimuth);
+  // 実機確認(2026-06-12): azimuth正=バック側だったため反転し「バック=負」に統一。
+  // 旧コードはトレイル側の-liveAngが偶然補正していたが、彫像と光球には逆向きに伝わっていた
+  if(Math.abs(A.azimuth)>3) lastSide=-Math.sign(A.azimuth);
   let ang=lastSide*A.mag;
   if(FLIP) ang=-ang;
 
