@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Golflev · Capture Lab（実測データ採取）</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#EFE9DC;color:#1F2A21;font-family:'Inter',-apple-system,sans-serif;min-height:100vh;padding:24px 18px 40px}
+.eyebrow{font-size:11px;letter-spacing:.26em;color:#B8804C;text-transform:uppercase;text-align:center}
+h1{font-family:Georgia,serif;font-style:italic;font-weight:800;font-size:26px;text-align:center;margin:4px 0 18px}
+.card{background:#fff;border-radius:16px;padding:18px;margin:0 auto 14px;max-width:480px;box-shadow:0 2px 10px rgba(31,42,33,.06)}
+.btn{display:block;width:100%;padding:15px;border-radius:999px;border:none;background:#1F2A21;color:#F7F1E3;
+  font-size:14px;letter-spacing:.08em;font-family:inherit;margin-top:10px}
+.btn.sub{background:transparent;border:1px solid rgba(31,42,33,.35);color:#1F2A21}
+.btn:disabled{opacity:.4}
+.labelrow{display:flex;gap:8px;margin:8px 0 4px}
+.lbtn{flex:1;padding:14px 6px;border-radius:12px;border:2px solid rgba(31,42,33,.2);background:#F7F1E3;
+  font-size:13px;font-family:inherit;color:#1F2A21}
+.lbtn.on{border-color:#B8804C;background:#fff;font-weight:700}
+.lbtn .ct{display:block;font-size:20px;font-weight:800;margin-top:2px}
+.status{text-align:center;font-size:13px;letter-spacing:.1em;color:#B8804C;min-height:20px;margin:10px 0 2px}
+.live{display:flex;justify-content:space-around;text-align:center;margin-top:8px}
+.live b{font-size:22px;font-variant-numeric:tabular-nums}
+.live span{display:block;font-size:10px;color:#8A8A82;letter-spacing:.12em}
+.warn-box{background:#FBEAE6;color:#C45B4A;border-radius:10px;padding:10px;font-size:12px;margin-top:8px}
+#recList{font-size:12px;line-height:1.9;max-height:180px;overflow-y:auto}
+#recList .ok{color:#4A6B4A} #recList .cw{color:#C45B4A}
+.note{font-size:11px;color:#8A8A82;line-height:1.7;margin-top:8px}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="eyebrow">Capture Lab</div>
+<h1>実測データ採取</h1>
+
+<div id="scrPerm" class="card">
+  <p style="font-size:13px;line-height:1.9">チキンウィング検出を実測で設計するためのデータ採取ページです。<br>
+  本体アプリと同じセンサー・同じ計算で記録します。</p>
+  <button class="btn" id="btnPerm">センサーを許可して開始</button>
+  <div id="permError"></div>
+</div>
+
+<div id="scrCalib" class="card hidden">
+  <p style="font-size:13px;line-height:1.9">いつものアドレスで構えて、ボタンを押したら2秒静止。</p>
+  <div class="status" id="calibCount">—</div>
+  <button class="btn" id="btnCalib">構えを記録（2秒静止）</button>
+  <div id="calibWarn"></div>
+</div>
+
+<div id="scrCap" class="hidden">
+  <div class="card">
+    <p style="font-size:12px;color:#8A8A82;letter-spacing:.05em">いまから振るスイングのラベルを選んでから振る：</p>
+    <div class="labelrow">
+      <button class="lbtn on" data-l="normal">正常<br>（三角形キープ）<span class="ct" id="ctNormal">0</span></button>
+      <button class="lbtn" data-l="cw">チキンウィング<br>（わざと肘を曲げる）<span class="ct" id="ctCw">0</span></button>
+    </div>
+    <div class="status" id="capStatus">構えに戻して、静止</div>
+    <div class="live">
+      <div><b id="lvAng">0°</b><span>角度</span></div>
+      <div><b id="lvW">0</b><span>角速度</span></div>
+      <div><b id="lvAc">—</b><span>半径比(直近)</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div id="recList">（まだ記録なし）</div>
+    <button class="btn" id="btnExport" disabled>書き出し（JSONを保存）</button>
+    <button class="btn sub" id="btnUndo" disabled>直前の1件を取り消す</button>
+    <button class="btn sub" id="btnRecal">構え直す（再キャリブレーション）</button>
+    <p class="note">目安：正常10回＋チキンウィング10回。普段の8時-4時のテンポで。<br>
+    保存したJSONファイルをチャットでClaudeに渡してください。<br>
+    （C: 三脚で動画も撮っておくと答え合わせができます）</p>
+  </div>
+</div>
+
+<script src="core.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const SENSOR={alpha:0,beta:0,gamma:0};
+const MOTION={acc:{x:0,y:0,z:0},rot:{alpha:0,beta:0,gamma:0},seen:false};
+const STATE={phase:'perm',frame:null,rCal:GLStore.get('rCal',0.65)};
+let LABEL='normal';
+const RECS=[];
+const RING=[]; // 直近8秒の生サンプル
+const RING_MS=8000;
+
+let lastSide=-1, omegaS=0, lastT=null, lastA=null;
+let armed=false, armSince=null, rearmPhase='wait-still', angAtEnd=0, disarmT=0;
+const rearmSamples=[];
+let acSum=0, acCnt=0, lastRatio=null;
+const tracker=new SwingTracker();
+
+function goto(p){
+  STATE.phase=p;
+  $('scrPerm').classList.toggle('hidden',p!=='perm');
+  $('scrCalib').classList.toggle('hidden',p!=='calib');
+  $('scrCap').classList.toggle('hidden',p!=='cap');
+}
+
+/* 権限（本体と同一フロー） */
+async function requestPermission(){
+  try{
+    GLAudio.ensure();
+    if(typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){
+      const r=await DeviceOrientationEvent.requestPermission();
+      if(r!=='granted'){ $('permError').innerHTML='<div class="warn-box">センサーが許可されませんでした。</div>'; return; }
+    }
+    if(typeof DeviceMotionEvent!=='undefined' && typeof DeviceMotionEvent.requestPermission==='function'){
+      try{ await DeviceMotionEvent.requestPermission(); }catch(e){}
+    }
+    window.addEventListener('deviceorientation',onOrient);
+    window.addEventListener('devicemotion',onMotion);
+    goto('calib');
+  }catch(e){ $('permError').innerHTML='<div class="warn-box">'+e.message+'</div>'; }
+}
+function onOrient(e){
+  SENSOR.alpha=e.alpha||0; SENSOR.beta=e.beta||0; SENSOR.gamma=e.gamma||0;
+  if(STATE.phase==='cap' && STATE.frame) tick();
+}
+function onMotion(e){
+  if(e.acceleration && e.acceleration.x!==null){
+    MOTION.acc.x=e.acceleration.x||0; MOTION.acc.y=e.acceleration.y||0; MOTION.acc.z=e.acceleration.z||0;
+    MOTION.seen=true;
+  }
+  if(e.rotationRate){
+    MOTION.rot.alpha=e.rotationRate.alpha||0;
+    MOTION.rot.beta=e.rotationRate.beta||0;
+    MOTION.rot.gamma=e.rotationRate.gamma||0;
+  }
+}
+
+/* キャリブレーション（本体と同一） */
+let calibTimer=null;
+function startCalib(){
+  GLAudio.ensure(); GLAudio.click();
+  $('calibWarn').innerHTML='';
+  const samples=[]; let remain=2.0;
+  $('calibCount').textContent=remain.toFixed(1);
+  if(calibTimer) clearInterval(calibTimer);
+  calibTimer=setInterval(()=>{
+    samples.push(QuatUtils.fromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma));
+    remain-=0.05;
+    $('calibCount').textContent=Math.max(0,remain).toFixed(1);
+    if(remain<=0){
+      clearInterval(calibTimer);
+      const f=makePlaneFrame(QuatUtils.average(samples));
+      if(!f){ $('calibWarn').innerHTML='<div class="warn-box">シャフトが鉛直に近すぎます。通常のアドレス角度で。</div>'; $('calibCount').textContent='—'; return; }
+      STATE.frame=f;
+      $('calibCount').textContent='✓';
+      GLAudio.calibDone();
+      setTimeout(()=>{ armed=false; armSince=null; rearmPhase='wait-still'; goto('cap'); },600);
+    }
+  },50);
+}
+
+/* 計測ループ（本体v13.2と同一の符号規約・アーミング・再ゼロ化） */
+function tick(){
+  const t=performance.now();
+  const qC=QuatUtils.fromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma);
+  const A=signedAngles(qC,STATE.frame);
+  if(Math.abs(A.azimuth)>3) lastSide=-Math.sign(A.azimuth);
+  let ang=lastSide*A.mag;
+
+  if(lastT!==null){
+    const dt=(t-lastT)/1000;
+    if(dt>0.001 && dt<0.5){ const w=Math.abs(ang-lastA)/dt; omegaS=omegaS*0.5+w*0.5; }
+  }
+  lastT=t; lastA=ang;
+
+  // 生サンプル記録（リングバッファ）
+  let ratio=null;
+  if(MOTION.seen){
+    const wRad=magRotPerpRad(MOTION.rot);
+    if(wRad>=1.5){
+      const expected=wRad*wRad*STATE.rCal;
+      if(expected>=0.5){
+        const actual=Math.sqrt(MOTION.acc.x**2+MOTION.acc.y**2+MOTION.acc.z**2);
+        ratio=Math.min(2,actual/expected);
+        lastRatio=ratio;
+      }
+    }
+  }
+  RING.push({
+    t:Math.round(t),
+    o:[+SENSOR.alpha.toFixed(2),+SENSOR.beta.toFixed(2),+SENSOR.gamma.toFixed(2)],
+    r:[+MOTION.rot.alpha.toFixed(2),+MOTION.rot.beta.toFixed(2),+MOTION.rot.gamma.toFixed(2)],
+    a:[+MOTION.acc.x.toFixed(3),+MOTION.acc.y.toFixed(3),+MOTION.acc.z.toFixed(3)],
+    ang:+ang.toFixed(2), w:+omegaS.toFixed(1),
+    q:ratio===null?null:+ratio.toFixed(3)
+  });
+  while(RING.length && t-RING[0].t>RING_MS) RING.shift();
+
+  $('lvAng').textContent=Math.round(ang)+'°';
+  $('lvW').textContent=Math.round(omegaS);
+  $('lvAc').textContent=lastRatio===null?'—':lastRatio.toFixed(2);
+
+  // アーミング（移動→静止0.5s→再ゼロ化）
+  if(!armed){
+    if(rearmPhase==='wait-move'){
+      if(omegaS>40 || Math.abs(ang-angAtEnd)>15 || t-disarmT>6000){ rearmPhase='wait-still'; armSince=null; }
+    } else {
+      if(omegaS<15){
+        if(armSince===null){ armSince=t; rearmSamples.length=0; }
+        rearmSamples.push(qC);
+        if(t-armSince>=500){
+          const f=makePlaneFrame(QuatUtils.average(rearmSamples));
+          if(f) STATE.frame=f;
+          armed=true; acSum=0; acCnt=0; lastA=0; omegaS=0;
+          GLAudio.click();
+          $('capStatus').textContent='セット — 「'+(LABEL==='normal'?'正常':'チキンウィング')+'」で振る';
+        }
+      } else armSince=null;
+    }
+    if(!armed) $('capStatus').textContent='構えに戻して、静止';
+    return;
+  }
+
+  if(tracker.state!=='idle' && ratio!==null){ acSum+=ratio; acCnt++; }
+
+  const prev=tracker.state;
+  const r=tracker.feed(t,ang,omegaS);
+  if(prev==='idle' && tracker.state!=='idle'){ GLAudio.start(); acSum=0; acCnt=0; }
+  if(r) onSwing(r);
+  if(tracker.state!=='idle') $('capStatus').textContent='計測中…';
+}
+
+function onSwing(r){
+  armed=false; armSince=null; disarmT=performance.now(); angAtEnd=lastA;
+  rearmPhase=Math.abs(lastA)<12?'wait-still':'wait-move';
+  if(Math.abs(r.backAngle)<20){ $('capStatus').textContent='小さすぎ — この1回は記録しない'; GLAudio.warn(); return; }
+  const endT=performance.now();
+  const samples=RING.filter(s=>s.t>=r.t0-400 && s.t<=endT);
+  const rec={
+    label:LABEL,
+    time:new Date().toISOString(),
+    rCal:STATE.rCal,
+    summary:{
+      back:+r.backAngle.toFixed(1), follow:+r.followAngle.toFixed(1),
+      complete:r.complete, tempo:r.tempoRatio?+r.tempoRatio.toFixed(2):null,
+      decel:r.decel, slow:r.slowSwing,
+      acRatio: acCnt>=3? +(acSum/acCnt).toFixed(3) : null, acN:acCnt
+    },
+    samples
+  };
+  RECS.push(rec);
+  GLAudio.end();
+  renderList();
+}
+
+function renderList(){
+  const n=RECS.filter(x=>x.label==='normal').length;
+  const c=RECS.filter(x=>x.label==='cw').length;
+  $('ctNormal').textContent=n; $('ctCw').textContent=c;
+  $('recList').innerHTML=RECS.length===0?'（まだ記録なし）':
+    RECS.map((x,i)=>{
+      const s=x.summary;
+      return '<div class="'+(x.label==='cw'?'cw':'ok')+'">#'+(i+1)+' '+(x.label==='cw'?'チキンW':'正常')
+        +' — バック'+Math.abs(s.back)+'° / 半径比 '+(s.acRatio===null?'—':s.acRatio)+' (n='+s.acN+')</div>';
+    }).join('');
+  $('btnExport').disabled=RECS.length===0;
+  $('btnUndo').disabled=RECS.length===0;
+}
+
+function exportJson(){
+  const data={
+    meta:{ kind:'golflev-capture', v:1, date:new Date().toISOString(),
+      rCal:STATE.rCal, ua:navigator.userAgent, drill:'pitch-8-4' },
+    swings:RECS
+  };
+  const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='golflev-capture-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000);
+}
+
+document.querySelectorAll('.lbtn').forEach(b=>b.addEventListener('click',()=>{
+  LABEL=b.dataset.l;
+  document.querySelectorAll('.lbtn').forEach(x=>x.classList.toggle('on',x===b));
+  GLAudio.click();
+}));
+$('btnPerm').addEventListener('click',requestPermission);
+$('btnCalib').addEventListener('click',startCalib);
+$('btnExport').addEventListener('click',exportJson);
+$('btnUndo').addEventListener('click',()=>{ RECS.pop(); renderList(); GLAudio.click(); });
+$('btnRecal').addEventListener('click',()=>{ STATE.frame=null; $('calibCount').textContent='—'; goto('calib'); });
+</script>
+</body>
+</html>
