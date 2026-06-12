@@ -245,8 +245,21 @@ function onSwing(r){
     samples
   };
   RECS.push(rec);
+  persist();
   GLAudio.end();
   renderList();
+}
+
+/* 採取データをiPhone内に自動保存（ページを閉じても消えない） */
+function persist(){
+  try{ localStorage.setItem('golflev:capture', JSON.stringify(RECS)); }
+  catch(e){ /* 容量超過時は無視（書き出しは可能） */ }
+}
+function restore(){
+  try{
+    const s=localStorage.getItem('golflev:capture');
+    if(s){ const arr=JSON.parse(s); if(Array.isArray(arr)) RECS.push(...arr); }
+  }catch(e){}
 }
 
 function renderList(){
@@ -264,16 +277,27 @@ function renderList(){
   $('btnUndo').disabled=RECS.length===0;
 }
 
-function exportJson(){
+async function exportJson(){
   const data={
     meta:{ kind:'golflev-capture', v:1, date:new Date().toISOString(),
       rCal:STATE.rCal, ua:navigator.userAgent, drill:'pitch-8-4' },
     swings:RECS
   };
-  const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+  const name='golflev-capture-'+new Date().toISOString().slice(0,10)+'.json';
+  const json=JSON.stringify(data);
+  // iPhone: 共有シートを直接開く（メール/LINE/「ファイルに保存」がそのまま選べる）
+  try{
+    const file=new File([json],name,{type:'application/json'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:name});
+      return;
+    }
+  }catch(e){ if(e && e.name==='AbortError') return; /* キャンセル */ }
+  // フォールバック: 通常ダウンロード（PC等）
+  const blob=new Blob([json],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download='golflev-capture-'+new Date().toISOString().slice(0,10)+'.json';
+  a.download=name;
   document.body.appendChild(a); a.click();
   setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000);
 }
@@ -286,8 +310,9 @@ document.querySelectorAll('.lbtn').forEach(b=>b.addEventListener('click',()=>{
 $('btnPerm').addEventListener('click',requestPermission);
 $('btnCalib').addEventListener('click',startCalib);
 $('btnExport').addEventListener('click',exportJson);
-$('btnUndo').addEventListener('click',()=>{ RECS.pop(); renderList(); GLAudio.click(); });
+$('btnUndo').addEventListener('click',()=>{ RECS.pop(); persist(); renderList(); GLAudio.click(); });
 $('btnRecal').addEventListener('click',()=>{ STATE.frame=null; $('calibCount').textContent='—'; goto('calib'); });
+restore(); renderList();
 </script>
 </body>
 </html>
