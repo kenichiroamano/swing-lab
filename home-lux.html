@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Golflev</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,500;1,700&family=Noto+Serif+JP:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ECE6D8; --bg2:#E3DBCA; --paper:#F6F1E6; --ink:#1A241D; --ink2:#26332A;
+  --gold:#B8804C; --gold-2:#C8956C; --gold-hi:#E6C79A;
+  --leather:#1E2A22; --leather2:#16201A; --sub:#8A8576; --line:rgba(26,36,29,.10);
+  --serif-en:'Playfair Display',serif; --serif-disp:'Cormorant Garamond',serif;
+  --jp:'Noto Serif JP',serif; --ui:'Inter',-apple-system,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+html,body{min-height:100%}
+body{
+  background:
+    radial-gradient(120% 80% at 50% -10%, #F2EDE0 0%, var(--bg) 45%, var(--bg2) 100%);
+  color:var(--ink); font-family:var(--ui); position:relative; overflow-x:hidden;
+}
+/* 紙の微粒子グレイン（平坦さを殺す） */
+body::before{
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+}
+/* 上下の品のあるヴィネット */
+body::after{
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:radial-gradient(130% 100% at 50% 40%, transparent 55%, rgba(26,36,29,.06) 100%);
+}
+.home{position:relative; z-index:1; max-width:430px; margin:0 auto; padding:40px 26px 64px}
+
+/* ── ヘッダー ── */
+.brand{ text-align:center }
+.brand .mark{ font-family:var(--serif-en); font-weight:700; font-size:15px; letter-spacing:.42em;
+  color:var(--ink); text-indent:.42em }
+.brand .mark b{ color:var(--gold); font-weight:700 }
+.rule{ display:flex; align-items:center; justify-content:center; gap:10px; margin:14px 0 2px }
+.rule .l{ height:1px; width:46px; background:linear-gradient(90deg,transparent,var(--gold)) }
+.rule .r{ height:1px; width:46px; background:linear-gradient(90deg,var(--gold),transparent) }
+.rule .d{ width:4px; height:4px; transform:rotate(45deg); background:var(--gold) }
+
+/* ── 挨拶 ── */
+.greet{ text-align:center; margin:26px 0 22px }
+.greet .hi{ font-family:var(--serif-disp); font-weight:600; font-style:italic; font-size:34px; color:var(--ink); line-height:1 }
+.greet .dt{ font-family:var(--ui); font-size:10.5px; color:var(--sub); letter-spacing:.28em; text-transform:uppercase; margin-top:10px }
+
+/* ── 主役: 革の招待カード ── */
+.invite{ position:relative; border-radius:22px; padding:30px 26px 28px; overflow:hidden;
+  background:
+    linear-gradient(150deg, #25332A 0%, var(--leather) 52%, var(--leather2) 100%);
+  box-shadow:
+    0 30px 60px -18px rgba(20,30,24,.55),
+    0 10px 24px -8px rgba(20,30,24,.4),
+    inset 0 1px 0 rgba(230,199,154,.10);
+}
+/* 革のグレイン */
+.invite::before{
+  content:''; position:absolute; inset:0; pointer-events:none; opacity:.5; mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='l'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23l)' opacity='0.5'/%3E%3C/svg%3E");
+}
+/* 上方の艶 */
+.invite::after{
+  content:''; position:absolute; left:0; right:0; top:0; height:55%; pointer-events:none;
+  background:radial-gradient(120% 90% at 30% 0%, rgba(230,199,154,.12), transparent 60%);
+}
+/* 金のステッチ枠 */
+.stitch{ position:absolute; inset:11px; border-radius:15px; border:1.3px dashed rgba(200,149,108,.5);
+  pointer-events:none }
+.invite > *{ position:relative; z-index:2 }
+.invite .eyebrow{ font-family:var(--ui); font-size:10px; letter-spacing:.3em; text-transform:uppercase;
+  color:var(--gold-2) }
+.invite .lv{ font-family:var(--ui); font-size:11px; letter-spacing:.22em; color:rgba(246,241,230,.5); margin-top:14px }
+.invite .nm{ font-family:var(--serif-en); font-weight:800; font-style:italic; font-size:38px; color:#F6F1E6;
+  line-height:1.05; margin-top:3px; text-shadow:0 1px 0 rgba(0,0,0,.25) }
+.invite .nm em{ color:var(--gold-hi); font-style:italic }
+.invite .jp{ font-family:var(--jp); font-weight:300; font-size:13.5px; color:rgba(246,241,230,.78);
+  line-height:2.1; margin-top:14px; letter-spacing:.04em }
+.invite .jp b{ color:var(--gold-hi); font-weight:500 }
+
+/* ── プレミアムなゴールドボタン ── */
+.cta{ display:block; width:100%; margin-top:24px; padding:17px; border:none; cursor:pointer;
+  border-radius:13px; position:relative; overflow:hidden;
+  font-family:var(--ui); font-size:13px; font-weight:600; letter-spacing:.22em; color:#2A1C0E;
+  background:linear-gradient(180deg, var(--gold-hi) 0%, var(--gold-2) 42%, var(--gold) 100%);
+  box-shadow:
+    0 10px 22px -6px rgba(184,128,76,.6),
+    0 2px 5px rgba(120,80,40,.4),
+    inset 0 1px 0 rgba(255,248,235,.7),
+    inset 0 -2px 4px rgba(120,80,40,.35);
+  transition:transform .14s ease, box-shadow .14s ease;
+}
+.cta::after{ content:''; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(105deg, transparent 30%, rgba(255,250,240,.45) 47%, transparent 60%) }
+.cta:active{ transform:translateY(1px) scale(.995);
+  box-shadow:0 5px 12px -4px rgba(184,128,76,.5), inset 0 1px 0 rgba(255,248,235,.5) }
+.cta span{ position:relative; z-index:2 }
+
+/* ── 成長スタッツ（彫り込まれた数字） ── */
+.stats{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin:24px 0 4px }
+.stat{ position:relative; text-align:center; padding:18px 8px 16px; border-radius:15px;
+  background:linear-gradient(180deg, var(--paper), #EFE9DB);
+  box-shadow:0 10px 22px -12px rgba(26,36,29,.30), inset 0 1px 0 rgba(255,255,255,.7),
+    inset 0 0 0 1px var(--line) }
+.stat .v{ font-family:var(--serif-en); font-weight:800; font-size:30px; line-height:1; font-variant-numeric:tabular-nums;
+  color:var(--ink) }
+.stat .v.gold{ background:linear-gradient(180deg,var(--gold-2),var(--gold)); -webkit-background-clip:text;
+  background-clip:text; color:transparent }
+.stat .v .u{ font-size:14px; font-weight:600 }
+.stat .l{ font-family:var(--ui); font-size:8.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--sub); margin-top:8px }
+
+/* ── 目標の一行 ── */
+.goal{ text-align:center; margin:26px 0 4px; font-family:var(--jp); font-weight:300; font-size:13px;
+  color:var(--ink2); letter-spacing:.1em }
+.goal .num{ font-family:var(--serif-en); font-style:italic; font-weight:700; font-size:22px; color:var(--gold); margin:0 3px; vertical-align:-1px }
+.goal .hair{ display:block; width:30px; height:1px; background:var(--gold); margin:14px auto 0; opacity:.5 }
+
+.foot{ text-align:center; margin-top:26px }
+.foot button{ background:none; border:none; color:var(--sub); font-family:var(--ui); font-size:10px;
+  letter-spacing:.14em; text-decoration:underline; text-underline-offset:3px; opacity:.5 }
+</style>
+</head>
+<body>
+<div class="home">
+  <div class="brand">
+    <div class="mark">GOLF<b>LEV</b></div>
+    <div class="rule"><span class="l"></span><span class="d"></span><span class="r"></span></div>
+  </div>
+
+  <div class="greet" id="greet"></div>
+
+  <!-- 主役: 革の招待 -->
+  <div class="invite">
+    <div class="stitch"></div>
+    <div class="eyebrow">Today's Session</div>
+    <div class="lv">LEVEL 2</div>
+    <div class="nm">The <em>Pitch</em></div>
+    <div class="jp">8時から4時へ。<br><b>たった3球、1分。</b>今日の自分を、測ってみませんか。</div>
+    <button class="cta" id="todayBtn"><span>はじめる</span></button>
+  </div>
+
+  <!-- 成長スタッツ -->
+  <div class="stats" id="stats"></div>
+
+  <!-- 目標 -->
+  <div class="goal" id="goal"></div>
+
+  <div class="foot"><button id="resetLink">リセット（開発用）</button></div>
+</div>
+
+<script src="strings.js"></script>
+<script src="core.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+if(location.search.includes('demo')){
+  GLProfile.set('profile.onboarded',true);
+  if(GLProfile.get('goals.bestScore',null)==null) GLProfile.set('goals.bestScore',108);
+  GLProfile.set('goals.targetScore',100);
+  GLProfile.set('progress.currentLevel',2);
+  GLProfile.set('streak.days',4);
+}
+const h=new Date().getHours();
+const hi = h<11?'Good Morning':h<17?'Good Afternoon':'Good Evening';
+$('greet').innerHTML='<div class="hi">'+hi+'</div><div class="dt">'+
+  new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',weekday:'long'})+'</div>';
+
+const streak=GLProfile.get('streak.days',4);
+const best=GLProfile.get('goals.bestScore',108);
+const target=GLProfile.get('goals.targetScore',100);
+$('stats').innerHTML=
+  '<div class="stat"><div class="v gold">'+streak+'</div><div class="l">Day Streak</div></div>'+
+  '<div class="stat"><div class="v">'+best+'</div><div class="l">Best Score</div></div>'+
+  '<div class="stat"><div class="v">±4<span class="u">°</span></div><div class="l">Consistency</div></div>';
+
+$('goal').innerHTML='100切りまで<span class="num">あと'+Math.max(0,best-target)+'</span>打<span class="hair"></span>';
+$('todayBtn').onclick=()=>location.href='drill-pitch.html';
+$('resetLink').onclick=()=>{ try{localStorage.removeItem(GLProfile.KEY);}catch(e){} location.reload(); };
+</script>
+</body>
+</html>
