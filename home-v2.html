@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Golflev</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Noto+Serif+JP:wght@300;400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ════════ Golflev Home v2 — 規律ある高級感（ハレーション対策済み） ════════
+   色: くすんだ真鍮を1色の主役に。緑地の文字はシャンパン（彩度を落とす）で振動を消す。
+   明るい金は光の当たる細部のみ。引き算と余白で語る。 */
+:root{
+  --bone:#E8E2D4; --bone-2:#DFD7C5; --paper:#F2ECDF;
+  --ink:#1B2620; --ink-soft:#3A453C;
+  --green-1:#243229; --green-2:#18211B;          /* 革のグラデ */
+  --brass:#A98F58; --brass-soft:#BFA877;          /* くすんだ真鍮（主役の金） */
+  --champagne:#E4D6BA;                            /* 緑地の上の文字用・低彩度の金 */
+  --ivory:#F1E9D9;                                /* ボタン地 */
+  --sub:#8C8676; --hair:rgba(169,143,88,.42);
+  --serif-disp:'Cormorant Garamond',serif; --serif-en:'Playfair Display',serif;
+  --jp:'Noto Serif JP',serif; --ui:'Inter',-apple-system,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+html,body{min-height:100%}
+body{
+  background:radial-gradient(125% 75% at 50% 0%, #F0EADC 0%, var(--bone) 50%, var(--bone-2) 100%);
+  color:var(--ink); font-family:var(--ui); position:relative; overflow-x:hidden;
+}
+/* 紙の微粒子（控えめ） */
+body::before{ content:''; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.32;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E"); }
+.home{ position:relative; z-index:1; max-width:430px; margin:0 auto; padding:46px 28px 70px }
+
+/* ── ヘッダー ── */
+.brand{ text-align:center }
+.brand .mark{ font-family:var(--serif-en); font-weight:600; font-size:14px; letter-spacing:.46em;
+  color:var(--ink); text-indent:.46em }
+.brand .mark b{ color:var(--brass); font-weight:600 }
+.rule{ display:flex; align-items:center; justify-content:center; gap:11px; margin:16px 0 0 }
+.rule .l,.rule .r{ height:1px; width:40px }
+.rule .l{ background:linear-gradient(90deg,transparent,var(--brass)) }
+.rule .r{ background:linear-gradient(90deg,var(--brass),transparent) }
+.rule .d{ width:4px; height:4px; transform:rotate(45deg); background:var(--brass) }
+
+/* ── 挨拶 ── */
+.greet{ text-align:center; margin:34px 0 26px }
+.greet .hi{ font-family:var(--serif-disp); font-weight:600; font-style:italic; font-size:38px; line-height:1; color:var(--ink) }
+.greet .dt{ font-family:var(--ui); font-size:10px; color:var(--sub); letter-spacing:.34em; text-transform:uppercase; margin-top:13px }
+
+/* ── 主役: 革の招待カード ── */
+.invite{ position:relative; border-radius:20px; padding:36px 30px 32px; overflow:hidden;
+  background:linear-gradient(155deg, var(--green-1) 0%, var(--green-2) 100%);
+  box-shadow:0 26px 50px -20px rgba(18,26,21,.55), 0 8px 18px -8px rgba(18,26,21,.4),
+    inset 0 1px 0 rgba(228,214,186,.08); }
+/* 革のグレイン（控えめ・overlay） */
+.invite::before{ content:''; position:absolute; inset:0; pointer-events:none; opacity:.35; mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='l'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='3'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23l)' opacity='0.45'/%3E%3C/svg%3E"); }
+/* 金の細罫の枠（実線・細く・文字に干渉しない位置） */
+.invite .frame{ position:absolute; inset:14px; border-radius:13px; border:1px solid var(--hair); pointer-events:none }
+.invite > *{ position:relative; z-index:2 }
+.invite .eyebrow{ font-family:var(--ui); font-size:9.5px; letter-spacing:.32em; text-transform:uppercase; color:var(--brass-soft) }
+.invite .lv{ font-family:var(--ui); font-size:10.5px; letter-spacing:.24em; color:rgba(228,214,186,.45); margin-top:18px }
+.invite .nm{ font-family:var(--serif-en); font-weight:600; font-style:italic; font-size:40px; line-height:1.04;
+  color:var(--ivory); margin-top:4px }
+.invite .nm em{ color:var(--champagne); font-style:italic; font-weight:600 }
+.invite .jp{ font-family:var(--jp); font-weight:300; font-size:13px; line-height:2.15; letter-spacing:.05em;
+  color:rgba(241,233,217,.82); margin-top:16px }
+.invite .jp b{ color:var(--champagne); font-weight:400 }
+
+/* ── ボタン: アイボリー地・深緑文字（緑×金の振動を回避） ── */
+.cta{ display:block; width:100%; margin-top:26px; padding:16px; cursor:pointer; border:none;
+  border-radius:11px; position:relative;
+  font-family:var(--ui); font-size:12.5px; font-weight:600; letter-spacing:.26em; color:var(--green-2);
+  background:linear-gradient(180deg, #F6F0E3 0%, var(--ivory) 100%);
+  box-shadow:0 10px 20px -8px rgba(18,26,21,.5), inset 0 1px 0 rgba(255,255,255,.9),
+    inset 0 0 0 1px rgba(169,143,88,.35);
+  transition:transform .14s ease, box-shadow .14s ease; }
+.cta::after{ content:''; position:absolute; left:16px; right:16px; bottom:11px; height:1px;
+  background:linear-gradient(90deg,transparent,var(--brass),transparent); opacity:.5 }
+.cta:active{ transform:translateY(1px); box-shadow:0 5px 12px -6px rgba(18,26,21,.45), inset 0 0 0 1px rgba(169,143,88,.4) }
+.cta span{ position:relative; z-index:2 }
+
+/* ── 成長スタッツ: 箱をやめ、金の細罫で仕切る ── */
+.stats{ display:grid; grid-template-columns:1fr 1fr 1fr; margin:30px 0 4px; padding:6px 0 }
+.stat{ position:relative; text-align:center; padding:6px 8px }
+.stat + .stat::before{ content:''; position:absolute; left:0; top:14%; bottom:14%; width:1px;
+  background:linear-gradient(180deg,transparent,var(--hair),transparent) }
+.stat .v{ font-family:var(--serif-en); font-weight:600; font-size:32px; line-height:1; font-variant-numeric:tabular-nums; color:var(--ink) }
+.stat .v.gold{ color:var(--brass) }
+.stat .v .u{ font-size:15px }
+.stat .l{ font-family:var(--ui); font-size:8.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--sub); margin-top:9px }
+
+/* ── 目標の一行 ── */
+.goal{ text-align:center; margin:30px 0 0; font-family:var(--jp); font-weight:300; font-size:12.5px;
+  color:var(--ink-soft); letter-spacing:.12em }
+.goal .num{ font-family:var(--serif-en); font-style:italic; font-weight:600; font-size:21px; color:var(--brass); margin:0 4px }
+.goal .hair{ display:block; width:28px; height:1px; background:var(--brass); opacity:.45; margin:16px auto 0 }
+
+.foot{ text-align:center; margin-top:30px }
+.foot button{ background:none; border:none; color:var(--sub); font-family:var(--ui); font-size:9.5px;
+  letter-spacing:.16em; text-decoration:underline; text-underline-offset:3px; opacity:.45 }
+</style>
+</head>
+<body>
+<div class="home">
+  <div class="brand">
+    <div class="mark">GOLF<b>LEV</b></div>
+    <div class="rule"><span class="l"></span><span class="d"></span><span class="r"></span></div>
+  </div>
+
+  <div class="greet" id="greet"></div>
+
+  <div class="invite">
+    <div class="frame"></div>
+    <div class="eyebrow">Today's Session</div>
+    <div class="lv">LEVEL 2</div>
+    <div class="nm">The <em>Pitch</em></div>
+    <div class="jp">8時から4時へ。<b>たった3球、1分。</b><br>今日のスイングを、ひと振りで。</div>
+    <button class="cta" id="todayBtn"><span>はじめる</span></button>
+  </div>
+
+  <div class="stats" id="stats"></div>
+  <div class="goal" id="goal"></div>
+
+  <div class="foot"><button id="resetLink">リセット（開発用）</button></div>
+</div>
+
+<script src="strings.js"></script>
+<script src="core.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+if(location.search.includes('demo')){
+  GLProfile.set('profile.onboarded',true);
+  if(GLProfile.get('goals.bestScore',null)==null) GLProfile.set('goals.bestScore',108);
+  GLProfile.set('goals.targetScore',100); GLProfile.set('progress.currentLevel',2); GLProfile.set('streak.days',4);
+}
+const h=new Date().getHours();
+$('greet').innerHTML='<div class="hi">'+(h<11?'Good Morning':h<17?'Good Afternoon':'Good Evening')+'</div>'+
+  '<div class="dt">'+new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',weekday:'long'})+'</div>';
+const streak=GLProfile.get('streak.days',4), best=GLProfile.get('goals.bestScore',108), target=GLProfile.get('goals.targetScore',100);
+$('stats').innerHTML=
+  '<div class="stat"><div class="v gold">'+streak+'</div><div class="l">Day Streak</div></div>'+
+  '<div class="stat"><div class="v">'+best+'</div><div class="l">Best Score</div></div>'+
+  '<div class="stat"><div class="v">±4<span class="u">°</span></div><div class="l">Consistency</div></div>';
+$('goal').innerHTML='100切りまで<span class="num">あと'+Math.max(0,best-target)+'</span>打<span class="hair"></span>';
+$('todayBtn').onclick=()=>location.href='drill-pitch.html';
+$('resetLink').onclick=()=>{ try{localStorage.removeItem(GLProfile.KEY);}catch(e){} location.reload(); };
+</script>
+</body>
+</html>
