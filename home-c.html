@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Golflev — C</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,800;1,500;1,700&family=Noto+Serif+JP:wght@300;400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+.home{display:block;padding:28px 22px 56px;max-width:430px;margin:0 auto;min-height:100vh;position:relative;z-index:1}
+.tag{position:fixed;top:8px;left:8px;font-size:10px;letter-spacing:.2em;color:var(--gold);opacity:.6;z-index:5}
+
+.greet{ text-align:center; margin:18px 0 6px }
+.greet .hi{ font-family:'Playfair Display',serif; font-weight:700; font-style:italic; font-size:28px; color:var(--ink) }
+.greet .dt{ font-size:11px; color:var(--sub); letter-spacing:.12em; margin-top:3px; font-family:'Inter',sans-serif }
+
+/* 主役: 今日の招待カード */
+.invite{ position:relative; background:linear-gradient(160deg, #20302a, #1F2A21); color:var(--paper);
+  border-radius:20px; padding:24px 22px; margin:16px 0; overflow:hidden;
+  box-shadow:0 18px 40px rgba(31,42,33,.30), 0 4px 10px rgba(31,42,33,.2) }
+.invite::after{ content:''; position:absolute; right:-40px; top:-40px; width:180px; height:180px; border-radius:50%;
+  background:radial-gradient(circle, rgba(200,149,108,.35), transparent 70%) }
+.invite .lab{ font-size:10px; letter-spacing:.24em; color:var(--gold-2); text-transform:uppercase; position:relative }
+.invite .nm{ font-family:'Playfair Display',serif; font-weight:800; font-style:italic; font-size:30px; margin-top:6px; position:relative }
+.invite .nm .lv{ display:block; font-style:normal; font-weight:400; font-size:12px; color:rgba(247,241,227,.6); letter-spacing:.1em; margin-bottom:3px }
+.invite .one{ font-family:'Noto Serif JP',serif; font-size:13px; color:rgba(247,241,227,.85); line-height:1.9; margin-top:10px; position:relative }
+.invite .btn{ margin-top:18px; background:linear-gradient(135deg,var(--gold-2),var(--gold)); color:#fff; position:relative }
+
+/* 成長の気配（3カラム） */
+.stats{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin:6px 0 }
+.stats .c{ background:var(--paper); border:1px solid rgba(31,42,33,.1); border-radius:14px; padding:14px 6px; text-align:center }
+.stats .v{ font-family:'Playfair Display',serif; font-weight:800; font-size:26px; line-height:1; font-variant-numeric:tabular-nums }
+.stats .v.gold{ color:var(--gold) } .stats .v.ink{ color:var(--ink) }
+.stats .l{ font-size:9px; letter-spacing:.1em; color:var(--sub); text-transform:uppercase; margin-top:5px; font-family:'Inter',sans-serif }
+
+/* 目標の一行 */
+.goalbar{ text-align:center; margin:14px 0 4px; font-family:'Noto Serif JP',serif; font-size:13px; color:var(--ink); letter-spacing:.06em }
+.goalbar b{ font-family:'Playfair Display',serif; font-style:italic; color:var(--gold); font-size:18px }
+.foot{text-align:center;margin-top:20px}
+</style>
+</head>
+<body>
+<div class="tag">CONCEPT C — The Invitation</div>
+<div class="home" id="home">
+  <div class="eyebrow">GOLFLEV</div>
+  <div class="hairline"></div>
+
+  <div class="greet" id="greet"></div>
+
+  <!-- 主役: 今日の招待 -->
+  <div class="invite">
+    <div class="lab">今日のひと振り</div>
+    <div class="nm"><span class="lv">LEVEL 2</span>The Pitch</div>
+    <div class="one">8時から4時へ。<br>たった3球、1分。今日の自分を測ってみませんか。</div>
+    <button class="btn" id="todayBtn">はじめる</button>
+  </div>
+
+  <!-- 成長の気配 -->
+  <div class="stats" id="stats"></div>
+
+  <!-- 目標 -->
+  <div class="goalbar" id="goalbar"></div>
+
+  <div class="foot"><button class="link-btn" id="resetLink" style="opacity:.4">リセット（開発用）</button></div>
+</div>
+
+<script src="strings.js"></script>
+<script src="core.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+if(location.search.includes('demo')){
+  GLProfile.set('profile.onboarded',true);
+  if(GLProfile.get('goals.bestScore',null)==null) GLProfile.set('goals.bestScore',108);
+  GLProfile.set('goals.targetScore',100);
+  GLProfile.set('progress.currentLevel',2);
+  GLProfile.set('streak.days',4);
+}
+const h=new Date().getHours();
+const hi = h<11?'おはようございます':h<17?'こんにちは':'こんばんは';
+$('greet').innerHTML='<div class="hi">'+hi+'</div><div class="dt">'+
+  new Date().toLocaleDateString('ja-JP',{month:'long',day:'numeric',weekday:'short'})+'</div>';
+
+const streak=GLProfile.get('streak.days',4);
+const best=GLProfile.get('goals.bestScore',108);
+const target=GLProfile.get('goals.targetScore',100);
+$('stats').innerHTML=
+  '<div class="c"><div class="v gold">'+streak+'</div><div class="l">Day Streak</div></div>'+
+  '<div class="c"><div class="v ink">'+best+'</div><div class="l">Best Score</div></div>'+
+  '<div class="c"><div class="v ink">±4<span style="font-size:14px">°</span></div><div class="l">先週の安定度</div></div>';
+
+$('goalbar').innerHTML='100切りまで <b>あと'+Math.max(0,best-target)+'</b> 打';
+$('todayBtn').onclick=()=>location.href='drill-pitch.html';
+$('resetLink').onclick=()=>{ try{localStorage.removeItem(GLProfile.KEY);}catch(e){} location.reload(); };
+</script>
+</body>
+</html>

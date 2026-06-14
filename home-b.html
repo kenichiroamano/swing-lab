@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Golflev — B</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,800;1,500;1,700&family=Noto+Serif+JP:wght@300;400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+.home{display:block;padding:30px 22px 56px;max-width:430px;margin:0 auto;min-height:100vh;position:relative;z-index:1}
+.tag{position:fixed;top:8px;left:8px;font-size:10px;letter-spacing:.2em;color:var(--gold);opacity:.6;z-index:5}
+
+/* ── 主役: 金のアーク「あと少しで届く」 ── */
+.arc-wrap{ position:relative; width:280px; height:280px; margin:18px auto 6px }
+.arc-center{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center }
+.arc-center .pre{ font-family:'Noto Serif JP',serif; font-size:11px; color:var(--sub); letter-spacing:.2em }
+.arc-center .big{ font-family:'Playfair Display',serif; font-weight:800; font-style:italic; font-size:78px; line-height:.95; color:var(--ink); font-variant-numeric:tabular-nums }
+.arc-center .big .u{ font-size:24px; font-style:normal; color:var(--gold); margin-left:4px }
+.arc-center .sub{ font-family:'Noto Serif JP',serif; font-size:12px; color:var(--ink); letter-spacing:.14em; margin-top:6px }
+.arc-center .goal{ font-size:10px; color:var(--sub); letter-spacing:.1em; margin-top:10px; font-family:'Inter',sans-serif }
+
+/* ② 今日のドリル */
+.today{ margin:14px 0 8px }
+.today .card{ text-align:left }
+.today .lab{ font-size:10px; letter-spacing:.22em; color:var(--gold); text-transform:uppercase }
+.today .nm{ font-family:'Playfair Display',serif; font-weight:700; font-style:italic; font-size:26px; color:var(--ink); margin-top:5px }
+.today .meta{ font-size:11px; color:var(--sub); letter-spacing:.1em; margin-top:4px; font-family:'Inter',sans-serif }
+.today .btn{ margin-top:14px }
+
+/* ③ 次の解放（あと少しで届く本体・小カード） */
+.next{ display:flex; align-items:center; gap:12px; background:var(--paper); border:1px solid rgba(184,128,76,.25);
+  border-radius:14px; padding:14px 16px; margin-top:10px; box-shadow:0 8px 20px rgba(31,42,33,.06) }
+.next .ring{ width:42px;height:42px;flex:none }
+.next .txt b{ font-family:'Playfair Display',serif; font-size:15px; color:var(--ink) }
+.next .txt .d{ font-size:11px; color:var(--sub); margin-top:2px; font-family:'Inter',sans-serif }
+.foot{text-align:center;margin-top:22px}
+</style>
+</head>
+<body>
+<div class="tag">CONCEPT B — The Approach</div>
+<div class="home" id="home">
+  <div class="eyebrow">GOLFLEV</div>
+  <div class="hairline"></div>
+
+  <!-- 主役: 金のアーク -->
+  <div class="arc-wrap">
+    <svg viewBox="0 0 280 280" width="280" height="280">
+      <!-- 背景の薄い弧 -->
+      <path d="M 40 230 A 110 110 0 1 1 240 230" fill="none" stroke="rgba(31,42,33,.10)" stroke-width="6" stroke-linecap="round"/>
+      <!-- 進捗の金アーク（達成ぶん） -->
+      <path id="arcFill" d="" fill="none" stroke="url(#gold)" stroke-width="7" stroke-linecap="round"/>
+      <!-- 先端の光点 -->
+      <circle id="arcDot" r="7" fill="#F7F1E3" stroke="#C8956C" stroke-width="2"/>
+      <defs>
+        <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#C8956C"/><stop offset="1" stop-color="#B8804C"/>
+        </linearGradient>
+      </defs>
+    </svg>
+    <div class="arc-center" id="arcCenter"></div>
+  </div>
+
+  <!-- 次の解放 -->
+  <div class="next" id="nextCard"></div>
+
+  <!-- 今日のドリル -->
+  <div class="today">
+    <div class="card">
+      <div class="lab">今日のドリル</div>
+      <div class="nm" id="todayNm">The Pitch</div>
+      <div class="meta">1分・3球で完了</div>
+      <button class="btn gold" id="todayBtn">はじめる</button>
+    </div>
+  </div>
+
+  <div class="foot"><button class="link-btn" id="resetLink" style="opacity:.4">リセット（開発用）</button></div>
+</div>
+
+<script src="strings.js"></script>
+<script src="core.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+if(location.search.includes('demo')){
+  GLProfile.set('profile.onboarded',true);
+  if(GLProfile.get('goals.bestScore',null)==null) GLProfile.set('goals.bestScore',108);
+  GLProfile.set('goals.targetScore',100);
+  GLProfile.set('progress.currentLevel',2);
+}
+const best=GLProfile.get('goals.bestScore',108);
+const target=GLProfile.get('goals.targetScore',100);
+const diff=Math.max(0,best-target);
+
+// 「あと少しで届く」: 次の小ゴール = ベストをあと1打縮める、を主役に。
+// アークは「目標達成までの進捗」。仮の出発点=best+10 とし、(出発-best)/(出発-target)で達成率。
+const start=target+15;                         // 物語の出発点
+const prog=Math.max(0, Math.min(1, (start-best)/(start-target)));
+
+// アーク描画（240度ぶん、下開き）
+function pol(cx,cy,r,deg){const a=(deg-90)*Math.PI/180;return [cx+r*Math.cos(a),cy+r*Math.sin(a)];}
+const CX=140,CY=140,R=110, A0=-120, A1=120;     // -120°→120°（下が開いた240°）
+const aEnd=A0+(A1-A0)*prog;
+function arcPath(a0,a1){
+  const [x0,y0]=pol(CX,CY,R,a0),[x1,y1]=pol(CX,CY,R,a1);
+  const large=(a1-a0)>180?1:0;
+  return `M ${x0} ${y0} A ${R} ${R} 0 ${large} 1 ${x1} ${y1}`;
+}
+$('arcFill').setAttribute('d',arcPath(A0,aEnd));
+const [dx,dy]=pol(CX,CY,R,aEnd);
+$('arcDot').setAttribute('cx',dx); $('arcDot').setAttribute('cy',dy);
+
+$('arcCenter').innerHTML=
+  '<div class="pre">ベスト更新まで</div>'+
+  '<div class="big">あと<span class="u">1</span></div>'+
+  '<div class="sub">打</div>'+
+  '<div class="goal">100切りまで あと '+diff+' 打</div>';
+
+$('nextCard').innerHTML=
+  '<svg class="ring" viewBox="0 0 42 42"><circle cx="21" cy="21" r="17" fill="none" stroke="rgba(31,42,33,.12)" stroke-width="3"/>'+
+  '<circle cx="21" cy="21" r="17" fill="none" stroke="#B8804C" stroke-width="3" stroke-linecap="round" stroke-dasharray="'+(2*Math.PI*17*0.6)+' 999"/></svg>'+
+  '<div class="txt"><b>あと3回で The Business Zone が開く</b><div class="d">Lv3 — 次の挑戦が待っている</div></div>';
+
+$('todayBtn').onclick=()=>location.href='drill-pitch.html';
+$('resetLink').onclick=()=>{ try{localStorage.removeItem(GLProfile.KEY);}catch(e){} location.reload(); };
+</script>
+</body>
+</html>

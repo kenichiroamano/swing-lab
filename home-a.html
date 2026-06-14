@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Golflev — A</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,800;1,500;1,700&family=Noto+Serif+JP:wght@300;400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+.home{display:block;padding:24px 22px 56px;max-width:430px;margin:0 auto;min-height:100vh;position:relative;z-index:1}
+.tag{position:fixed;top:8px;left:8px;font-size:10px;letter-spacing:.2em;color:var(--gold);opacity:.6;z-index:5}
+
+/* 主役: 3Dゴルファーの玄関 */
+.stage{ position:relative; width:100%; height:300px; margin:6px 0 0 }
+.stage canvas{ width:100%!important; height:100%!important; display:block }
+.stage-load{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-size:11px; letter-spacing:.25em; color:var(--gold) }
+.overlay-gap{ position:absolute; left:0; right:0; bottom:6px; text-align:center; pointer-events:none }
+.overlay-gap .pre{ font-family:'Noto Serif JP',serif; font-size:11px; color:var(--sub); letter-spacing:.18em }
+.overlay-gap .big{ font-family:'Playfair Display',serif; font-weight:800; font-style:italic; font-size:54px; line-height:1; color:var(--ink) }
+.overlay-gap .big .u{ font-size:18px; font-style:normal; color:var(--gold); margin-left:3px }
+
+.next{ display:flex; align-items:center; gap:12px; background:var(--paper); border:1px solid rgba(184,128,76,.25);
+  border-radius:14px; padding:14px 16px; margin-top:8px; box-shadow:0 8px 20px rgba(31,42,33,.06) }
+.next .txt b{ font-family:'Playfair Display',serif; font-size:15px; color:var(--ink) }
+.next .txt .d{ font-size:11px; color:var(--sub); margin-top:2px; font-family:'Inter',sans-serif }
+.next .ring{width:40px;height:40px;flex:none}
+
+.today{ margin:12px 0 8px }
+.today .lab{ font-size:10px; letter-spacing:.22em; color:var(--gold); text-transform:uppercase }
+.today .nm{ font-family:'Playfair Display',serif; font-weight:700; font-style:italic; font-size:26px; color:var(--ink); margin-top:5px }
+.today .meta{ font-size:11px; color:var(--sub); letter-spacing:.1em; margin-top:4px; font-family:'Inter',sans-serif }
+.today .btn{ margin-top:14px }
+.foot{text-align:center;margin-top:20px}
+</style>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+}}
+</script>
+<script>window.__err=[];window.onerror=m=>window.__err.push(String(m));</script>
+</head>
+<body>
+<div class="tag">CONCEPT A — The Stage</div>
+<div class="home" id="home">
+  <div class="eyebrow">GOLFLEV</div>
+  <div class="hairline"></div>
+
+  <!-- 主役: 3Dゴルファー -->
+  <div class="stage" id="stage">
+    <div class="stage-load" id="stageLoad">PREPARING THE GOLFER…</div>
+    <div class="overlay-gap" id="overlayGap"></div>
+  </div>
+
+  <!-- あと少しで届く -->
+  <div class="next" id="nextCard"></div>
+
+  <!-- 今日のドリル -->
+  <div class="today">
+    <div class="lab">今日のドリル</div>
+    <div class="nm">The Pitch</div>
+    <div class="meta">1分・3球で完了</div>
+    <button class="btn gold" id="todayBtn">はじめる</button>
+  </div>
+
+  <div class="foot"><button class="link-btn" id="resetLink" style="opacity:.4">リセット（開発用）</button></div>
+</div>
+
+<script src="strings.js"></script>
+<script src="core.js"></script>
+<script>
+  const $=id=>document.getElementById(id);
+  if(location.search.includes('demo')){
+    GLProfile.set('profile.onboarded',true);
+    if(GLProfile.get('goals.bestScore',null)==null) GLProfile.set('goals.bestScore',108);
+    GLProfile.set('goals.targetScore',100); GLProfile.set('progress.currentLevel',2);
+  }
+  const best=GLProfile.get('goals.bestScore',108), target=GLProfile.get('goals.targetScore',100);
+  $('overlayGap').innerHTML='<div class="pre">100切りまで</div><div class="big">あと<span class="u">'+Math.max(0,best-target)+'</span></div>';
+  $('nextCard').innerHTML='<svg class="ring" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="rgba(31,42,33,.12)" stroke-width="3"/><circle cx="20" cy="20" r="16" fill="none" stroke="#B8804C" stroke-width="3" stroke-linecap="round" stroke-dasharray="'+(2*Math.PI*16*0.6)+' 999"/></svg><div class="txt"><b>あと3回で The Business Zone が開く</b><div class="d">Lv3 — 次の挑戦が待っている</div></div>';
+  $('todayBtn').onclick=()=>location.href='drill-pitch.html';
+  $('resetLink').onclick=()=>{ try{localStorage.removeItem(GLProfile.KEY);}catch(e){} location.reload(); };
+</script>
+<script type="module">
+import * as THREE from 'three';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
+
+const host=document.getElementById('stage');
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'});
+const isMobile=matchMedia('(pointer:coarse)').matches;
+renderer.setPixelRatio(Math.min(devicePixelRatio,isMobile?1.3:1.75));
+renderer.setSize(host.clientWidth,host.clientHeight,false);
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=0.86;
+host.appendChild(renderer.domElement);
+
+const scene=new THREE.Scene(); // 透過＝ページのクリームが背景
+const camera=new THREE.PerspectiveCamera(34, host.clientWidth/host.clientHeight, 0.1, 60);
+camera.position.set(0,1.5,4.4); camera.lookAt(0,0.95,0);
+
+const pmrem=new THREE.PMREMGenerator(renderer);
+scene.environment=pmrem.fromScene(new RoomEnvironment(),0.04).texture;
+const key=new THREE.DirectionalLight(0xfff0dd,2.0); key.position.set(2.5,5,2.5); key.castShadow=true;
+key.shadow.mapSize.set(1024,1024); key.shadow.radius=6; key.shadow.bias=-0.0004;
+key.shadow.camera.left=-3;key.shadow.camera.right=3;key.shadow.camera.top=4;key.shadow.camera.bottom=-1;
+scene.add(key);
+const rim=new THREE.PointLight(0xC8956C,12,18); rim.position.set(-3,2,-3); scene.add(rim);
+const shadowG=new THREE.Mesh(new THREE.PlaneGeometry(30,30),new THREE.ShadowMaterial({opacity:0.13}));
+shadowG.rotation.x=-Math.PI/2; shadowG.receiveShadow=true; scene.add(shadowG);
+// 金のリング（足元の品）
+const ring=new THREE.Mesh(new THREE.TorusGeometry(0.95,0.012,16,128),
+  new THREE.MeshStandardMaterial({color:0xC8956C,metalness:1,roughness:.25}));
+ring.rotation.x=Math.PI/2; ring.position.y=0.01; scene.add(ring);
+
+const GOLD_JOINT_RE=/Neck|Head|Shoulder|(Left|Right)Arm$|(Left|Right)ForeArm$|Hand|(Left|Right)Leg$|Foot|Toe/;
+let mixer=null, action=null;
+new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
+  const golfer=fbx;
+  golfer.scale.setScalar(0.0095); golfer.rotation.y=Math.PI/2;
+  const bodyMat=new THREE.MeshPhysicalMaterial({color:0xF2E8D6,metalness:0,roughness:.3,clearcoat:.55,clearcoatRoughness:.35,envMapIntensity:.7});
+  const jointWhite=new THREE.MeshPhysicalMaterial({color:0xF2E8D6,metalness:0,roughness:.22,clearcoat:.7,clearcoatRoughness:.25,envMapIntensity:.8});
+  const jointGold=new THREE.MeshStandardMaterial({color:0xC8956C,metalness:.95,roughness:.3,envMapIntensity:1.0});
+  golfer.traverse(c=>{
+    if(!c.isMesh) return; c.castShadow=true;
+    const n=((c.material&&c.material.name)||c.name||'').toLowerCase();
+    if(!n.includes('joint')){ c.material=bodyMat; return; }
+    const geo=c.geometry;
+    if(!geo.attributes.skinIndex||!c.skeleton){ c.material=jointGold; return; }
+    const boneNames=c.skeleton.bones.map(b=>b.name||'');
+    const si=geo.attributes.skinIndex,sw=geo.attributes.skinWeight,pos=geo.attributes.position;
+    const comp=(a,v,j)=>a.array[v*a.itemSize+j];
+    geo.computeBoundingBox(); const bb=geo.boundingBox;
+    const mins=[bb.min.x,bb.min.y,bb.min.z],maxs=[bb.max.x,bb.max.y,bb.max.z];
+    const sizes=[maxs[0]-mins[0],maxs[1]-mins[1],maxs[2]-mins[2]];
+    const up=sizes.indexOf(Math.max(...sizes)); const lat=[0,1,2].filter(a=>a!==up); const H=sizes[up];
+    const c0=(maxs[lat[0]]+mins[lat[0]])/2,c1=(maxs[lat[1]]+mins[lat[1]])/2;
+    const inTorso=v=>{const p=[comp(pos,v,0),comp(pos,v,1),comp(pos,v,2)];const h=(p[up]-mins[up])/H;const r=Math.hypot(p[lat[0]]-c0,p[lat[1]]-c1);return h>0.44&&h<0.80&&r<0.095*H;};
+    const hasIdx=!!geo.index; const faceCount=hasIdx?geo.index.count/3:pos.count/3;
+    const vAt=hasIdx?(f,k)=>geo.index.array[f*3+k]:(f,k)=>f*3+k;
+    const g=[],w=[];
+    for(let f=0;f<faceCount;f++){ let votes=0; const tri=[vAt(f,0),vAt(f,1),vAt(f,2)];
+      for(const v of tri){ let bb2=0,bw=-1; for(let j=0;j<4;j++){const wt=comp(sw,v,j); if(wt>bw){bw=wt;bb2=comp(si,v,j);}} if(!inTorso(v)&&GOLD_JOINT_RE.test(boneNames[bb2]))votes++; }
+      (votes>=2?g:w).push(tri[0],tri[1],tri[2]); }
+    geo.setIndex(g.concat(w)); geo.clearGroups(); geo.addGroup(0,g.length,0); geo.addGroup(g.length,w.length,1);
+    c.material=[jointGold,jointWhite];
+  });
+  scene.add(golfer);
+  if(fbx.animations&&fbx.animations.length){
+    mixer=new THREE.AnimationMixer(golfer);
+    action=mixer.clipAction(fbx.animations[0]); action.play();
+  }
+  const ld=$('stageLoad'); if(ld) ld.style.display='none';
+},undefined,e=>{ window.__err.push('FBX:'+(e.message||e)); const ld=$('stageLoad'); if(ld) ld.textContent='読み込みに失敗しました'; });
+
+const clock=new THREE.Clock();
+function animate(ts){
+  const dt=Math.min(0.05,clock.getDelta());
+  if(mixer){ mixer.timeScale=0.5; mixer.update(dt); }   // お手本をゆっくり自然再生
+  const t=ts*0.001;
+  camera.position.set(Math.sin(t*0.18)*0.6, 1.5+Math.sin(t*0.12)*0.05, 4.4);  // ゆっくり周回
+  camera.lookAt(0,0.92,0);
+  renderer.render(scene,camera);
+  requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+addEventListener('resize',()=>{
+  renderer.setSize(host.clientWidth,host.clientHeight,false);
+  camera.aspect=host.clientWidth/host.clientHeight; camera.updateProjectionMatrix();
+});
+</script>
+</body>
+</html>
