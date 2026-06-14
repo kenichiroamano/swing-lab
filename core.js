@@ -218,3 +218,89 @@ const GLStore = {
     GLStore.set(key,arr);
   }
 };
+
+/* ════════════════════════════════════════════════════════════════
+   GLProfile — 統一データスキーマ v1（2026-06-13）
+   全画面（オンボーディング/ホーム/各ドリル/結果/設定）が読み書きする土台。
+   単一ルートオブジェクト localStorage['golflev:v1'] に集約。
+   旧キー（form-check独自・GLStore直）から自動マイグレーション。
+   設計: docs/2026-06-12_統一データスキーマ設計.md
+   ════════════════════════════════════════════════════════════════ */
+const GLProfile = (function(){
+  const KEY='golflev:v1';
+  const SCHEMA=1;
+
+  function blank(){
+    return {
+      schemaVersion:SCHEMA, updatedAt:new Date().toISOString(),
+      profile:{ onboarded:false, height:null, dominant:'R', rCal:0.65, rollBand:{lo:15,hi:75}, body:null },
+      goals:{ bestScore:null, targetScore:100, bestUpdatedAt:null },
+      progress:{ currentLevel:1, levels:{ "0":{status:"active"}, "1":{status:"locked"}, "2":{status:"locked"}, "3":{status:"locked"} } },
+      streak:{ days:0, lastPlayed:null },
+      history:{ sessions:[] },
+      settings:{ dialFlip:false, lang:'ja' }
+    };
+  }
+
+  // 旧キー → v1 への一度きりの移行
+  function migrate(root){
+    let touched=false;
+    const old=(k,def)=>{ try{ const v=localStorage.getItem('golflev:'+k); return v===null?def:v; }catch(e){ return def; } };
+    if(localStorage.getItem('golflev:onboarded')==='1'){ root.profile.onboarded=true; touched=true; }
+    const h=old('height',null); if(h!=null && root.profile.height==null){ root.profile.height=parseInt(h,10)||null; touched=true; }
+    const rc=old('rCal',null); if(rc!=null){ root.profile.rCal=parseFloat(rc)||0.65; touched=true; }
+    const df=old('dialFlip',null); if(df!=null){ try{ root.settings.dialFlip=JSON.parse(df); }catch(e){} touched=true; }
+    try{
+      const ses=localStorage.getItem('golflev:sessions');
+      if(ses && root.history.sessions.length===0){
+        const arr=JSON.parse(ses);
+        if(Array.isArray(arr)){ root.history.sessions=arr.slice(-200); touched=true; }
+      }
+    }catch(e){}
+    const st=old('streak',null); if(st!=null){ root.streak.days=parseInt(st,10)||0; touched=true; }
+    const ld=old('lastDate',null); if(ld!=null){ root.streak.lastPlayed=ld; touched=true; }
+    return touched;
+  }
+
+  function load(){
+    let root;
+    try{ const raw=localStorage.getItem(KEY); root=raw?JSON.parse(raw):null; }catch(e){ root=null; }
+    if(!root || root.schemaVersion!==SCHEMA){
+      const fresh=blank();
+      if(!root) migrate(fresh);              // 旧キーがあれば吸収
+      // 将来: root.schemaVersion<SCHEMA のときバージョン別マイグレーション
+      root=Object.assign(fresh, root&&root.schemaVersion===SCHEMA?root:{});
+      if(!root.schemaVersion) root.schemaVersion=SCHEMA;
+      save(root);
+    }
+    return root;
+  }
+  function save(root){
+    root.updatedAt=new Date().toISOString();
+    try{ localStorage.setItem(KEY, JSON.stringify(root)); }catch(e){}
+    return root;
+  }
+  // ドット記法アクセス: get('goals.targetScore')
+  function get(path, def){
+    const r=load(); if(!path) return r;
+    const v=path.split('.').reduce((o,k)=>(o==null?undefined:o[k]), r);
+    return v===undefined?def:v;
+  }
+  function set(path, val){
+    const r=load(); const ks=path.split('.'); let o=r;
+    for(let i=0;i<ks.length-1;i++){ if(o[ks[i]]==null||typeof o[ks[i]]!=='object') o[ks[i]]={}; o=o[ks[i]]; }
+    o[ks[ks.length-1]]=val;
+    return save(r);
+  }
+  function addSession(s, cap){
+    const r=load(); r.history.sessions.push(s);
+    const c=cap||200; while(r.history.sessions.length>c) r.history.sessions.shift();
+    return save(r);
+  }
+  function exportJSON(){ return JSON.stringify(load()); }
+  function importJSON(str){
+    try{ const o=JSON.parse(str); if(o&&o.schemaVersion){ save(o); return true; } }catch(e){}
+    return false;
+  }
+  return { KEY, SCHEMA, load, save, get, set, addSession, exportJSON, importJSON };
+})();

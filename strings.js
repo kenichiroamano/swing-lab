@@ -58,7 +58,29 @@ const STR = {
     'result.focusNote':     { ja:'次のセットで、これだけを意識しましょう。', en:'Focus on this one thing next set.' },
     'result.partial.elbow': { ja:'今回は肘の判定ができませんでした（加速度データ不足）', en:'Elbow check unavailable this set.' },
     'result.btn.again':     { ja:'もう1セット',                  en:'Another set' },
-    'result.btn.recal':     { ja:'構え直す',                     en:'Re-address' }
+    'result.btn.recal':     { ja:'構え直す',                     en:'Re-address' },
+
+    'home.gap.pre':         { ja:'目標まで',                     en:'To your goal' },
+    'home.gap.unit':        { ja:'打 を 削る',                   en:'strokes to shave' },
+    'home.gap.best':        { ja:'ベスト',                       en:'Best' },
+    'home.gap.target':      { ja:'目標',                         en:'Target' },
+    'home.today.label':     { ja:'今日のドリル',                  en:'Today’s drill' },
+    'home.today.start':     { ja:'はじめる',                     en:'Begin' },
+    'home.today.continue':  { ja:'つづける',                     en:'Continue' },
+    'home.today.again':     { ja:'もう1セット',                  en:'One more set' },
+    'home.map.label':       { ja:'カリキュラム',                  en:'The Path' },
+    'home.map.pro':         { ja:'Pro',                          en:'Pro' },
+    'home.lv.locked':       { ja:'ロック中',                     en:'Locked' },
+    'home.lv.active':       { ja:'いまここ',                     en:'You are here' },
+    'home.lv.done':         { ja:'達成',                         en:'Cleared' },
+    'lv0.name.en':          { ja:'The Setup',                    en:'The Setup' },
+    'lv0.name.jp':          { ja:'グリップ＆アドレス',             en:'Grip & Address' },
+    'lv1.name.en':          { ja:'The Triangle',                 en:'The Triangle' },
+    'lv1.name.jp':          { ja:'三角形テイクバック',             en:'Triangle Takeback' },
+    'lv2.name.en':          { ja:'The Pitch',                    en:'The Pitch' },
+    'lv2.name.jp':          { ja:'ピッチ',                       en:'Pitch' },
+    'lv3.name.en':          { ja:'The Business Zone',            en:'The Business Zone' },
+    'lv3.name.jp':          { ja:'ビジネスゾーン',                en:'Business Zone' }
   },
   t(key){
     const e=this.d[key];

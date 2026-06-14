@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Golflev</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,800;1,500;1,700&family=Noto+Serif+JP:wght@300;400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+/* ── home専用（DESIGN.md準拠: theme.cssの9トークン/クラスを流用） ── */
+.home{display:block;padding:34px 22px 60px;max-width:430px;margin:0 auto;min-height:100vh;position:relative;z-index:1}
+
+/* ② スコアギャップ */
+.gap{ text-align:center; margin:30px 0 8px }
+.gap .pre{ font-family:'Noto Serif JP',serif; font-size:13px; color:var(--sub); letter-spacing:.18em }
+.gap .num{ font-family:'Playfair Display',serif; font-weight:800; font-style:italic;
+  font-size:96px; line-height:1; color:var(--ink); font-variant-numeric:tabular-nums; margin:2px 0 }
+.gap .num .accent{ color:var(--gold) }
+.gap .unit{ font-family:'Noto Serif JP',serif; font-size:14px; color:var(--ink); letter-spacing:.16em }
+.gap .bt{ margin-top:14px; font-size:11px; color:var(--sub); letter-spacing:.12em; font-family:'Inter',sans-serif }
+.gap .bt b{ color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums }
+.gap .bt .arrow{ color:var(--gold); margin:0 8px }
+
+/* ③ 今日のドリル */
+.today{ margin:22px 0 }
+.today .card{ position:relative; overflow:hidden }
+.today .lab{ font-size:10px; letter-spacing:.22em; color:var(--gold); text-transform:uppercase }
+.today .nm{ font-family:'Playfair Display',serif; font-weight:700; font-style:italic; font-size:30px; color:var(--ink); margin-top:6px }
+.today .nm .lv{ font-style:normal; font-weight:500; font-size:14px; color:var(--sub); letter-spacing:.1em; display:block; margin-bottom:2px }
+.today .jp{ font-family:'Noto Serif JP',serif; font-size:12px; color:var(--sub); letter-spacing:.2em; margin-top:4px }
+.today .btn{ margin-top:16px }
+
+/* ④ レベルマップ（縦タイムライン） */
+.map .label{ font-size:10px; letter-spacing:.22em; color:var(--gold); text-transform:uppercase; text-align:center; margin:6px 0 18px }
+.tl{ position:relative; margin-left:14px; padding-left:30px }
+.tl::before{ content:''; position:absolute; left:0; top:8px; bottom:8px; width:1px; background:rgba(31,42,33,.18) }
+.node{ position:relative; padding:13px 0 }
+.node .dot{ position:absolute; left:-30px; top:15px; width:16px; height:16px; border-radius:50%;
+  border:1px solid rgba(31,42,33,.3); background:var(--bg); display:flex; align-items:center; justify-content:center }
+.node .dot svg{ width:9px; height:9px }
+.node.done .dot{ background:linear-gradient(135deg,var(--gold-2),var(--gold)); border-color:var(--gold) }
+.node.active .dot{ background:var(--ink); border-color:var(--gold); box-shadow:0 0 0 4px rgba(184,128,76,.18) }
+.node .en{ font-family:'Playfair Display',serif; font-weight:700; font-size:18px; color:var(--ink); display:flex; align-items:center; gap:8px }
+.node.locked .en{ color:var(--sub) }
+.node .jp{ font-family:'Noto Serif JP',serif; font-size:11px; color:var(--sub); letter-spacing:.14em; margin-top:1px }
+.node .state{ font-size:10px; letter-spacing:.12em; color:var(--sub); margin-top:3px; font-family:'Inter',sans-serif }
+.node.active .state{ color:var(--gold) }
+.node .pro{ font-size:9px; letter-spacing:.14em; color:#fff; background:linear-gradient(135deg,var(--gold-2),var(--gold));
+  border-radius:999px; padding:2px 8px; font-family:'Inter',sans-serif }
+.node.clickable{ cursor:pointer }
+.node.locked{ opacity:.7 }
+
+.foot{ text-align:center; margin-top:30px }
+</style>
+</head>
+<body>
+<div class="home" id="home">
+  <div class="eyebrow">GOLFLEV</div>
+  <div class="hairline"></div>
+
+  <!-- ② スコアギャップ -->
+  <div class="gap" id="gap"></div>
+
+  <!-- ③ 今日のドリル -->
+  <div class="today">
+    <div class="card">
+      <div class="lab" id="todayLab"></div>
+      <div class="nm" id="todayNm"></div>
+      <div class="jp" id="todayJp"></div>
+      <button class="btn gold" id="todayBtn"></button>
+    </div>
+  </div>
+
+  <!-- ④ レベルマップ -->
+  <div class="map">
+    <div class="label" id="mapLabel"></div>
+    <div class="tl" id="timeline"></div>
+  </div>
+
+  <div class="foot">
+    <button class="link-btn" id="resetLink" style="opacity:.5">設定をリセット（開発用）</button>
+  </div>
+</div>
+
+<script src="strings.js"></script>
+<script src="core.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const T=k=>STR.t(k);
+
+// レベル定義（カリキュラムの背骨）。free: 無料境界（D3）。page: 遷移先
+const LEVELS=[
+  { lv:0, en:'lv0.name.en', jp:'lv0.name.jp', free:true,  page:null },
+  { lv:1, en:'lv1.name.en', jp:'lv1.name.jp', free:true,  page:'form-check.html' },
+  { lv:2, en:'lv2.name.en', jp:'lv2.name.jp', free:false, page:'drill-pitch.html' },
+  { lv:3, en:'lv3.name.en', jp:'lv3.name.jp', free:false, page:null }
+];
+const ICON_CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2"><path d="M5 13l4 4L19 7"/></svg>';
+const ICON_LOCK='<svg viewBox="0 0 24 24" fill="none" stroke="#8A8A82" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+
+function init(){
+  const onboarded=GLProfile.get('profile.onboarded', false);
+  const best=GLProfile.get('goals.bestScore', null);
+  // 初回（未入力）→ オンボーディングへ直行（今回は未実装のためメッセージ。実装後に置換）
+  if(!onboarded || best==null){
+    location.replace('onboarding.html');   // 未作成なら 404。実装後に有効化
+    return;
+  }
+  renderGap();
+  renderToday();
+  renderMap();
+}
+
+// ② スコアギャップ「目標まで あと ○ 打 を 削る」
+function renderGap(){
+  const best=GLProfile.get('goals.bestScore', 108);
+  const target=GLProfile.get('goals.targetScore', 100);
+  const diff=Math.max(0, best-target);
+  $('gap').innerHTML =
+    '<div class="pre">'+T('home.gap.pre')+'</div>'+
+    '<div class="num">あと <span class="accent">'+diff+'</span></div>'+
+    '<div class="unit">'+T('home.gap.unit')+'</div>'+
+    '<div class="bt"><b>'+best+'</b> '+T('home.gap.best')+' <span class="arrow">→</span> <b>'+target+'</b> '+T('home.gap.target')+'</div>';
+}
+
+// ③ 今日のドリル（現在地のレベル）
+function renderToday(){
+  const cur=GLProfile.get('progress.currentLevel', 1);
+  const L=LEVELS.find(x=>x.lv===cur) || LEVELS[1];
+  const sessions=GLProfile.get('history.sessions', []);
+  const today=new Date().toDateString();
+  const doneToday=sessions.some(s=>s.date && new Date(s.date).toDateString()===today && s.level===cur);
+  const everPlayed=sessions.some(s=>s.level===cur);
+  $('todayLab').textContent=T('home.today.label');
+  $('todayNm').innerHTML='<span class="lv">LEVEL '+cur+'</span>'+T(L.en);
+  $('todayJp').textContent=T(L.jp);
+  const btn=$('todayBtn');
+  btn.textContent = doneToday? T('home.today.again') : everPlayed? T('home.today.continue') : T('home.today.start');
+  btn.onclick=()=>{ if(L.page) location.href=L.page; };
+  if(!L.page){ btn.disabled=true; btn.style.opacity=.5; }
+}
+
+// ④ レベルマップ（縦タイムライン）
+function renderMap(){
+  $('mapLabel').textContent=T('home.map.label');
+  const cur=GLProfile.get('progress.currentLevel', 1);
+  const levelsState=GLProfile.get('progress.levels', {});
+  const tl=$('timeline'); tl.innerHTML='';
+  for(const L of LEVELS){
+    const st=(levelsState[String(L.lv)]&&levelsState[String(L.lv)].status)
+           || (L.lv<cur?'done':L.lv===cur?'active':'locked');
+    const node=document.createElement('div');
+    node.className='node '+st+(st!=='locked'&&L.page?' clickable':'');
+    const stateTxt = st==='done'?T('home.lv.done'):st==='active'?T('home.lv.active'):T('home.lv.locked');
+    const dotInner = st==='done'?ICON_CHECK : st==='locked'?ICON_LOCK : '';
+    node.innerHTML =
+      '<div class="dot">'+dotInner+'</div>'+
+      '<div class="en">'+T(L.en)+(!L.free?' <span class="pro">'+T('home.map.pro')+'</span>':'')+'</div>'+
+      '<div class="jp">'+T(L.jp)+'</div>'+
+      '<div class="state">'+stateTxt+'</div>';
+    if(st!=='locked' && L.page) node.onclick=()=>location.href=L.page;
+    tl.appendChild(node);
+  }
+}
+
+// 開発用リセット
+$('resetLink').onclick=()=>{
+  if(confirm('保存データをリセットしますか？（開発用）')){
+    try{ localStorage.removeItem(GLProfile.KEY); }catch(e){}
+    location.reload();
+  }
+};
+
+// 初回フロー回避: オンボーディング未実装の間はデモ値で表示確認できるよう、
+// ?demo パラメータでオンボーディングをスキップしデモ値を投入
+if(location.search.includes('demo')){
+  GLProfile.set('profile.onboarded', true);
+  if(GLProfile.get('goals.bestScore',null)==null) GLProfile.set('goals.bestScore',108);
+  GLProfile.set('goals.targetScore',100);
+  GLProfile.set('progress.currentLevel',2);
+  GLProfile.set('progress.levels',{ "0":{status:"done"}, "1":{status:"done"}, "2":{status:"active"}, "3":{status:"locked"} });
+}
+init();
+</script>
+</body>
+</html>
