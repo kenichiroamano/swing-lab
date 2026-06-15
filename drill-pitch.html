@@ -710,8 +710,9 @@ function tick(){
 
   if(window.Stage3D){
     Stage3D.setLive(ang,tracker.state);
-    // 三角形インジケータ: 形は彫像、色があなたの評価（金=保てている / 赤=崩れ）。データ不足時は表示しない
-    if(Stage3D.setTriangle) Stage3D.setTriangle(tracker.state==='idle'?null:(acCnt>=3?(triEMA<0.75?'ng':'ok'):null));
+    // チキンウィング(三角形崩れ)はグリップのセンサーから安定検出不可と独立検証で判明(2026-06-13)。
+    // 検出できないものを判定表示しない（D7誠実さ）。三角形インジケータは常に非表示。
+    if(Stage3D.setTriangle) Stage3D.setTriangle(null);
   }
   $('liveState').textContent=tracker.state==='idle'?STR.t('live.ready'):(tracker.state==='back'?STR.t('live.back'):STR.t('live.through'));
 }
@@ -732,8 +733,8 @@ function onSwing(r){
   GLAudio.end();
 
   const b=Math.abs(sw.back), f=Math.abs(sw.follow);
-  if(sw.broken===true){ showChip('ng',STR.t('live.chip.broken')); GLAudio.warn(); }
-  else if(sw.decel===true){ showChip('ng',STR.t('live.chip.decel')); GLAudio.warn(); }
+  // broken(三角形崩れ=チキンウィング)は検出不可のため判定に使わない（D7誠実さ）
+  if(sw.decel===true){ showChip('ng',STR.t('live.chip.decel')); GLAudio.warn(); }
   else if(b<ZONE_MIN){ showChip('ng',STR.t('live.chip.shallow')); }
   else if(b>ZONE_MAX){ showChip('ng',STR.t('live.chip.deep')); }
   else if(f<20){ showChip('ng',STR.t('live.chip.noFollow')); }
@@ -749,7 +750,8 @@ function onSwing(r){
 
 function swingOk(sw){
   const b=Math.abs(sw.back);
-  return sw.broken!==true && sw.decel!==true && b>=ZONE_MIN && b<=ZONE_MAX && Math.abs(sw.follow)>=20;
+  // broken(三角形崩れ)は検出不可のため合否に使わない（D7誠実さ）
+  return sw.decel!==true && b>=ZONE_MIN && b<=ZONE_MAX && Math.abs(sw.follow)>=20;
 }
 function renderDots(){
   $('dots').innerHTML=STATE.swings.map(sw=>'<div class="dot '+(swingOk(sw)?'ok':'ng')+'"></div>').join('')
@@ -765,18 +767,19 @@ function showChip(cls,txt){
 function showResult(){
   const sw=STATE.swings;
   const backs=sw.map(s=>Math.abs(s.back));
-  const mean=GLMath.avg(backs), sd=GLMath.std(backs);
-  const brokenCt=sw.filter(s=>s.broken===true).length;
+  const mean=GLMath.avg(backs);
+  // 標本標準偏差(Bessel補正 n-1)。母σは過小評価するため誠実な推定に補正
+  const sd=backs.length>1? Math.sqrt(backs.reduce((s,v)=>s+(v-mean)*(v-mean),0)/(backs.length-1)) : 0;
   const decelCt=sw.filter(s=>s.decel===true).length;
   const slowCt=sw.filter(s=>s.slow).length;
   const noFollowCt=sw.filter(s=>Math.abs(s.follow)<20).length;
   const zoneCt=backs.filter(b=>b>=ZONE_MIN&&b<=ZONE_MAX).length;
-  const elbowUnknown=sw.every(s=>s.broken===null);
 
-  let rank; // 3球セット用基準
-  if(brokenCt===0 && decelCt===0 && sd<=5 && zoneCt>=3) rank='perfect';
-  else if(brokenCt===0 && decelCt<=1 && sd<=8 && zoneCt>=2) rank='good';
-  else if(brokenCt<=1 && sd<=12) rank='almost';
+  // 合否は検証済み指標(振り幅ゾーン・再現性・緩み)のみで判定。broken(三角形)は使わない（D7誠実さ）
+  let rank;
+  if(decelCt===0 && sd<=5 && zoneCt>=3) rank='perfect';
+  else if(decelCt<=1 && sd<=8 && zoneCt>=2) rank='good';
+  else if(sd<=12) rank='almost';
   else rank='tryagain';
 
   const words={perfect:'Perfect.',good:'Good.',almost:'Almost.',tryagain:'Try again.'};
@@ -785,15 +788,15 @@ function showResult(){
   $('rankJp').textContent=STR.t('result.rank.'+rank);
 
   $('statMean').textContent=Math.round(mean)+'°';
-  $('statSd').textContent='±'+sd.toFixed(1)+'°';
+  $('statSd').textContent='±'+Math.round(sd)+'°';   // 3球の推定値、過剰精度を避け整数表示
   $('statZone').textContent=zoneCt+'/'+SET_SIZE;
 
   drawChart(sw);
 
   const issues=[];
-  if(brokenCt>0) issues.push({k:'elbow', label:STR.t('result.issue.elbow'), desc:`${SET_SIZE}回中${brokenCt}回、両肩とグリップの三角形が崩れました。`});
+  // 三角形崩れ(チキンウィング)は検出不可のため課題に出さない（D7誠実さ）
   if(decelCt>0) issues.push({k:'decel', label:STR.t('result.issue.decel'), desc:`${decelCt}回、最下点の手前で減速しています。振り抜く意識を。`});
-  if(sd>5) issues.push({k:'spread', label:STR.t('result.issue.spread'), desc:`ばらつき ±${sd.toFixed(1)}°（目標 ±5°以内）。距離感はそろえることから。`});
+  if(sd>5) issues.push({k:'spread', label:STR.t('result.issue.spread'), desc:`ばらつき ±${Math.round(sd)}°（目標 ±5°以内）。距離感はそろえることから。`});
   if(zoneCt<SET_SIZE && mean<ZONE_MIN) issues.push({k:'shallow', label:STR.t('result.issue.shallow'), desc:`平均 ${Math.round(mean)}°。8時（60°）までしっかり上げましょう。`});
   if(zoneCt<SET_SIZE && mean>ZONE_MAX) issues.push({k:'deep', label:STR.t('result.issue.deep'), desc:`平均 ${Math.round(mean)}°。振りすぎです。8時で止めましょう。`});
   if(noFollowCt>0) issues.push({k:'follow', label:STR.t('result.issue.follow'), desc:`${noFollowCt}回、フォロー側（4時）まで振り切れていません。`});
@@ -824,7 +827,7 @@ function showResult(){
   $('partialNote').textContent=partial.join(' / ');
   $('focusNote').classList.remove('show');
 
-  GLStore.push('pitch:sets',{v:1,date:new Date().toISOString(),rank,mean:Math.round(mean),sd:+sd.toFixed(1),zone:zoneCt,broken:brokenCt,decel:decelCt},200);
+  GLStore.push('pitch:sets',{v:1,date:new Date().toISOString(),rank,mean:Math.round(mean),sd:+sd.toFixed(1),zone:zoneCt,decel:decelCt},200);
 
   if(rank==='perfect') GLAudio.success();
   else if(rank==='good') GLAudio.good();
