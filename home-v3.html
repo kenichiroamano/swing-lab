@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Golflev</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Playfair+Display:ital,wght@0,500;0,600;0,700&family=Noto+Serif+JP:wght@300;400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ════════ Golflev Home v3 — チーム合意案（3Dなし・計器ダイアル） ════════
+   主役=金の弧の計器「あと○打」。沈む金の刻印数字・ヘアライン罫・影を使わず奥行き・
+   塗らない金縁CTA・濃い面は1枚のみ・静かな断定の文言。ハレーション対策済み。 */
+:root{
+  --bone:#E8E2D4; --bone-2:#E0D8C6; --paper:#F4EEE2;
+  --ink:#1B2620; --ink-soft:#3A453C;
+  --green-1:#243229; --green-2:#18211B;
+  --brass:#A98F58; --brass-hi:#CBB079; --brass-lo:#876F40; --champagne:#E4D6BA;
+  --sub:#8C8676; --hair:rgba(27,38,32,.12); --hair-gold:rgba(169,143,88,.4);
+  --serif:'Cormorant Garamond','Playfair Display',Georgia,serif;
+  --jp:'Noto Serif JP',serif; --ui:'Inter',-apple-system,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+html,body{min-height:100%}
+body{ background:radial-gradient(130% 80% at 50% 0%, #F0EADC 0%, var(--bone) 52%, var(--bone-2) 100%);
+  color:var(--ink); font-family:var(--ui); position:relative; overflow-x:hidden }
+body::before{ content:''; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.3;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); }
+.home{ position:relative; z-index:1; max-width:430px; margin:0 auto; padding:40px 28px 64px }
+
+/* ── ヘッダー ── */
+.brand{ text-align:center }
+.brand .mark{ font-family:var(--serif); font-weight:600; font-size:14px; letter-spacing:.46em; text-indent:.46em; color:var(--ink) }
+.brand .mark b{ color:var(--brass); font-weight:600 }
+.greet{ text-align:center; margin:22px 0 8px }
+.greet .hi{ font-family:var(--serif); font-style:italic; font-weight:600; font-size:26px; color:var(--ink); line-height:1 }
+.greet .streak{ font-family:var(--ui); font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--sub); margin-top:10px }
+.greet .streak b{ font-family:var(--serif); font-style:normal; font-size:13px; color:var(--brass); font-weight:600 }
+
+/* ── 主役: 計器ダイアル ── */
+.gauge{ position:relative; width:248px; height:248px; margin:14px auto 2px }
+.gauge svg{ position:absolute; inset:0 }
+.gauge .center{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center }
+.gauge .top{ font-family:var(--ui); font-size:9.5px; letter-spacing:.28em; text-transform:uppercase; color:var(--sub) }
+.gauge .num{ font-family:var(--serif); font-weight:600; font-style:italic; font-size:92px; line-height:.86; color:var(--ink);
+  font-variant-numeric:tabular-nums; text-shadow:0 1px 0 rgba(255,255,255,.55) }
+.gauge .num .accent{ color:var(--brass) }
+.gauge .bot{ font-family:var(--jp); font-size:12px; color:var(--ink-soft); letter-spacing:.18em; margin-top:2px }
+
+/* ── サブ指標: 刻印数字＋金の細罫で仕切る ── */
+.stats{ display:grid; grid-template-columns:1fr 1fr 1fr; margin:18px 0 2px }
+.stat{ position:relative; text-align:center; padding:4px 6px }
+.stat + .stat::before{ content:''; position:absolute; left:0; top:18%; bottom:18%; width:1px;
+  background:linear-gradient(180deg,transparent,var(--hair-gold),transparent) }
+.stat .v{ font-family:var(--serif); font-weight:600; font-size:26px; line-height:1; color:var(--ink);
+  font-variant-numeric:tabular-nums; text-shadow:0 1px 0 rgba(255,255,255,.5) }
+.stat .v .u{ font-size:13px }
+.stat .l{ font-family:var(--ui); font-size:8.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--sub); margin-top:7px }
+
+/* ── 本日の稽古: 唯一の濃色面 ── */
+.drill{ position:relative; margin:26px 0 0; border-radius:18px; padding:26px 26px 24px; overflow:hidden;
+  background:linear-gradient(155deg, var(--green-1), var(--green-2));
+  box-shadow:0 22px 44px -18px rgba(18,26,21,.5), inset 0 1px 0 rgba(228,214,186,.07) }
+.drill .wm{ position:absolute; right:-6px; bottom:-30px; font-family:var(--serif); font-weight:600; font-style:italic;
+  font-size:150px; line-height:1; color:rgba(228,214,186,.07); pointer-events:none }
+.drill > *{ position:relative; z-index:2 }
+.drill .eyebrow{ font-family:var(--ui); font-size:9.5px; letter-spacing:.3em; text-transform:uppercase; color:var(--brass-hi) }
+.drill .nm{ font-family:var(--serif); font-weight:600; font-style:italic; font-size:36px; color:#F1E9D9; line-height:1.05; margin-top:8px }
+.drill .nm em{ color:var(--champagne) }
+.drill .jp{ font-family:var(--jp); font-weight:300; font-size:12.5px; color:rgba(241,233,217,.78); letter-spacing:.05em; margin-top:10px }
+/* 塗らない金縁ボタン（招待状の作法） */
+.cta{ display:block; width:100%; margin-top:22px; padding:15px; cursor:pointer; background:transparent;
+  border:1px solid var(--brass); border-radius:10px;
+  font-family:var(--ui); font-size:12px; font-weight:500; letter-spacing:.28em; color:var(--champagne);
+  transition:background .2s ease, color .2s ease }
+.cta:active{ background:rgba(169,143,88,.14) }
+
+/* ── タグライン ── */
+.tag{ text-align:center; margin:26px 0 0; font-family:var(--jp); font-weight:300; font-size:12px; color:var(--sub); letter-spacing:.2em }
+.foot{ text-align:center; margin-top:22px }
+.foot button{ background:none; border:none; color:var(--sub); font-family:var(--ui); font-size:9.5px; letter-spacing:.14em; text-decoration:underline; text-underline-offset:3px; opacity:.45 }
+</style>
+</head>
+<body>
+<div class="home">
+  <div class="brand"><div class="mark">GOLF<b>LEV</b></div></div>
+
+  <div class="greet" id="greet"></div>
+
+  <!-- 主役: 計器ダイアル -->
+  <div class="gauge">
+    <svg viewBox="0 0 248 248" width="248" height="248">
+      <circle cx="124" cy="124" r="92" fill="none" stroke="rgba(27,38,32,.07)" stroke-width="1"/>
+      <circle cx="124" cy="124" r="82" fill="none" stroke="rgba(27,38,32,.05)" stroke-width="1"/>
+      <g id="ticks"></g>
+      <path id="arcBg" fill="none" stroke="rgba(27,38,32,.10)" stroke-width="4" stroke-linecap="round"/>
+      <path id="arcFill" fill="none" stroke="url(#g)" stroke-width="4.5" stroke-linecap="round"/>
+      <circle id="arcDot" r="5.5" fill="#F4EEE2" stroke="var(--brass)" stroke-width="1.6"/>
+      <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#CBB079"/><stop offset=".5" stop-color="#A98F58"/><stop offset="1" stop-color="#876F40"/>
+      </linearGradient></defs>
+    </svg>
+    <div class="center" id="gaugeCenter"></div>
+  </div>
+
+  <!-- サブ指標 -->
+  <div class="stats" id="stats"></div>
+
+  <!-- 本日の稽古 -->
+  <div class="drill">
+    <div class="wm">02</div>
+    <div class="eyebrow">本日の稽古</div>
+    <div class="nm">The <em>Pitch</em></div>
+    <div class="jp">8時から4時へ。ピッチの精度を、一段。</div>
+    <button class="cta" id="todayBtn">はじめる</button>
+  </div>
+
+  <div class="tag">振る、を整える。</div>
+  <div class="foot"><button id="resetLink">リセット（開発用）</button></div>
+</div>
+
+<script src="strings.js"></script>
+<script src="core.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+if(location.search.includes('demo')){
+  GLProfile.set('profile.onboarded',true);
+  if(GLProfile.get('goals.bestScore',null)==null) GLProfile.set('goals.bestScore',108);
+  GLProfile.set('goals.targetScore',100); GLProfile.set('progress.currentLevel',2); GLProfile.set('streak.days',4);
+}
+const h=new Date().getHours();
+$('greet').innerHTML='<div class="hi">'+(h<11?'朝の一振りを。':h<17?'おかえりなさい。':'今宵の一振りを。')+'</div>'+
+  '<div class="streak"><b>'+GLProfile.get('streak.days',4)+'</b> 日 連続</div>';
+
+const best=GLProfile.get('goals.bestScore',108), target=GLProfile.get('goals.targetScore',100);
+const diff=Math.max(0,best-target);
+
+/* 計器の弧: 出発点 target+15 から goal まで。達成率ぶん金の弧が満ちる */
+const start=target+15, prog=Math.max(0,Math.min(1,(start-best)/(start-target)));
+const CX=124,CY=124,R=104, A0=-135, A1=135;   // 270°（下開き）
+const pol=(r,deg)=>{const a=(deg-90)*Math.PI/180;return [CX+r*Math.cos(a),CY+r*Math.sin(a)];};
+const arcPath=(a0,a1)=>{const[x0,y0]=pol(R,a0),[x1,y1]=pol(R,a1);const large=(a1-a0)>180?1:0;return `M ${x0} ${y0} A ${R} ${R} 0 ${large} 1 ${x1} ${y1}`;};
+$('arcBg').setAttribute('d',arcPath(A0,A1));
+const aEnd=A0+(A1-A0)*prog;
+$('arcFill').setAttribute('d',arcPath(A0,aEnd));
+const [dx,dy]=pol(R,aEnd); $('arcDot').setAttribute('cx',dx); $('arcDot').setAttribute('cy',dy);
+// 目盛り（12/3/6/9時）
+let ticks='';
+[ -90,0,90,180 ].forEach(d=>{ const[x1,y1]=pol(88,d),[x2,y2]=pol(80,d);
+  ticks+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--brass)" stroke-width="1.4" opacity=".55"/>`; });
+$('ticks').innerHTML=ticks;
+
+$('gaugeCenter').innerHTML='<div class="top">100を 切るまで</div>'+
+  '<div class="num"><span class="accent">'+diff+'</span></div><div class="bot">打　残り</div>';
+
+$('stats').innerHTML=
+  '<div class="stat"><div class="v">'+best+'</div><div class="l">Best</div></div>'+
+  '<div class="stat"><div class="v">'+target+'</div><div class="l">Target</div></div>'+
+  '<div class="stat"><div class="v">±4<span class="u">°</span></div><div class="l">Consistency</div></div>';
+
+$('todayBtn').onclick=()=>location.href='drill-pitch.html';
+$('resetLink').onclick=()=>{ try{localStorage.removeItem(GLProfile.KEY);}catch(e){} location.reload(); };
+</script>
+</body>
+</html>
