@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Golflev · Sculpture Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Playfair+Display:ital,wght@0,600;0,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Inter',sans-serif;transition:background .6s ease}
+body.dark{ background:radial-gradient(120% 90% at 50% 35%, #20292B 0%, #141A1B 60%, #0C1011 100%) }
+body.light{ background:radial-gradient(120% 90% at 50% 10%, #F2ECDF 0%, #E8E2D4 55%, #DFD7C5 100%) }
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+.tag{position:fixed;top:14px;left:0;right:0;text-align:center;z-index:3;pointer-events:none}
+.tag .en{font-family:'Playfair Display',serif;font-style:italic;font-weight:600;font-size:30px;
+  color:var(--fg);letter-spacing:.01em}
+.tag .jp{font-size:10px;letter-spacing:.34em;margin-top:6px;color:var(--fg-sub);text-transform:uppercase}
+body.dark{--fg:#EDE3CE;--fg-sub:#9A8E76}
+body.light{--fg:#1B2620;--fg-sub:#8C8676}
+#load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:4;
+  color:var(--fg-sub);font-size:11px;letter-spacing:.25em}
+#ctrl{position:fixed;bottom:22px;left:0;right:0;text-align:center;z-index:5}
+.row{margin:7px 0}
+.b{display:inline-block;margin:0 4px;padding:9px 15px;border-radius:999px;font-size:11px;letter-spacing:.06em;
+  font-family:'Inter',sans-serif;border:1px solid var(--bd);background:var(--bbg);color:var(--fg);cursor:pointer}
+.b.on{background:var(--fg);color:var(--bbg2)}
+body.dark{--bd:rgba(237,227,206,.3);--bbg:rgba(237,227,206,.06);--bbg2:#141A1B}
+body.light{--bd:rgba(27,38,32,.28);--bbg:rgba(255,255,255,.5);--bbg2:#F2ECDF}
+</style>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+}}
+</script>
+<script>window.__err=[];window.onerror=m=>window.__err.push(String(m));</script>
+</head>
+<body class="dark">
+<canvas id="c"></canvas>
+<div id="load">SCULPTING…</div>
+<div class="tag"><div class="en">The Golfer</div><div class="jp">Sculpture Study</div></div>
+<div id="ctrl">
+  <div class="row" id="matRow">
+    <button class="b on" data-m="bronze">ブロンズ</button>
+    <button class="b" data-m="marble">大理石</button>
+    <button class="b" data-m="porcelain">白磁×金</button>
+    <button class="b" data-m="gold">ゴールド</button>
+  </div>
+  <div class="row" id="poseRow">
+    <button class="b on" data-p="finish">フィニッシュ</button>
+    <button class="b" data-p="top">トップ</button>
+    <button class="b" data-p="address">アドレス</button>
+  </div>
+  <div class="row">
+    <button class="b on" data-bg="dark">ギャラリー（暗）</button>
+    <button class="b" data-bg="light">クリーム（明）</button>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
+
+const canvas=document.getElementById('c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});
+const isMobile=matchMedia('(pointer:coarse)').matches;
+renderer.setPixelRatio(Math.min(devicePixelRatio,isMobile?1.4:2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.0;
+
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(32,innerWidth/innerHeight,0.1,60);
+camera.position.set(0,1.25,4.6); camera.lookAt(0,1.0,0);
+
+const pmrem=new THREE.PMREMGenerator(renderer);
+const env=pmrem.fromScene(new RoomEnvironment(),0.03).texture;
+scene.environment=env;
+
+/* ── 彫刻的ライティング（3点＋スポット） ── */
+const key=new THREE.SpotLight(0xfff2dd, 60, 18, Math.PI/6, 0.5, 1.4);
+key.position.set(2.6,5.2,3.0); key.castShadow=true;
+key.shadow.mapSize.set(2048,2048); key.shadow.bias=-0.0003; key.shadow.radius=8;
+scene.add(key); scene.add(key.target);
+const rim=new THREE.DirectionalLight(0xC8956C, 2.4); rim.position.set(-3.5,3,-3.2); scene.add(rim);
+const fill=new THREE.DirectionalLight(0xbcd0d8, 0.5); fill.position.set(-2,1.5,3); scene.add(fill);
+const groundBounce=new THREE.PointLight(0xC8956C,3,8); groundBounce.position.set(0,0.2,1.5); scene.add(groundBounce);
+
+/* ── 台座（文字盤を引いて石/金の円柱プリンス） ── */
+const stageG=new THREE.Group(); scene.add(stageG);
+const plinth=new THREE.Mesh(
+  new THREE.CylinderGeometry(0.95,1.05,0.16,96),
+  new THREE.MeshStandardMaterial({color:0x2A322E,roughness:.6,metalness:.2,envMapIntensity:.6}));
+plinth.position.y=0.08; plinth.receiveShadow=true; plinth.castShadow=true; stageG.add(plinth);
+const bezel=new THREE.Mesh(new THREE.TorusGeometry(0.96,0.025,24,128),
+  new THREE.MeshStandardMaterial({color:0xC8956C,metalness:1,roughness:.22}));
+bezel.rotation.x=Math.PI/2; bezel.position.y=0.16; stageG.add(bezel);
+const topface=new THREE.Mesh(new THREE.CircleGeometry(0.93,96),
+  new THREE.MeshStandardMaterial({color:0x222A26,roughness:.5,metalness:.3,envMapIntensity:.5}));
+topface.rotation.x=-Math.PI/2; topface.position.y=0.161; topface.receiveShadow=true; stageG.add(topface);
+// 影だけ受ける床
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(40,40),new THREE.ShadowMaterial({opacity:.4}));
+floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
+
+/* ── マテリアル定義 ── */
+const GOLD_JOINT_RE=/Neck|Head|Shoulder|(Left|Right)Arm$|(Left|Right)ForeArm$|Hand|(Left|Right)Leg$|Foot|Toe/;
+const MATS={
+  bronze: ()=>({body:new THREE.MeshStandardMaterial({color:0x8C6A3D,metalness:1,roughness:.34,envMapIntensity:1.2}),
+                joint:null}),
+  gold:   ()=>({body:new THREE.MeshStandardMaterial({color:0xC9A24B,metalness:1,roughness:.22,envMapIntensity:1.3}),
+                joint:null}),
+  marble: ()=>({body:new THREE.MeshPhysicalMaterial({color:0xEFEAE0,metalness:0,roughness:.42,clearcoat:.5,clearcoatRoughness:.5,envMapIntensity:.8,sheen:.4,sheenColor:new THREE.Color(0xC8B89A)}),
+                joint:null}),
+  porcelain: ()=>({body:new THREE.MeshPhysicalMaterial({color:0xF2E8D6,metalness:0,roughness:.3,clearcoat:.6,clearcoatRoughness:.35,envMapIntensity:.8}),
+                   joint:new THREE.MeshStandardMaterial({color:0xC8956C,metalness:.95,roughness:.3,envMapIntensity:1.1})})
+};
+
+let golfer=null, mixer=null, action=null, clipDur=1.93, meshInfo=[];
+const ANCH={addr:0.10, top:0.50, finish:1.27};
+let curMat='bronze', curPose='finish';
+
+new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
+  golfer=fbx;
+  golfer.scale.setScalar(0.0108); golfer.rotation.y=Math.PI/2; golfer.position.y=0.161;
+  // メッシュとjoint判定の面分割を事前計算（白磁×金で使う）
+  golfer.traverse(c=>{
+    if(!c.isMesh) return;
+    c.castShadow=true; c.receiveShadow=true;
+    const n=((c.material&&c.material.name)||c.name||'').toLowerCase();
+    const isJoint=n.includes('joint');
+    let split=null;
+    if(isJoint && c.geometry.attributes.skinIndex && c.skeleton){
+      const geo=c.geometry, boneNames=c.skeleton.bones.map(b=>b.name||'');
+      const si=geo.attributes.skinIndex,sw=geo.attributes.skinWeight,pos=geo.attributes.position;
+      const comp=(a,v,j)=>a.array[v*a.itemSize+j];
+      geo.computeBoundingBox(); const bb=geo.boundingBox;
+      const mins=[bb.min.x,bb.min.y,bb.min.z],maxs=[bb.max.x,bb.max.y,bb.max.z];
+      const sizes=[maxs[0]-mins[0],maxs[1]-mins[1],maxs[2]-mins[2]];
+      const up=sizes.indexOf(Math.max(...sizes)); const lat=[0,1,2].filter(a=>a!==up); const H=sizes[up];
+      const c0=(maxs[lat[0]]+mins[lat[0]])/2,c1=(maxs[lat[1]]+mins[lat[1]])/2;
+      const inTorso=v=>{const p=[comp(pos,v,0),comp(pos,v,1),comp(pos,v,2)];const h=(p[up]-mins[up])/H;const r=Math.hypot(p[lat[0]]-c0,p[lat[1]]-c1);return h>0.44&&h<0.80&&r<0.095*H;};
+      const hasIdx=!!geo.index; const faceCount=hasIdx?geo.index.count/3:pos.count/3;
+      const vAt=hasIdx?(f,k)=>geo.index.array[f*3+k]:(f,k)=>f*3+k;
+      const g=[],w=[];
+      for(let f=0;f<faceCount;f++){let votes=0;const tri=[vAt(f,0),vAt(f,1),vAt(f,2)];
+        for(const v of tri){let best=0,bw=-1;for(let j=0;j<4;j++){const wt=comp(sw,v,j);if(wt>bw){bw=wt;best=comp(si,v,j);}}if(!inTorso(v)&&GOLD_JOINT_RE.test(boneNames[best]))votes++;}
+        (votes>=2?g:w).push(tri[0],tri[1],tri[2]);}
+      split={gLen:g.length,wLen:w.length,order:g.concat(w)};
+    }
+    meshInfo.push({mesh:c,isJoint,split});
+  });
+  scene.add(golfer);
+  if(fbx.animations&&fbx.animations.length){
+    mixer=new THREE.AnimationMixer(golfer);
+    action=mixer.clipAction(fbx.animations[0]); clipDur=fbx.animations[0].duration;
+    action.play(); action.paused=true;
+  }
+  applyMat(curMat); applyPose(curPose);
+  document.getElementById('load').style.display='none';
+},undefined,e=>{ window.__err.push('FBX:'+(e.message||e)); document.getElementById('load').textContent='LOAD FAILED'; });
+
+function applyMat(key){
+  curMat=key;
+  const spec=MATS[key]();
+  for(const mi of meshInfo){
+    const geo=mi.mesh.geometry;
+    if(key==='porcelain' && mi.isJoint && mi.split){
+      geo.setIndex(mi.split.order); geo.clearGroups();
+      geo.addGroup(0,mi.split.gLen,0); geo.addGroup(mi.split.gLen,mi.split.wLen,1);
+      mi.mesh.material=[spec.joint, spec.body];
+    } else {
+      mi.mesh.material=spec.body;
+    }
+  }
+}
+function applyPose(p){
+  curPose=p;
+  if(!action) return;
+  action.paused=true;
+  action.time=THREE.MathUtils.clamp(ANCH[p], 0, clipDur-0.001);
+  mixer.update(0);
+}
+
+document.querySelectorAll('#matRow .b').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#matRow .b').forEach(x=>x.classList.toggle('on',x===b)); applyMat(b.dataset.m);
+});
+document.querySelectorAll('#poseRow .b').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#poseRow .b').forEach(x=>x.classList.toggle('on',x===b)); applyPose(b.dataset.p);
+});
+document.querySelectorAll('[data-bg]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('[data-bg]').forEach(x=>x.classList.toggle('on',x===b));
+  document.body.className=b.dataset.bg;
+});
+
+const clock=new THREE.Clock();
+function animate(ts){
+  const t=ts*0.001;
+  // ゆっくり周回（彫刻を見せる）
+  camera.position.set(Math.sin(t*0.16)*1.5, 1.2+Math.sin(t*0.1)*0.08, 4.4);
+  camera.lookAt(0,0.98,0);
+  key.target.position.set(0,1,0);
+  renderer.render(scene,camera);
+  requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>
