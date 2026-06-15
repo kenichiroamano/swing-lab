@@ -22,7 +22,13 @@ body{ background:radial-gradient(125% 80% at 50% 0%, #F0EADC 0%, var(--bone) 55%
 .read .v{font-family:var(--serif);font-weight:600;font-size:26px;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
 .read .v.gold{color:var(--brass)}
 .read .l{font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--sub);margin-top:6px}
-.state{position:fixed;bottom:92px;left:0;right:0;text-align:center;z-index:2;font-family:var(--jp);font-size:13px;color:var(--brass);letter-spacing:.12em;min-height:18px}
+.state{position:fixed;bottom:118px;left:0;right:0;text-align:center;z-index:2;font-family:var(--ui);font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--sub);min-height:14px}
+/* コーチの一言（処方）= 主役。振るたびに「直すこと」を一言 */
+.coach{position:fixed;bottom:64px;left:0;right:0;text-align:center;z-index:2;padding:0 24px;min-height:30px}
+.coach .msg{font-family:var(--jp);font-weight:400;font-size:19px;letter-spacing:.06em;color:var(--ink);line-height:1.5;opacity:0;transition:opacity .35s ease}
+.coach .msg.show{opacity:1}
+.coach .msg.ok{color:var(--ok)} .coach .msg.fix{color:var(--ink)}
+.coach .sub{font-family:var(--ui);font-size:10px;letter-spacing:.1em;color:var(--sub);margin-top:6px;font-variant-numeric:tabular-nums}
 /* オーバーレイ（許可・較正） */
 .ov{position:fixed;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;
   background:radial-gradient(125% 80% at 50% 0%, #F0EADC 0%, var(--bone) 60%, #DFD7C5 100%)}
@@ -46,7 +52,7 @@ body{ background:radial-gradient(125% 80% at 50% 0%, #F0EADC 0%, var(--bone) 55%
 <canvas id="c"></canvas>
 <div class="tag"><div class="en">Your Swing</div><div class="jp">Live Arc</div></div>
 <div class="state" id="state"></div>
-<div class="read" id="read"></div>
+<div class="coach" id="coach"><div class="msg" id="coachMsg"></div><div class="sub" id="coachSub"></div></div>
 
 <!-- 許可 -->
 <div class="ov" id="ovPerm">
@@ -138,7 +144,8 @@ function placeMark(m,angDeg){const a=angDeg*d2r;m.position.set(PIVOT.x+L*Math.si
 
 function headPos(angDeg,depth){
   const a=angDeg*d2r;
-  return new THREE.Vector3(PIVOT.x+L*Math.sin(a), PIVOT.y-L*Math.cos(a), (depth||0)*0.5);
+  // 面からの逸脱を奥行きに強く反映＝面を外すと弧が崩れて見える（質を正直に映す）
+  return new THREE.Vector3(PIVOT.x+L*Math.sin(a), PIVOT.y-L*Math.cos(a), (depth||0)*1.05);
 }
 function orientShaft(hp){
   shaft.position.copy(PIVOT).lerp(hp,0.5);
@@ -167,7 +174,8 @@ const SENSOR={alpha:0,beta:0,gamma:0};
 const MOTION={rot:{alpha:0,beta:0,gamma:0}};
 let frame=null, phase='perm', lastSide=-1, liveAng=0, liveDepth=0;
 const tracker=new SwingTracker();
-let omegaS=0,lastT=null,lastA=0, lastTempo=null;
+let omegaS=0,lastT=null,lastA=0, lastTempo=null, planePeak=0;
+const ZMIN=50, ZMAX=70;   // 8時/4時の合格ゾーン（±）
 
 async function requestPermission(){
   try{ GLAudio.ensure();
@@ -191,8 +199,8 @@ function startCalib(){
       const f=makePlaneFrame(QuatUtils.average(samples));
       if(!f){ $('calibWarn').innerHTML='<div class="warn">シャフトが鉛直すぎます。通常のアドレス角度で。</div>'; $('calibNum').textContent='—'; return; }
       frame=f; GLAudio.calibDone(); $('ovCalib').classList.add('hidden'); phase='live';
-      $('state').textContent='振ってみてください';
-      renderRead();
+      $('state').textContent='Swing';
+      $('coachMsg').textContent='構えて、振ってみましょう。'; $('coachMsg').className='msg fix'; $('coachMsg').classList.add('show');
     }
   },50);
 }
@@ -202,11 +210,12 @@ function tick(){
   const A=signedAngles(qC,frame);
   if(Math.abs(A.azimuth)>3) lastSide=-Math.sign(A.azimuth);
   liveAng=lastSide*A.mag;                 // バック=負(8時側)/フォロー=正(4時側)
-  liveDepth=Math.max(-1,Math.min(1,A.outPlane/40));  // 面からの逸脱（奥行きに反映）
+  liveDepth=Math.max(-1,Math.min(1,A.outPlane/28));  // 面からの逸脱（奥行きに強めに反映）
   if(lastT!==null){ const dt=(t-lastT)/1000; if(dt>0.001&&dt<0.5){ const w=Math.abs(liveAng-lastA)/dt; omegaS=omegaS*0.5+w*0.5; } }
   lastT=t; lastA=liveAng;
   const prev=tracker.state; const r=tracker.feed(t,liveAng,omegaS);
-  if(prev==='idle'&&tracker.state!=='idle'){ GLAudio.start(); }
+  if(prev==='idle'&&tracker.state!=='idle'){ GLAudio.start(); planePeak=0; }
+  if(tracker.state!=='idle') planePeak=Math.max(planePeak, Math.abs(A.outPlane));  // スイング中の面逸脱ピーク
   trailSamples.push({t,ang:liveAng,depth:liveDepth});
   if(r) onSwing(r);
   // 状態文言
@@ -214,25 +223,34 @@ function tick(){
 }
 function onSwing(r){
   GLAudio.end();
-  const back=r.backAngle, follow=r.followAngle;
-  // 左右の到達点を金/赤マーカーで（対称性の気づき）
-  placeMark(markBack, back);
-  placeMark(markFollow, follow);
+  const back=Math.abs(r.backAngle), follow=Math.abs(r.followAngle);
+  placeMark(markBack, r.backAngle); placeMark(markFollow, r.followAngle);
   lastTempo=r.tempoRatio;
-  renderRead(Math.abs(back),Math.abs(follow),r.tempoRatio);
   // ゾーン到達でご褒美点灯
-  if(Math.abs(back)>=54){ zoneL.emissiveIntensity=1.4; setTimeout(()=>zoneL.emissiveIntensity=.2,500); }
-  if(Math.abs(follow)>=54){ zoneR.emissiveIntensity=1.4; setTimeout(()=>zoneR.emissiveIntensity=.2,500); }
+  if(back>=ZMIN){ zoneL.emissiveIntensity=1.4; setTimeout(()=>zoneL.emissiveIntensity=.2,500); }
+  if(follow>=ZMIN){ zoneR.emissiveIntensity=1.4; setTimeout(()=>zoneR.emissiveIntensity=.2,500); }
+
+  // ── コーチの処方: 直すこと"1つ"を一言で（診断でなく処方）──
+  let msg, cls='fix', good=false;
+  if(back<MIN_BACK_DEG){ msg='もっと大きく振ってみましょう。'; }
+  else if(planePeak>22){ msg='スイングが面から外れています。同じ軌道で。'; }   // 面逸脱が大＝雑な振り
+  else if(r.complete && !r.slowSwing && r.decel){ msg='インパクトで緩んでいます。最後まで振り抜いて。'; }
+  else if(follow<20){ msg='フォローまで振り切りましょう。4時へ。'; }
+  else if(back-follow>22){ msg='フォローが届いていません。振り抜いて。'; }
+  else if(follow-back>22){ msg='バックが小さめ。8時までしっかり。'; }
+  else if(r.tempoRatio!=null && r.tempoRatio<1.4){ msg='振り急ぎ。トップで一拍おいて。'; }
+  else if(back<ZMIN){ msg='あと少し大きく。8時まで。'; }
+  else if(back>ZMAX){ msg='振りすぎ。8時で止めて。'; }
+  else { msg='良いスイング。この感覚を繰り返して。'; cls='ok'; good=true; }
+
+  const el=$('coachMsg');
+  el.className='msg '+cls; el.textContent=msg;
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  // 補助に小さく事実（処方の根拠）。数字は脇役
+  $('coachSub').textContent='バック '+Math.round(back)+'° ・ フォロー '+Math.round(follow)+'°'+(r.tempoRatio?' ・ テンポ '+r.tempoRatio.toFixed(1):'');
+  if(good) GLAudio.good();
 }
-function renderRead(back,follow,tempo){
-  const b=back!=null?Math.round(back)+'°':'—';
-  const f=follow!=null?Math.round(follow)+'°':'—';
-  const tp=tempo!=null?tempo.toFixed(1):'—';
-  $('read').innerHTML=
-    '<div class="s"><div class="v gold">'+b+'</div><div class="l">バック</div></div>'+
-    '<div class="s"><div class="v gold">'+f+'</div><div class="l">フォロー</div></div>'+
-    '<div class="s"><div class="v">'+tp+'</div><div class="l">テンポ</div></div>';
-}
+const MIN_BACK_DEG=30;
 
 $('btnPerm').addEventListener('click',requestPermission);
 $('btnCalib').addEventListener('click',startCalib);
