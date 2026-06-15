@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Golflev · Live Arc（自分が映る3D）</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,600&family=Playfair+Display:ital,wght@0,600;0,700&family=Noto+Serif+JP:wght@300;400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{ --bone:#E8E2D4; --paper:#F4EEE2; --ink:#1B2620; --brass:#A98F58; --brass-hi:#CBB079; --champagne:#E4D6BA; --sub:#8C8676; --ok:#4A6B4A; --err:#C45B4A;
+  --serif:'Cormorant Garamond','Playfair Display',serif; --jp:'Noto Serif JP',serif; --ui:'Inter',sans-serif; }
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{ background:radial-gradient(125% 80% at 50% 0%, #F0EADC 0%, var(--bone) 55%, #DFD7C5 100%); color:var(--ink); font-family:var(--ui) }
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0}
+.tag{position:fixed;top:18px;left:0;right:0;text-align:center;z-index:2;pointer-events:none}
+.tag .en{font-family:var(--serif);font-style:italic;font-weight:600;font-size:26px;color:var(--ink)}
+.tag .jp{font-size:9.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--sub);margin-top:6px}
+/* 読み取り（測れるものだけ正直に） */
+.read{position:fixed;bottom:26px;left:0;right:0;z-index:2;display:flex;justify-content:center;gap:0}
+.read .s{ text-align:center; padding:0 18px; position:relative }
+.read .s + .s::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:1px;background:linear-gradient(180deg,transparent,rgba(169,143,88,.45),transparent)}
+.read .v{font-family:var(--serif);font-weight:600;font-size:26px;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+.read .v.gold{color:var(--brass)}
+.read .l{font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--sub);margin-top:6px}
+.state{position:fixed;bottom:92px;left:0;right:0;text-align:center;z-index:2;font-family:var(--jp);font-size:13px;color:var(--brass);letter-spacing:.12em;min-height:18px}
+/* オーバーレイ（許可・較正） */
+.ov{position:fixed;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;
+  background:radial-gradient(125% 80% at 50% 0%, #F0EADC 0%, var(--bone) 60%, #DFD7C5 100%)}
+.ov .en{font-family:var(--serif);font-style:italic;font-weight:600;font-size:34px;color:var(--ink)}
+.ov p{font-family:var(--jp);font-weight:300;font-size:13.5px;line-height:2;color:var(--ink);margin:16px 0 6px;max-width:300px}
+.ov .num{font-family:var(--serif);font-size:64px;color:var(--brass);margin:10px 0}
+.btn{margin-top:22px;padding:15px 34px;border:1px solid var(--brass);border-radius:11px;background:transparent;
+  font-family:var(--ui);font-size:12px;font-weight:500;letter-spacing:.24em;color:var(--ink)}
+.hidden{display:none}
+.warn{color:var(--err);font-size:12px;margin-top:10px}
+</style>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+}}
+</script>
+<script>window.__err=[];window.onerror=m=>window.__err.push(String(m));</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="tag"><div class="en">Your Swing</div><div class="jp">Live Arc</div></div>
+<div class="state" id="state"></div>
+<div class="read" id="read"></div>
+
+<!-- 許可 -->
+<div class="ov" id="ovPerm">
+  <div class="en">Your Swing</div>
+  <p>スマホを両手で握り、いつものように構えてください。<br>振った動きが、そのまま光の弧になります。</p>
+  <button class="btn" id="btnPerm">はじめる</button>
+  <div id="permErr"></div>
+</div>
+<!-- 較正 -->
+<div class="ov hidden" id="ovCalib">
+  <div class="en">Address</div>
+  <p>いつもの構えで、2秒だけ静止。</p>
+  <div class="num" id="calibNum">—</div>
+  <button class="btn" id="btnCalib">構えを記録</button>
+  <div id="calibWarn"></div>
+</div>
+
+<script src="core.js"></script>
+<script type="module">
+import * as THREE from 'three';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+
+const $=id=>document.getElementById(id);
+const canvas=$('c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});
+const isMobile=matchMedia('(pointer:coarse)').matches;
+renderer.setPixelRatio(Math.min(devicePixelRatio,isMobile?1.4:2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=0.95;
+
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(34,innerWidth/innerHeight,0.1,60);
+camera.position.set(0.7,1.15,4.3); camera.lookAt(0,0.95,0);
+const pmrem=new THREE.PMREMGenerator(renderer);
+scene.environment=pmrem.fromScene(new RoomEnvironment(),0.03).texture;
+const key=new THREE.DirectionalLight(0xfff2dd,1.7); key.position.set(2.5,5,2.5); key.castShadow=true;
+key.shadow.mapSize.set(1024,1024); key.shadow.radius=6; key.shadow.bias=-0.0004; scene.add(key);
+const rim=new THREE.PointLight(0xC8956C,10,18); rim.position.set(-3,2,-3); scene.add(rim);
+
+/* ── スイング面のステージ ── */
+const PIVOT=new THREE.Vector3(0,1.55,0);   // 手元の支点
+const L=0.92;                               // シャフト長（クラブ相当）
+const d2r=Math.PI/180;
+const GOLD=new THREE.MeshStandardMaterial({color:0xB8804C,metalness:1,roughness:.25,envMapIntensity:1.1});
+const GHOST=new THREE.MeshStandardMaterial({color:0xA98F58,metalness:.6,roughness:.5,transparent:true,opacity:.22});
+
+// 影だけ受ける床
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(40,40),new THREE.ShadowMaterial({opacity:.12}));
+floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
+// 支点リング
+const hub=new THREE.Mesh(new THREE.SphereGeometry(0.035,20,20),GOLD); hub.position.copy(PIVOT); scene.add(hub);
+
+// お手本: 金の溝の弧（±70°）＋8時/4時の金ゾーン
+function arcPts(r,a0,a1,seg){const p=[];for(let i=0;i<=seg;i++){const a=(a0+(a1-a0)*i/seg)*d2r;p.push(new THREE.Vector3(PIVOT.x+r*Math.sin(a),PIVOT.y-r*Math.cos(a),0));}return p;}
+const grooveMat=new THREE.MeshStandardMaterial({color:0xA98F58,metalness:.9,roughness:.4,transparent:true,opacity:.32});
+const groove=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(arcPts(L,-72,72,60)),60,0.006,8,false),grooveMat);
+scene.add(groove);
+function zone(center){const m=new THREE.MeshStandardMaterial({color:0xC8956C,metalness:1,roughness:.25,emissive:0xC8956C,emissiveIntensity:.2});
+  const z=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(arcPts(L,center-6,center+6,12)),12,0.016,10,false),m); scene.add(z); return m;}
+const zoneL=zone(-60), zoneR=zone(60);   // 8時 / 4時 (±60°)
+
+// お手本ゴーストのシャフト（アドレス位置）
+const ghostShaft=new THREE.Mesh(new THREE.CylinderGeometry(0.008,0.012,L,10),GHOST);
+ghostShaft.position.set(PIVOT.x,PIVOT.y-L/2,0); scene.add(ghostShaft);
+
+// 自分のシャフト（手に追従）＋ヘッド
+const shaft=new THREE.Mesh(new THREE.CylinderGeometry(0.011,0.016,L,12),GOLD); shaft.castShadow=true; scene.add(shaft);
+const head=new THREE.Mesh(new THREE.SphereGeometry(0.05,24,24),
+  new THREE.MeshStandardMaterial({color:0xF4EEE2,metalness:.3,roughness:.2,emissive:0xC8956C,emissiveIntensity:.9}));
+scene.add(head);
+const headGlow=new THREE.PointLight(0xC8956C,4,2.2); head.add(headGlow);
+
+// 金の軌跡リボン（ヘッドが描く弧）
+const TN=30; const trailGeo=new THREE.BufferGeometry();
+const tPos=new Float32Array(TN*2*3); trailGeo.setAttribute('position',new THREE.BufferAttribute(tPos,3));
+{const idx=[];for(let i=0;i<TN-1;i++){const a=i*2,b=a+1,c=a+2,dd=a+3;idx.push(a,b,c,b,dd,c);}trailGeo.setIndex(idx);}
+const trail=new THREE.Mesh(trailGeo,new THREE.MeshBasicMaterial({color:0xffd9a0,transparent:true,opacity:.85,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
+trail.frustumCulled=false; scene.add(trail);
+let trailSamples=[];
+const _up=new THREE.Vector3(0,1,0),_dir=new THREE.Vector3();
+
+// 直近スイングのバック/フォロー到達マーカー（左右対称の気づき）
+function peakMark(){const m=new THREE.Mesh(new THREE.SphereGeometry(0.03,16,16),
+  new THREE.MeshStandardMaterial({color:0xC45B4A,metalness:.4,roughness:.4,emissive:0xC45B4A,emissiveIntensity:.3,transparent:true,opacity:0}));
+  scene.add(m);return m;}
+const markBack=peakMark(), markFollow=peakMark();
+function placeMark(m,angDeg){const a=angDeg*d2r;m.position.set(PIVOT.x+L*Math.sin(a),PIVOT.y-L*Math.cos(a),0);m.material.opacity=.9;}
+
+function headPos(angDeg,depth){
+  const a=angDeg*d2r;
+  return new THREE.Vector3(PIVOT.x+L*Math.sin(a), PIVOT.y-L*Math.cos(a), (depth||0)*0.5);
+}
+function orientShaft(hp){
+  shaft.position.copy(PIVOT).lerp(hp,0.5);
+  _dir.subVectors(hp,PIVOT); const len=_dir.length();
+  shaft.scale.set(1,len/L,1);
+  shaft.quaternion.setFromUnitVectors(_up,_dir.normalize());
+}
+function updateTrail(now){
+  while(trailSamples.length && now-trailSamples[0].t>420) trailSamples.shift();
+  const m=trailSamples.length;
+  const vis=m>=3;
+  trail.visible=vis; if(!vis) return;
+  for(let i=0;i<TN;i++){
+    const s=trailSamples[Math.max(0,m-TN+i)]||trailSamples[0];
+    const age=Math.min(1,(now-s.t)/420); const w=0.045*(1-age)+0.004;
+    const a=s.ang*d2r; const cx=PIVOT.x+L*Math.sin(a), cy=PIVOT.y-L*Math.cos(a), cz=s.depth*0.5;
+    // 幅は接線方向（簡易に上下）
+    tPos[i*6]=cx; tPos[i*6+1]=cy+w; tPos[i*6+2]=cz;
+    tPos[i*6+3]=cx; tPos[i*6+4]=cy-w; tPos[i*6+5]=cz;
+  }
+  trailGeo.attributes.position.needsUpdate=true;
+}
+
+/* ── センサー＆計測（core.js流用） ── */
+const SENSOR={alpha:0,beta:0,gamma:0};
+const MOTION={rot:{alpha:0,beta:0,gamma:0}};
+let frame=null, phase='perm', lastSide=-1, liveAng=0, liveDepth=0;
+const tracker=new SwingTracker();
+let omegaS=0,lastT=null,lastA=0, lastTempo=null;
+
+async function requestPermission(){
+  try{ GLAudio.ensure();
+    if(typeof DeviceOrientationEvent!=='undefined' && DeviceOrientationEvent.requestPermission){
+      const r=await DeviceOrientationEvent.requestPermission(); if(r!=='granted'){ $('permErr').innerHTML='<div class="warn">センサーが許可されませんでした。</div>'; return; } }
+    if(typeof DeviceMotionEvent!=='undefined' && DeviceMotionEvent.requestPermission){ try{ await DeviceMotionEvent.requestPermission(); }catch(e){} }
+    addEventListener('deviceorientation',e=>{ SENSOR.alpha=e.alpha||0;SENSOR.beta=e.beta||0;SENSOR.gamma=e.gamma||0; if(phase==='live'&&frame) tick(); });
+    addEventListener('devicemotion',e=>{ if(e.rotationRate){ MOTION.rot.alpha=e.rotationRate.alpha||0;MOTION.rot.beta=e.rotationRate.beta||0;MOTION.rot.gamma=e.rotationRate.gamma||0; } });
+    $('ovPerm').classList.add('hidden'); $('ovCalib').classList.remove('hidden'); phase='calib';
+  }catch(e){ $('permErr').innerHTML='<div class="warn">'+e.message+'</div>'; }
+}
+let calT=null;
+function startCalib(){
+  GLAudio.click(); $('calibWarn').innerHTML='';
+  const samples=[]; let remain=2.0; $('calibNum').textContent=remain.toFixed(1);
+  if(calT)clearInterval(calT);
+  calT=setInterval(()=>{
+    samples.push(QuatUtils.fromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma)); remain-=0.05;
+    $('calibNum').textContent=Math.max(0,remain).toFixed(1);
+    if(remain<=0){ clearInterval(calT);
+      const f=makePlaneFrame(QuatUtils.average(samples));
+      if(!f){ $('calibWarn').innerHTML='<div class="warn">シャフトが鉛直すぎます。通常のアドレス角度で。</div>'; $('calibNum').textContent='—'; return; }
+      frame=f; GLAudio.calibDone(); $('ovCalib').classList.add('hidden'); phase='live';
+      $('state').textContent='振ってみてください';
+      renderRead();
+    }
+  },50);
+}
+function tick(){
+  const t=performance.now();
+  const qC=QuatUtils.fromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma);
+  const A=signedAngles(qC,frame);
+  if(Math.abs(A.azimuth)>3) lastSide=-Math.sign(A.azimuth);
+  liveAng=lastSide*A.mag;                 // バック=負(8時側)/フォロー=正(4時側)
+  liveDepth=Math.max(-1,Math.min(1,A.outPlane/40));  // 面からの逸脱（奥行きに反映）
+  if(lastT!==null){ const dt=(t-lastT)/1000; if(dt>0.001&&dt<0.5){ const w=Math.abs(liveAng-lastA)/dt; omegaS=omegaS*0.5+w*0.5; } }
+  lastT=t; lastA=liveAng;
+  const prev=tracker.state; const r=tracker.feed(t,liveAng,omegaS);
+  if(prev==='idle'&&tracker.state!=='idle'){ GLAudio.start(); }
+  trailSamples.push({t,ang:liveAng,depth:liveDepth});
+  if(r) onSwing(r);
+  // 状態文言
+  $('state').textContent = tracker.state==='idle'?'振ってみてください':(tracker.state==='back'?'バック':'フォロー');
+}
+function onSwing(r){
+  GLAudio.end();
+  const back=r.backAngle, follow=r.followAngle;
+  // 左右の到達点を金/赤マーカーで（対称性の気づき）
+  placeMark(markBack, back);
+  placeMark(markFollow, follow);
+  lastTempo=r.tempoRatio;
+  renderRead(Math.abs(back),Math.abs(follow),r.tempoRatio);
+  // ゾーン到達でご褒美点灯
+  if(Math.abs(back)>=54){ zoneL.emissiveIntensity=1.4; setTimeout(()=>zoneL.emissiveIntensity=.2,500); }
+  if(Math.abs(follow)>=54){ zoneR.emissiveIntensity=1.4; setTimeout(()=>zoneR.emissiveIntensity=.2,500); }
+}
+function renderRead(back,follow,tempo){
+  const b=back!=null?Math.round(back)+'°':'—';
+  const f=follow!=null?Math.round(follow)+'°':'—';
+  const tp=tempo!=null?tempo.toFixed(1):'—';
+  $('read').innerHTML=
+    '<div class="s"><div class="v gold">'+b+'</div><div class="l">バック</div></div>'+
+    '<div class="s"><div class="v gold">'+f+'</div><div class="l">フォロー</div></div>'+
+    '<div class="s"><div class="v">'+tp+'</div><div class="l">テンポ</div></div>';
+}
+
+$('btnPerm').addEventListener('click',requestPermission);
+$('btnCalib').addEventListener('click',startCalib);
+
+/* ── 描画ループ ── */
+let smoothAng=0, smoothDepth=0;
+function animate(ts){
+  // 手の動きにバネ追従（遅延ゼロ感を保ちつつ微震を消す）
+  smoothAng += (liveAng-smoothAng)*0.45;
+  smoothDepth += (liveDepth-smoothDepth)*0.3;
+  const hp=headPos(smoothAng,smoothDepth);
+  head.position.copy(hp); orientShaft(hp);
+  if(phase==='live') updateTrail(ts);
+  // ゆっくり周回（3Dの立体感）
+  const t=ts*0.001;
+  camera.position.set(0.6+Math.sin(t*0.12)*0.35, 1.12+Math.sin(t*0.09)*0.04, 4.3);
+  camera.lookAt(0,0.95,0);
+  renderer.render(scene,camera);
+  requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+</script>
+</body>
+</html>
