@@ -171,35 +171,65 @@ class SwingTracker {
 
 /* 音（Web Audio。iOSはユーザー操作後に ensure() を呼ぶこと） */
 const GLAudio = (function(){
-  let ctx=null;
+  // 「静かな金の余韻」琴×ベル。FM＋倍音＋ローパス＋柔らかいエンベロープ＋軽い残響（Web Audioのみ・音源ファイル不要）
+  let ctx=null, master=null, dry=null, wet=null, conv=null;
+  function makeIR(sec,decay){
+    const rate=ctx.sampleRate, len=Math.floor(rate*sec), buf=ctx.createBuffer(2,len,rate);
+    for(let ch=0;ch<2;ch++){ const d=buf.getChannelData(ch);
+      for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay); }
+    return buf;
+  }
   function ensure(){
     try{
-      ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();
+      if(!ctx){
+        ctx=new (window.AudioContext||window.webkitAudioContext)();
+        master=ctx.createGain(); master.gain.value=0.9; master.connect(ctx.destination);
+        dry=ctx.createGain(); dry.gain.value=1; dry.connect(master);
+        wet=ctx.createGain(); wet.gain.value=0.20; wet.connect(master);
+        conv=ctx.createConvolver(); conv.buffer=makeIR(1.1,2.6); conv.connect(wet);
+      }
       if(ctx.state==='suspended') ctx.resume();
     }catch(e){}
   }
-  function beep(freq,dur,delay){
+  // 1音: 倍音 or FM ＋ ローパス ＋ 柔らかいアタック ＋ 指数減衰の余韻
+  function tone(opt){
     if(!ctx) return;
+    const o=Object.assign({freq:660,type:'sine',partials:null,fm:null,cutoff:2400,q:0.7,attack:0.012,release:0.5,gain:0.13,delay:0,reverb:true},opt);
     try{
-      const o=ctx.createOscillator(), g=ctx.createGain();
-      o.frequency.value=freq; o.connect(g); g.connect(ctx.destination);
-      const t0=ctx.currentTime+(delay||0);
-      g.gain.setValueAtTime(0.0001,t0);
-      g.gain.exponentialRampToValueAtTime(0.22,t0+0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
-      o.start(t0); o.stop(t0+dur+0.05);
+      const t0=ctx.currentTime+o.delay;
+      const filt=ctx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=o.cutoff; filt.Q.value=o.q;
+      const env=ctx.createGain();
+      env.gain.setValueAtTime(0.0001,t0);
+      env.gain.linearRampToValueAtTime(o.gain,t0+o.attack);
+      env.gain.setTargetAtTime(0.0001,t0+o.attack,o.release/4);
+      filt.connect(env); env.connect(dry); if(o.reverb) env.connect(conv);
+      const stopT=t0+o.attack+o.release+0.1;
+      if(o.fm){
+        const car=ctx.createOscillator(); car.type=o.type; car.frequency.value=o.freq;
+        const mod=ctx.createOscillator(); mod.type='sine'; mod.frequency.value=o.freq*o.fm.ratio;
+        const mg=ctx.createGain(); mg.gain.value=o.freq*o.fm.index; mg.gain.setTargetAtTime(o.freq*o.fm.index*0.1,t0,o.release/3);
+        mod.connect(mg); mg.connect(car.frequency); car.connect(filt);
+        car.start(t0); mod.start(t0); car.stop(stopT); mod.stop(stopT);
+      } else if(o.partials){
+        o.partials.forEach(p=>{ const osc=ctx.createOscillator(); osc.type=o.type; osc.frequency.value=o.freq*p.ratio;
+          const pg=ctx.createGain(); pg.gain.value=p.gain; osc.connect(pg); pg.connect(filt); osc.start(t0); osc.stop(stopT); });
+      } else {
+        const osc=ctx.createOscillator(); osc.type=o.type; osc.frequency.value=o.freq; osc.connect(filt); osc.start(t0); osc.stop(stopT);
+      }
     }catch(e){}
   }
+  function arp(freqs,stg,base){ freqs.forEach((f,i)=>tone(Object.assign({},base,{freq:f,delay:((base&&base.delay)||0)+i*stg}))); }
   return {
-    ensure,
-    click:()=>beep(1200,0.04),
-    start:()=>beep(440,0.08),                                    // 計測開始: 低く短い単音
-    end:()=>beep(1175,0.16),                                     // 1打を記録: 高い単音ベル（ポン）
-    good:()=>{beep(784,0.09);beep(988,0.12,0.10);},
-    success:()=>{beep(784,0.09);beep(988,0.09,0.10);beep(1319,0.18,0.20);},
-    warn:()=>beep(220,0.22),
-    calibDone:()=>{beep(784,0.10);beep(523,0.16,0.10);},         // キャリブ完了: 下降ペア（ロック感）
-    armReady:()=>{beep(523,0.06);beep(659,0.07,0.06);beep(880,0.14,0.13);} // 次の1打どうぞ: 上昇トライアド（招き）
+    ensure, tone, arp,
+    click:()=>tone({freq:1320,type:'sine',cutoff:3000,attack:0.004,release:0.10,gain:0.06,reverb:false}),  // ボタン: 控えめな高い点
+    start:()=>tone({freq:392,type:'triangle',partials:[{ratio:1,gain:1},{ratio:2,gain:0.3}],cutoff:1600,attack:0.015,release:0.45,gain:0.12}),  // 計測開始: 低く軽い単音
+    end:()=>{ tone({freq:659.25,type:'triangle',partials:[{ratio:1,gain:1},{ratio:2,gain:0.4},{ratio:3,gain:0.15}],cutoff:2000,attack:0.01,release:0.6,gain:0.09});
+              tone({freq:987.77,type:'triangle',partials:[{ratio:1,gain:1},{ratio:2,gain:0.35}],cutoff:2000,attack:0.01,release:0.6,gain:0.08}); },  // 1打記録: 温かいベル和音 E+B（候補A）
+    good:()=>arp([659.25,987.77],0.07,{type:'sine',partials:[{ratio:1,gain:1},{ratio:2,gain:0.4},{ratio:3,gain:0.18}],cutoff:2400,attack:0.012,release:0.6,gain:0.11}),  // 良い振り: 上昇2音
+    success:()=>arp([523.25,659.25,783.99,1046.5],0.085,{type:'sine',partials:[{ratio:1,gain:1},{ratio:2,gain:0.4},{ratio:4.2,gain:0.1}],cutoff:2600,attack:0.012,release:0.7,gain:0.10}),  // 高評価: 解決する上昇4音
+    warn:()=>tone({freq:233.08,type:'triangle',partials:[{ratio:1,gain:1},{ratio:2,gain:0.25}],cutoff:1100,attack:0.02,release:0.55,gain:0.12}),  // 注意: こもった柔らかい音（ブザー廃止）
+    calibDone:()=>arp([783.99,523.25],0.10,{type:'sine',partials:[{ratio:1,gain:1},{ratio:2,gain:0.35}],cutoff:2200,attack:0.014,release:0.6,gain:0.12}),  // キャリブ完了: 下降ペア（ロック感）
+    armReady:()=>arp([523.25,659.25,880.0],0.075,{type:'sine',fm:{ratio:2.0,index:2},cutoff:2600,attack:0.01,release:0.55,gain:0.11})  // 次の1打どうぞ: 招く上昇3音
   };
 })();
 
