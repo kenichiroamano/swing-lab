@@ -127,14 +127,18 @@ if(location.search.includes('demo')){
   GLProfile.set('goals.targetScore',100); GLProfile.set('progress.currentLevel',2); GLProfile.set('streak.days',4);
 }
 const h=new Date().getHours();
+// 連続日数は実データのみ。0日は捏造せず非表示（D7誠実さ）
+const streakDays=GLProfile.get('streak.days',0);
 $('greet').innerHTML='<div class="hi">'+(h<11?'朝の一振りを。':h<17?'おかえりなさい。':'今宵の一振りを。')+'</div>'+
-  '<div class="streak"><b>'+GLProfile.get('streak.days',4)+'</b> 日 連続</div>';
+  (streakDays>=1?'<div class="streak"><b>'+streakDays+'</b> 日 連続</div>':'');
 
-const best=GLProfile.get('goals.bestScore',108), target=GLProfile.get('goals.targetScore',100);
-const diff=Math.max(0,best-target);
+// ベスト未記録なら偽の108を出さない。記録があるユーザー/demoのみ計器を満たす（D7誠実さ）
+const best=GLProfile.get('goals.bestScore',null), target=GLProfile.get('goals.targetScore',100);
+const hasBest=(best!=null);
+const diff=hasBest?Math.max(0,best-target):null;
 
-/* 計器の弧: 出発点 target+15 から goal まで。達成率ぶん金の弧が満ちる */
-const start=target+15, prog=Math.max(0,Math.min(1,(start-best)/(start-target)));
+/* 計器の弧: 出発点 target+15 から goal まで。達成率ぶん金の弧が満ちる。未記録時は空（prog=0） */
+const start=target+15, prog=hasBest?Math.max(0,Math.min(1,(start-best)/(start-target))):0;
 const CX=124,CY=124,R=104, A0=-135, A1=135;   // 270°（下開き）
 const pol=(r,deg)=>{const a=(deg-90)*Math.PI/180;return [CX+r*Math.cos(a),CY+r*Math.sin(a)];};
 const arcPath=(a0,a1)=>{const[x0,y0]=pol(R,a0),[x1,y1]=pol(R,a1);const large=(a1-a0)>180?1:0;return `M ${x0} ${y0} A ${R} ${R} 0 ${large} 1 ${x1} ${y1}`;};
@@ -148,13 +152,17 @@ let ticks='';
   ticks+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--brass)" stroke-width="1.4" opacity=".55"/>`; });
 $('ticks').innerHTML=ticks;
 
-$('gaugeCenter').innerHTML='<div class="top">100を 切るまで</div>'+
-  '<div class="num"><span class="accent">'+diff+'</span></div><div class="bot">打　残り</div>';
+$('gaugeCenter').innerHTML= hasBest
+  ? '<div class="top">100を 切るまで</div><div class="num"><span class="accent">'+diff+'</span></div><div class="bot">打　残り</div>'
+  : '<div class="top">100を 切るまで</div><div class="num"><span class="accent">—</span></div><div class="bot" style="font-family:var(--jp);letter-spacing:.06em">ベストを記録して始めよう</div>';
 
+// 直近セットのセッションスコア（ループが閉じると毎回ここに反映される）
+const pitchHist=GLProfile.get('history.sessions',[]).filter(s=>s.drill==='pitch');
+const lastScore=pitchHist.length? pitchHist[pitchHist.length-1].score : null;
 $('stats').innerHTML=
-  '<div class="stat"><div class="v">'+best+'</div><div class="l">Best</div></div>'+
+  '<div class="stat"><div class="v">'+(hasBest?best:'—')+'</div><div class="l">Best</div></div>'+
   '<div class="stat"><div class="v">'+target+'</div><div class="l">Target</div></div>'+
-  '<div class="stat"><div class="v">±4<span class="u">°</span></div><div class="l">Consistency</div></div>';
+  '<div class="stat"><div class="v gold">'+(lastScore!=null?lastScore:'—')+'</div><div class="l">前回スコア</div></div>';
 
 $('todayBtn').onclick=()=>location.href='drill-pitch.html';
 $('resetLink').onclick=()=>{ try{localStorage.removeItem(GLProfile.KEY);}catch(e){} location.reload(); };

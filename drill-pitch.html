@@ -92,6 +92,8 @@
   <h1 class="rank-word" id="rankWord"></h1>
   <div class="title-jp" id="rankJp"></div>
   <div class="hairline"></div>
+  <div id="topRx" style="margin:0 0 18px"></div>
+  <div id="repScore" style="text-align:center;margin:4px 0 16px"></div>
   <div class="card">
     <div class="stat-row">
       <div class="stat-anim"><b id="statMean">—</b><span id="statMeanLabel"></span></div>
@@ -791,6 +793,24 @@ function showResult(){
   $('statSd').textContent='±'+Math.round(sd)+'°';   // 3球の推定値、過剰精度を避け整数表示
   $('statZone').textContent=zoneCt+'/'+SET_SIZE;
 
+  // ── セッションスコア（測れる4指標だけ・within-subject。肘/三角形は入れない=D7誠実さ）──
+  const n=SET_SIZE;
+  const zoneRate=zoneCt/n;
+  const consistency=Math.max(0,Math.min(1,1-sd/12));   // ばらつき小=高（再現性が主役）
+  const noDecel=1-decelCt/n;
+  const followRate=1-noFollowCt/n;
+  const score=Math.round((0.40*consistency + 0.30*zoneRate + 0.15*noDecel + 0.15*followRate)*100);
+  // 前回スコア（自分の過去比）
+  const hist=(typeof GLProfile!=='undefined')? GLProfile.get('history.sessions',[]).filter(s=>s.drill==='pitch') : [];
+  const prev=hist.length? hist[hist.length-1].score : null;
+  const diff=(prev!=null)? score-prev : null;
+  $('repScore').innerHTML=
+    '<div style="font-family:Inter,sans-serif;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--sub)">セッションスコア</div>'+
+    '<div style="font-family:\'Playfair Display\',serif;font-weight:800;font-size:62px;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums">'+score+'</div>'+
+    (diff!=null
+      ? '<div style="font-size:13px;letter-spacing:.08em;color:'+(diff>=0?'var(--ok)':'var(--err)')+'">前回より '+(diff>=0?'+':'')+diff+'</div>'
+      : '<div style="font-size:11px;letter-spacing:.1em;color:var(--sub)">はじめてのスコア</div>');
+
   drawChart(sw);
 
   const issues=[];
@@ -800,6 +820,23 @@ function showResult(){
   if(zoneCt<SET_SIZE && mean<ZONE_MIN) issues.push({k:'shallow', label:STR.t('result.issue.shallow'), desc:`平均 ${Math.round(mean)}°。8時（60°）までしっかり上げましょう。`});
   if(zoneCt<SET_SIZE && mean>ZONE_MAX) issues.push({k:'deep', label:STR.t('result.issue.deep'), desc:`平均 ${Math.round(mean)}°。振りすぎです。8時で止めましょう。`});
   if(noFollowCt>0) issues.push({k:'follow', label:STR.t('result.issue.follow'), desc:`${noFollowCt}回、フォロー側（4時）まで振り切れていません。`});
+
+  // ── 「次の一振りへ、ひとつ。」最優先課題の処方を判定語の直下に昇格（P0。文言キー化はP1）──
+  const RX={
+    decel:'下りでゆるめず、ボールの先まで振り抜いて。',
+    spread:'まずは振り幅の大きさをそろえて。強さは後で大丈夫です。',
+    shallow:'あと少し、8時まで上げて。',
+    deep:'8時で止めて。振りすぎなくて大丈夫です。',
+    follow:'振り終わりは4時まで。途中で力を抜かないで。'
+  };
+  const _rxName=issues.length>0? issues[0].label : 'この感覚を、覚えておく';
+  const _rxLine=issues.length>0? (RX[issues[0].k]||'') : 'いまの形のまま、もう一度振ってみて。';
+  $('topRx').innerHTML=
+    '<div style="border-left:2px solid var(--gold);padding:2px 0 2px 14px;text-align:left">'+
+    '<div style="font-family:Inter,sans-serif;font-size:9.5px;letter-spacing:.14em;color:var(--gold)">次の一振りへ、ひとつ。</div>'+
+    '<div style="font-family:\'Noto Serif JP\',serif;font-weight:600;font-size:19px;color:var(--ink);margin-top:7px">'+_rxName+'</div>'+
+    '<div style="font-family:\'Noto Serif JP\',serif;font-size:14px;line-height:1.7;color:#3A453C;margin-top:6px">'+_rxLine+'</div>'+
+    '</div>';
 
   const list=$('issuesList');
   if(issues.length===0){
@@ -822,12 +859,26 @@ function showResult(){
   }
 
   const partial=[];
-  if(elbowUnknown) partial.push(STR.t('result.partial.elbow'));
+  // 肘/三角形は測れないため「未計測」と正直に明示（誇張しない）
+  partial.push('このセットでは振り幅・テンポ・再現性を計測（肘や三角形は未計測）');
   if(slowCt>0) partial.push(`緩み判定の保留が${slowCt}回（ゆっくりすぎる素振り）`);
   $('partialNote').textContent=partial.join(' / ');
   $('focusNote').classList.remove('show');
 
-  GLStore.push('pitch:sets',{v:1,date:new Date().toISOString(),rank,mean:Math.round(mean),sd:+sd.toFixed(1),zone:zoneCt,decel:decelCt},200);
+  // ── ループ閉鎖: 統一スキーマGLProfileに保存＋ストリーク＋現在地 ──
+  const iso=new Date().toISOString();
+  if(typeof GLProfile!=='undefined'){
+    GLProfile.addSession({date:iso, drill:'pitch', level:2, score, sd:Math.round(sd), zone:zoneCt, rank});
+    const today=new Date().toDateString(), last=GLProfile.get('streak.lastPlayed',null);
+    if(last!==today){
+      const y=new Date(Date.now()-86400000).toDateString();
+      const cur=GLProfile.get('streak.days',0);
+      GLProfile.set('streak.days', last===y? cur+1 : 1);
+      GLProfile.set('streak.lastPlayed', today);
+    }
+    GLProfile.set('progress.currentLevel',2);
+  }
+  GLStore.push('pitch:sets',{v:1,date:iso,rank,score,mean:Math.round(mean),sd:+sd.toFixed(1),zone:zoneCt,decel:decelCt},200);
 
   if(rank==='perfect') GLAudio.success();
   else if(rank==='good') GLAudio.good();
