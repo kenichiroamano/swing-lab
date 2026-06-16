@@ -121,8 +121,8 @@
   <button class="link-btn" id="btnHome">ホームへ</button>
 </section>
 
-<script src="core.js?v=4"></script>
-<script src="strings.js?v=4"></script>
+<script src="core.js?v=5"></script>
+<script src="strings.js?v=5"></script>
 
 <!-- ════════════ 3Dステージ（時計の文字盤 × 白磁のゴルファー × 計測スクラブ） ════════════ -->
 <script type="module">
@@ -539,8 +539,12 @@ let acSum=0, acCnt=0;
 const tracker=new SwingTracker();
 let chipTimer=null;
 let resultTimer=null;   // 3球目確定→結果画面への遷移タイマー（やり直し時にキャンセルするため保持）
+// ステージ2: 振った直後の3Dリプレイ（ボール集中モードON時のみ。振る最中に軌跡を記録→振り終わりに再生）
+let swingTrace=[], traceActive=false, replaying=false, replayRAF=null;
+const REPLAY_SPEED=1.25, REPLAY_HOLD=420;
 
 function goto(phase){
+  if(replaying){ replaying=false; if(replayRAF){ cancelAnimationFrame(replayRAF); replayRAF=null; } } // 画面遷移時はリプレイを確実に停止
   STATE.phase=phase;
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   $('sc-'+phase).classList.add('active');
@@ -644,6 +648,7 @@ function startSet(){
   STATE.swings=[];
   omegaS=0; lastT=null; lastA=null; lastSide=-1; tracker.reset();
   armed=false; armSince=null; rearmPhase='wait-still'; // 1球目は構えの静止からアーミング
+  replaying=false; traceActive=false; swingTrace=[]; if(replayRAF){ cancelAnimationFrame(replayRAF); replayRAF=null; }
   if(resultTimer){ clearTimeout(resultTimer); resultTimer=null; }
   renderDots(); $('swingNum').textContent='1';
   $('chipArea').innerHTML='';
@@ -656,7 +661,10 @@ function setLiveState(mode){
   const el=$('liveState'); if(!el) return;
   el.classList.remove('waiting','armed','measuring');
   const dim=$('liveDim');
-  if(mode==='measuring'){
+  if(mode==='replay'){
+    el.textContent=STR.t('live.replay'); el.classList.add('armed');
+    if(dim) dim.classList.remove('on'); // リプレイは見せる＝暗転は必ず解除
+  } else if(mode==='measuring'){
     el.textContent=STR.t('live.measuring'); el.classList.add('measuring');
     // 暗転はボール集中モードがオンの時だけ（初期オフ＝画面を見て動作確認できる）
     if(dim){ if(focusDim){ dim.classList.add('on'); $('liveDimMsg').textContent=STR.t('live.ball'); } else dim.classList.remove('on'); }
@@ -670,6 +678,7 @@ function setLiveState(mode){
 }
 
 function tick(){
+  if(replaying) return; // リプレイ再生中はライブ計測・アーミングを完全に保留
   const t=performance.now();
   const qC=QuatUtils.fromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma);
   const A=signedAngles(qC,STATE.frame);
@@ -736,7 +745,11 @@ function tick(){
 
   const prev=tracker.state;
   const r=tracker.feed(t,ang,omegaS);
-  if(prev==='idle' && tracker.state!=='idle'){ GLAudio.start(); acSum=0; acCnt=0; triEMA=1; }
+  if(prev==='idle' && tracker.state!=='idle'){
+    GLAudio.start(); acSum=0; acCnt=0; triEMA=1;
+    if(focusDim){ swingTrace=[]; traceActive=true; } // リプレイ用にこの球の軌跡を記録開始
+  }
+  if(traceActive && tracker.state!=='idle' && swingTrace.length<600) swingTrace.push({t, ang, state:tracker.state});
   if(r) onSwing(r);
 
   // 振りかぶり過ぎ警告（ゾーン上限+5°超で一度だけ。iOS Safariはバイブ非対応のため音+表示で代替）
@@ -761,7 +774,10 @@ function onSwing(r){
   // 次のスイングは「（動いて）構えに戻して静止」で再アーミング＋再ゼロ化
   armed=false; armSince=null; disarmT=performance.now(); angAtEnd=lastA;
   rearmPhase='wait-move'; // 振り終わり直後は必ず一度動かして構え直す＝惰性の静止での誤アーム/不意打ちを防ぐ
-  setLiveState('waiting'); // 振り終わったら確実に明るく戻す（暗転の残留を防ぐ）
+  // リプレイ可否（ボール集中ON＋有効な軌跡＋有効スイング）。可なら待機表示を出さずリプレイへ
+  const willReplay = focusDim && traceActive && swingTrace.length>=4 && Math.abs(r.backAngle)>=MIN_BACK;
+  traceActive=false;
+  if(!willReplay) setLiveState('waiting'); // 振り終わったら確実に明るく戻す（暗転の残留を防ぐ）
   if(Math.abs(r.backAngle)<MIN_BACK){ showChip('muted',STR.t('live.tooSmall')); return; }
   const acRatio=acCnt>=3? acSum/acCnt : null;
   const sw={
@@ -782,15 +798,51 @@ function onSwing(r){
   else { showChip('ok',STR.t('live.chip.ok')); GLAudio.good(); }
 
   renderDots();
-  if(STATE.swings.length>=SET_SIZE){
-    resultTimer=setTimeout(showResult, 1000);
+  if(STATE.swings.length>=SET_SIZE && !willReplay){
+    resultTimer=setTimeout(showResult, 1000); // リプレイ無しなら従来どおり結果へ
   }
   // 球番号は「次の計測が可になった瞬間」(tickのアーミング完了)で進める。ここでは進めない（不意打ち防止）
+  if(willReplay) startReplay(); // 振った直後に、その1球を3Dで再生（ヘッドアップ対策の"振った後に見る"）
+}
+
+// 記録した軌跡を時間どおりに再生。既存 Stage3D.setLive を流すだけ（3D本体は無変更）
+function startReplay(){
+  const trace=swingTrace.slice();
+  if(trace.length<2){ finishReplay(); return; }
+  replaying=true;
+  setLiveState('replay');
+  $('btnRedo').style.display='none';
+  const t0=trace[0].t, startWall=performance.now();
+  const dur=(trace[trace.length-1].t - t0)/REPLAY_SPEED;
+  let i=0;
+  if(window.Stage3D) Stage3D.setLive(trace[0].ang, trace[0].state);
+  function step(){
+    if(!replaying) return;
+    const elapsed=(performance.now()-startWall)*REPLAY_SPEED;
+    const target=t0+elapsed;
+    while(i<trace.length-1 && trace[i+1].t<=target) i++;
+    const fr=trace[Math.min(i,trace.length-1)];
+    if(window.Stage3D) Stage3D.setLive(fr.ang, fr.state);
+    if(performance.now()-startWall < dur + REPLAY_HOLD) replayRAF=requestAnimationFrame(step);
+    else finishReplay();
+  }
+  replayRAF=requestAnimationFrame(step);
+}
+function finishReplay(){
+  if(replayRAF){ cancelAnimationFrame(replayRAF); replayRAF=null; }
+  replaying=false;
+  lastT=null; lastA=0; omegaS=0; // リプレイで止まっていた計測の時間基準をリセット（再開時の暴れ防止）
+  if(window.Stage3D) Stage3D.setLive(0,'idle'); // アドレス相当へ戻す
+  setLiveState('waiting');                       // ここで再アーミング受付に戻す
+  if(STATE.swings.length>=SET_SIZE && !resultTimer){
+    resultTimer=setTimeout(showResult, 600);     // 3球目はリプレイを見せ終えてから結果へ
+  }
 }
 
 // 直前の1球だけ取り消して、その球を再計測（キャリブは保持）。2・3球目のやり直し用
 function redoLastSwing(){
   if(STATE.phase!=='live') return;
+  if(replaying) return;                     // リプレイ中は無効
   if(tracker.state!=='idle') return;        // スイング進行中は無効
   if(STATE.swings.length===0) return;       // 取り消す球が無い
   if(resultTimer){ clearTimeout(resultTimer); resultTimer=null; } // 3球目確定後の結果遷移を中止
@@ -983,6 +1035,7 @@ $('btnPerm').addEventListener('click',requestPermission);
 $('btnCalib').addEventListener('click',startCalib);
 $('btnFlip').addEventListener('click',()=>{ FLIP=!FLIP; GLStore.set('dialFlip',FLIP); GLAudio.click(); });
 $('btnRedo').addEventListener('click', redoLastSwing);
+$('stageLive').addEventListener('click',()=>{ if(replaying) finishReplay(); }); // リプレイ中にタップでスキップ
 $('btnDim').addEventListener('click',()=>{ focusDim=!focusDim; GLStore.set('focusDim',focusDim); GLAudio.click(); updateDimBtn(); });
 $('btnReaddress').addEventListener('click',()=>{ STATE.frame=null; $('calibCount').textContent='—'; goto('address'); });
 $('btnAgain').addEventListener('click',()=>{ GLAudio.click(); startSet(); });

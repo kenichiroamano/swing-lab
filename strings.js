@@ -26,6 +26,7 @@ const STR = {
     'live.flip':            { ja:'針の向きを反転',                 en:'Flip needle direction' },
     'live.measuring':       { ja:'計測中',                       en:'Measuring' },
     'live.ball':            { ja:'ボールを見て。',                en:'Eyes on the ball.' },
+    'live.replay':          { ja:'いまのスイング',                en:'Your swing' },
     'live.back':            { ja:'バック計測中',                  en:'Backswing' },
     'live.through':         { ja:'フォロー計測中',                en:'Through' },
     'live.swing':           { ja:'スイング',                     en:'Swing' },
