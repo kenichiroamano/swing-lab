@@ -31,6 +31,8 @@ const STR = {
     'live.swing':           { ja:'スイング',                     en:'Swing' },
     'live.btn.redo':        { ja:'この1球を取り直す',             en:'Redo this swing' },
     'live.btn.recal':       { ja:'較正からやり直す',               en:'Recalibrate' },
+    'live.dim.on':          { ja:'ボール集中モード：オン',         en:'Eyes-on-ball: On' },
+    'live.dim.off':         { ja:'ボール集中モード：オフ',         en:'Eyes-on-ball: Off' },
     'live.redo':            { ja:'取り消しました。構え直してください', en:'Cleared. Re-address.' },
     'live.tooSmall':        { ja:'小さすぎます — もう一度',        en:'Too small — again' },
     'live.chip.ok':         { ja:'良い振り幅',                    en:'Good width' },

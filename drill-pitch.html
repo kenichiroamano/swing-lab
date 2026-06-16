@@ -88,6 +88,7 @@
   <p class="note center" id="liveHint"></p>
   <div class="dots" id="dots"></div>
   <div class="live-chip-area" id="chipArea"></div>
+  <button class="link-btn" id="btnDim"></button>
   <button class="link-btn" id="btnFlip"></button>
   <button class="link-btn" id="btnRedo" style="display:none"></button>
   <button class="btn secondary mt8" id="btnReaddress"></button>
@@ -120,8 +121,8 @@
   <button class="link-btn" id="btnHome">ホームへ</button>
 </section>
 
-<script src="core.js?v=2"></script>
-<script src="strings.js?v=2"></script>
+<script src="core.js?v=3"></script>
+<script src="strings.js?v=3"></script>
 
 <!-- ════════════ 3Dステージ（時計の文字盤 × 白磁のゴルファー × 計測スクラブ） ════════════ -->
 <script type="module">
@@ -527,6 +528,7 @@ const STATE={ phase:'intro', frame:null, swings:[], rCal:GLStore.get('rCal',0.65
 const SENSOR={ alpha:0,beta:0,gamma:0 };
 const MOTION={ acc:{x:0,y:0,z:0}, rot:{alpha:0,beta:0,gamma:0}, seen:false };
 let FLIP=!!GLStore.get('dialFlip',false);
+let focusDim=!!GLStore.get('focusDim',false); // ヘッドアップ防止(振る最中の暗転)。初期オフ＝まず画面で動作確認できる
 let lastSide=-1;
 let omegaS=0, lastT=null, lastA=null;
 // アーミング: スイング確定後、構えに戻って静止するまで次の計測を開始しない（戻し動作の誤計測対策 2026-06-12）
@@ -566,6 +568,8 @@ $('liveHint').textContent=STR.t('live.hint');
 $('btnFlip').textContent=STR.t('live.flip');
 $('btnRedo').textContent=STR.t('live.btn.redo');
 $('btnReaddress').textContent=STR.t('live.btn.recal');
+function updateDimBtn(){ $('btnDim').textContent=STR.t(focusDim?'live.dim.on':'live.dim.off'); }
+updateDimBtn();
 $('statMeanLabel').textContent=STR.t('result.stat.mean');
 $('statSdLabel').textContent=STR.t('result.stat.sd');
 $('statZoneLabel').textContent=STR.t('result.stat.zone');
@@ -654,7 +658,8 @@ function setLiveState(mode){
   const dim=$('liveDim');
   if(mode==='measuring'){
     el.textContent=STR.t('live.measuring'); el.classList.add('measuring');
-    if(dim){ dim.classList.add('on'); $('liveDimMsg').textContent=STR.t('live.ball'); }
+    // 暗転はボール集中モードがオンの時だけ（初期オフ＝画面を見て動作確認できる）
+    if(dim){ if(focusDim){ dim.classList.add('on'); $('liveDimMsg').textContent=STR.t('live.ball'); } else dim.classList.remove('on'); }
   } else if(mode==='ready'){
     el.textContent=STR.t('live.ready'); el.classList.add('armed');
     if(dim) dim.classList.remove('on');
@@ -978,6 +983,7 @@ $('btnPerm').addEventListener('click',requestPermission);
 $('btnCalib').addEventListener('click',startCalib);
 $('btnFlip').addEventListener('click',()=>{ FLIP=!FLIP; GLStore.set('dialFlip',FLIP); GLAudio.click(); });
 $('btnRedo').addEventListener('click', redoLastSwing);
+$('btnDim').addEventListener('click',()=>{ focusDim=!focusDim; GLStore.set('focusDim',focusDim); GLAudio.click(); updateDimBtn(); });
 $('btnReaddress').addEventListener('click',()=>{ STATE.frame=null; $('calibCount').textContent='—'; goto('address'); });
 $('btnAgain').addEventListener('click',()=>{ GLAudio.click(); startSet(); });
 $('btnRecal2').addEventListener('click',()=>{ STATE.frame=null; $('calibCount').textContent='—'; goto('address'); });
