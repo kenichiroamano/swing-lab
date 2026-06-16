@@ -198,7 +198,8 @@ const GLAudio = (function(){
     good:()=>{beep(784,0.09);beep(988,0.12,0.10);},
     success:()=>{beep(784,0.09);beep(988,0.09,0.10);beep(1319,0.18,0.20);},
     warn:()=>beep(220,0.22),
-    calibDone:()=>{beep(660,0.08);beep(880,0.14,0.09);}
+    calibDone:()=>{beep(660,0.08);beep(880,0.14,0.09);},
+    armReady:()=>{beep(523,0.06);beep(784,0.10,0.06);}
   };
 })();
 

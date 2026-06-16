@@ -16,6 +16,12 @@
   color:#B8804C;font-size:11px;letter-spacing:.22em}
 .live-chip-area{min-height:34px;text-align:center;margin-top:4px}
 .live-state{font-size:11px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;text-align:center;margin-bottom:4px;min-height:14px}
+.live-state.waiting{color:var(--sub)}
+.live-state.armed{color:var(--gold)}
+.live-state.measuring{color:var(--ok)}
+#liveDim{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;background:rgba(20,26,21,.92);opacity:0;pointer-events:none;transition:opacity .16s ease;border-radius:14px}
+#liveDim.on{opacity:1}
+#liveDim span{color:var(--gold);font-family:'Noto Serif JP',serif;font-size:16px;letter-spacing:.1em}
 .swing-count{font-size:12px;color:var(--sub);letter-spacing:.14em;text-align:center}
 .rank-word{font-family:'Playfair Display',serif;font-weight:800;font-style:italic;font-size:46px;text-align:center;line-height:1.1}
 .rank-word.warn{color:var(--err)}
@@ -78,11 +84,12 @@
 <section class="screen" id="sc-live">
   <div class="live-state" id="liveState"></div>
   <div class="swing-count"><span id="swingLabel"></span> <span id="swingNum">1</span> / 3</div>
-  <div class="stage3d" id="stageLive"></div>
+  <div class="stage3d" id="stageLive"><div id="liveDim"><span id="liveDimMsg"></span></div></div>
   <p class="note center" id="liveHint"></p>
   <div class="dots" id="dots"></div>
   <div class="live-chip-area" id="chipArea"></div>
   <button class="link-btn" id="btnFlip"></button>
+  <button class="link-btn" id="btnRedo" style="display:none"></button>
   <button class="btn secondary mt8" id="btnReaddress"></button>
 </section>
 
@@ -529,6 +536,7 @@ const rearmSamples=[];
 let acSum=0, acCnt=0;
 const tracker=new SwingTracker();
 let chipTimer=null;
+let resultTimer=null;   // 3球目確定→結果画面への遷移タイマー（やり直し時にキャンセルするため保持）
 
 function goto(phase){
   STATE.phase=phase;
@@ -556,7 +564,8 @@ $('btnCalib').textContent=STR.t('address.btn');
 $('swingLabel').textContent=STR.t('live.swing');
 $('liveHint').textContent=STR.t('live.hint');
 $('btnFlip').textContent=STR.t('live.flip');
-$('btnReaddress').textContent=STR.t('result.btn.recal');
+$('btnRedo').textContent=STR.t('live.btn.redo');
+$('btnReaddress').textContent=STR.t('live.btn.recal');
 $('statMeanLabel').textContent=STR.t('result.stat.mean');
 $('statSdLabel').textContent=STR.t('result.stat.sd');
 $('statZoneLabel').textContent=STR.t('result.stat.zone');
@@ -630,10 +639,29 @@ function startCalib(){
 function startSet(){
   STATE.swings=[];
   omegaS=0; lastT=null; lastA=null; lastSide=-1; tracker.reset();
+  armed=false; armSince=null; rearmPhase='wait-still'; // 1球目は構えの静止からアーミング
+  if(resultTimer){ clearTimeout(resultTimer); resultTimer=null; }
   renderDots(); $('swingNum').textContent='1';
   $('chipArea').innerHTML='';
-  $('liveState').textContent=STR.t('live.ready');
+  setLiveState('waiting');
   goto('live');
+}
+
+// ライブ状態の表示（待機/計測可/計測中）。計測中は画面を暗転してボールへ視線を促す（ヘッドアップ対策）
+function setLiveState(mode){
+  const el=$('liveState'); if(!el) return;
+  el.classList.remove('waiting','armed','measuring');
+  const dim=$('liveDim');
+  if(mode==='measuring'){
+    el.textContent=STR.t('live.measuring'); el.classList.add('measuring');
+    if(dim){ dim.classList.add('on'); $('liveDimMsg').textContent=STR.t('live.ball'); }
+  } else if(mode==='ready'){
+    el.textContent=STR.t('live.ready'); el.classList.add('armed');
+    if(dim) dim.classList.remove('on');
+  } else {
+    el.textContent=STR.t('live.return'); el.classList.add('waiting');
+    if(dim) dim.classList.remove('on');
+  }
 }
 
 function tick(){
@@ -655,6 +683,9 @@ function tick(){
   }
   lastT=t; lastA=ang;
 
+  // やり直しボタンは「2球目以降・計測していない時」だけ表示
+  $('btnRedo').style.display=(STATE.swings.length>=1 && tracker.state==='idle')?'inline-block':'none';
+
   // ── 未アーミング中はトラッカーに流さない（戻し動作・構え直しを計測しない） ──
   // 再アーミング = ①一度動く（フィニッシュ静止と区別。6秒で省略可）→ ②静止0.5s →
   // ③静止した今の構えを新しい基準に再ゼロ化 → セット。
@@ -674,13 +705,14 @@ function tick(){
           if(f) STATE.frame=f; // 再ゼロ化（シャフトが鉛直すぎる等で作れなければ旧基準のまま）
           armed=true; overshootWarned=false; triEMA=1; acSum=0; acCnt=0;
           lastA=0; omegaS=0;
-          GLAudio.click();
+          $('swingNum').textContent=String(STATE.swings.length+1); // 計測可になった瞬間に球番号を進める（不意打ち防止）
+          GLAudio.armReady();   // 専用の上昇音（汎用クリックと区別）
           showChip('ok',STR.t('live.set'));
         }
       } else armSince=null;
     }
     if(window.Stage3D){ Stage3D.setLive(armed?0:ang,'idle'); if(Stage3D.setTriangle) Stage3D.setTriangle(null); }
-    $('liveState').textContent=armed?STR.t('live.ready'):STR.t('live.return');
+    setLiveState(armed?'ready':'waiting');
     return;
   }
 
@@ -717,13 +749,14 @@ function tick(){
     // 検出できないものを判定表示しない（D7誠実さ）。三角形インジケータは常に非表示。
     if(Stage3D.setTriangle) Stage3D.setTriangle(null);
   }
-  $('liveState').textContent=tracker.state==='idle'?STR.t('live.ready'):(tracker.state==='back'?STR.t('live.back'):STR.t('live.through'));
+  setLiveState(tracker.state==='idle'?'ready':'measuring');
 }
 
 function onSwing(r){
   // 次のスイングは「（動いて）構えに戻して静止」で再アーミング＋再ゼロ化
   armed=false; armSince=null; disarmT=performance.now(); angAtEnd=lastA;
-  rearmPhase=Math.abs(lastA)<12?'wait-still':'wait-move'; // 既に構え付近なら移動待ちを省略
+  rearmPhase='wait-move'; // 振り終わり直後は必ず一度動かして構え直す＝惰性の静止での誤アーム/不意打ちを防ぐ
+  setLiveState('waiting'); // 振り終わったら確実に明るく戻す（暗転の残留を防ぐ）
   if(Math.abs(r.backAngle)<MIN_BACK){ showChip('muted',STR.t('live.tooSmall')); return; }
   const acRatio=acCnt>=3? acSum/acCnt : null;
   const sw={
@@ -745,10 +778,26 @@ function onSwing(r){
 
   renderDots();
   if(STATE.swings.length>=SET_SIZE){
-    setTimeout(showResult, 1000);
-  } else {
-    $('swingNum').textContent=String(STATE.swings.length+1);
+    resultTimer=setTimeout(showResult, 1000);
   }
+  // 球番号は「次の計測が可になった瞬間」(tickのアーミング完了)で進める。ここでは進めない（不意打ち防止）
+}
+
+// 直前の1球だけ取り消して、その球を再計測（キャリブは保持）。2・3球目のやり直し用
+function redoLastSwing(){
+  if(STATE.phase!=='live') return;
+  if(tracker.state!=='idle') return;        // スイング進行中は無効
+  if(STATE.swings.length===0) return;       // 取り消す球が無い
+  if(resultTimer){ clearTimeout(resultTimer); resultTimer=null; } // 3球目確定後の結果遷移を中止
+  GLAudio.click();
+  STATE.swings.pop();                        // 直前の確定球を取消（STATE.frame=較正は保持）
+  tracker.reset();
+  armed=false; armSince=null; disarmT=performance.now(); angAtEnd=lastA;
+  rearmPhase='wait-move'; overshootWarned=false; triEMA=1; acSum=0; acCnt=0;
+  renderDots();
+  $('swingNum').textContent=String(STATE.swings.length+1);
+  showChip('muted', STR.t('live.redo'));
+  setLiveState('waiting');
 }
 
 function swingOk(sw){
@@ -928,6 +977,7 @@ $('btnBegin').addEventListener('click',()=>{ GLAudio.ensure(); GLAudio.click(); 
 $('btnPerm').addEventListener('click',requestPermission);
 $('btnCalib').addEventListener('click',startCalib);
 $('btnFlip').addEventListener('click',()=>{ FLIP=!FLIP; GLStore.set('dialFlip',FLIP); GLAudio.click(); });
+$('btnRedo').addEventListener('click', redoLastSwing);
 $('btnReaddress').addEventListener('click',()=>{ STATE.frame=null; $('calibCount').textContent='—'; goto('address'); });
 $('btnAgain').addEventListener('click',()=>{ GLAudio.click(); startSet(); });
 $('btnRecal2').addEventListener('click',()=>{ STATE.frame=null; $('calibCount').textContent='—'; goto('address'); });
