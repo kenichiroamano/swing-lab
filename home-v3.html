@@ -123,20 +123,20 @@ body::before{ content:''; position:fixed; inset:0; pointer-events:none; z-index:
   <div class="foot"><button id="resetLink">データを消去</button></div>
 </div>
 
-<script src="strings.js?v=11"></script>
-<script src="core.js?v=11"></script>
+<script src="strings.js?v=12"></script>
+<script src="core.js?v=12"></script>
 <script>
 const $=id=>document.getElementById(id);
 if(location.search.includes('demo')){
   GLProfile.set('profile.onboarded',true);
   if(GLProfile.get('goals.bestScore',null)==null) GLProfile.set('goals.bestScore',108);
-  GLProfile.set('goals.targetScore',100); GLProfile.set('progress.currentLevel',2); GLProfile.set('streak.days',4);
+  GLProfile.set('goals.targetScore',100); GLProfile.set('progress.currentLevel',2); GLProfile.set('streak.weeks',4);
 }
 const h=new Date().getHours();
 // 連続日数は実データのみ。0日は捏造せず非表示（D7誠実さ）
-const streakDays=GLProfile.get('streak.days',0);
+const streakWeeks=GLProfile.get('streak.weeks',0);
 $('greet').innerHTML='<div class="hi">'+(h<11?'朝の一振りを。':h<17?'おかえりなさい。':'今宵の一振りを。')+'</div>'+
-  (streakDays>=1?'<div class="streak"><b>'+streakDays+'</b> 日 連続</div>':'');
+  (streakWeeks>=1?'<div class="streak"><b>'+streakWeeks+'</b> 週 連続</div>':'');
 
 // ベスト未記録なら偽の108を出さない。記録があるユーザー/demoのみ計器を満たす（D7誠実さ）
 const best=GLProfile.get('goals.bestScore',null), target=GLProfile.get('goals.targetScore',100);
