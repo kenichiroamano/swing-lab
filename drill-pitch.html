@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,800;1,800&family=Noto+Serif+JP:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="theme.css?v=11">
 <style>
 /* The Pitch v6 — 3Dステージ統合（白磁のゴルファー × 時計の文字盤 × 計測スクラブ） */
 .stage3d{width:100%;height:46vh;min-height:300px;position:relative;margin:4px 0}
@@ -179,8 +179,8 @@
   <button class="link-btn" id="btnHome">ホームへ</button>
 </section>
 
-<script src="core.js?v=10"></script>
-<script src="strings.js?v=10"></script>
+<script src="core.js?v=11"></script>
+<script src="strings.js?v=11"></script>
 
 <!-- ════════════ 3Dステージ（時計の文字盤 × 白磁のゴルファー × 計測スクラブ） ════════════ -->
 <script type="module">
@@ -191,6 +191,7 @@ import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
 const Stage={ready:false, mode:'demo', queue:[]};
 window.Stage3D=Stage;
 
+try{ // 3D初期化を保護：WebGL不可/CDN失敗でも計測フローは止めない
 const isMobile=matchMedia('(pointer:coarse)').matches;
 const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio,isMobile?1.2:1.75));
@@ -575,12 +576,19 @@ function animate(ts){
 }
 requestAnimationFrame(animate);
 Stage.mount('stageIntro');
+}catch(_e){
+  window.__err.push('3D init: '+((_e&&_e.message)||_e));
+  const ld=document.getElementById('stageLoading'); if(ld) ld.textContent='3Dプレビューは表示できませんが、計測はそのまま使えます。';
+  window.Stage3D={ready:false,mount(){},resize(){},setMode(){},setLive(){},setTriangle(){},flashOver(){}}; // no-opスタブで計測側(if(window.Stage3D))を安全化
+}
 </script>
 
 <!-- ════════════ 計測エンジン（検証済み・不変） ════════════ -->
 <script>
 const SET_SIZE=3, TARGET=60, ZONE_MIN=50, ZONE_MAX=70, MIN_BACK=30; // 3球/セット（気軽に反復。ken判断 2026-06-12）
 const $=id=>document.getElementById(id);
+// S1: 3Dが一定時間で準備できない（CDN読込失敗/WebGL不可）場合の出口。ローディング表示を案内に差し替え（計測は別scriptで動く）
+setTimeout(()=>{ if(!(window.Stage3D && window.Stage3D.ready)){ const ld=$('stageLoading'); if(ld && ld.style.display!=='none') ld.textContent='3Dプレビューは表示できませんが、計測はそのまま使えます。'; } }, 9000);
 
 const STATE={ phase:'intro', frame:null, swings:[], rCal:GLStore.get('rCal',0.65) };
 const SENSOR={ alpha:0,beta:0,gamma:0 };
@@ -588,6 +596,7 @@ const MOTION={ acc:{x:0,y:0,z:0}, rot:{alpha:0,beta:0,gamma:0}, seen:false };
 let FLIP=!!GLStore.get('dialFlip',false);
 let focusDim=!!GLStore.get('focusDim',false); // ヘッドアップ防止(振る最中の暗転)。初期オフ＝まず画面で動作確認できる
 let pendingFocusHint=false; // スイング集中モードを初めてONにした直後の1球だけ live.hint を出す予約
+let orientSeen=false; // 傾きセンサーのイベントが届いたか（S2: 無応答端末の検知用）
 let lastSide=-1;
 let omegaS=0, lastT=null, lastA=null;
 // アーミング: スイング確定後、構えに戻って静止するまで次の計測を開始しない（戻し動作の誤計測対策 2026-06-12）
@@ -654,11 +663,13 @@ async function requestPermission(){
     window.addEventListener('deviceorientation', onOrient);
     window.addEventListener('devicemotion', onMotion);
     goto('address');
+    setTimeout(()=>{ if(!orientSeen){ $('calibWarn').innerHTML='<div class="warn-box">お使いの端末・ブラウザでは傾きセンサーの値を取得できませんでした。iPhoneのSafariでお試しください。</div>'; } }, 2500); // S2: 無応答端末の検知
   }catch(e){
     $('permError').innerHTML='<div class="warn-box">'+e.message+'</div>';
   }
 }
 function onOrient(e){
+  orientSeen=true;
   SENSOR.alpha=e.alpha||0; SENSOR.beta=e.beta||0; SENSOR.gamma=e.gamma||0;
   if(STATE.phase==='live' && STATE.frame) tick();
 }
