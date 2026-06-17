@@ -89,6 +89,7 @@
   <div class="dots" id="dots"></div>
   <div class="live-chip-area" id="chipArea"></div>
   <button class="link-btn" id="btnDim"></button>
+  <p class="note center" id="dimDesc" style="margin:-6px auto 0;max-width:300px;opacity:.78"></p>
   <button class="link-btn" id="btnFlip"></button>
   <button class="link-btn" id="btnRedo" style="display:none"></button>
   <button class="btn secondary mt8" id="btnReaddress"></button>
@@ -116,13 +117,14 @@
     <p class="note mt8" id="partialNote"></p>
     <p class="note mt8" id="focusNote"></p>
   </div>
+  <div id="focusInvite" style="display:none;margin:14px 0 0"></div>
   <button class="btn gold" id="btnAgain"></button>
   <button class="btn secondary" id="btnRecal2"></button>
   <button class="link-btn" id="btnHome">ホームへ</button>
 </section>
 
-<script src="core.js?v=5"></script>
-<script src="strings.js?v=5"></script>
+<script src="core.js?v=6"></script>
+<script src="strings.js?v=6"></script>
 
 <!-- ════════════ 3Dステージ（時計の文字盤 × 白磁のゴルファー × 計測スクラブ） ════════════ -->
 <script type="module">
@@ -529,6 +531,7 @@ const SENSOR={ alpha:0,beta:0,gamma:0 };
 const MOTION={ acc:{x:0,y:0,z:0}, rot:{alpha:0,beta:0,gamma:0}, seen:false };
 let FLIP=!!GLStore.get('dialFlip',false);
 let focusDim=!!GLStore.get('focusDim',false); // ヘッドアップ防止(振る最中の暗転)。初期オフ＝まず画面で動作確認できる
+let pendingFocusHint=false; // スイング集中モードを初めてONにした直後の1球だけ live.hint を出す予約
 let lastSide=-1;
 let omegaS=0, lastT=null, lastA=null;
 // アーミング: スイング確定後、構えに戻って静止するまで次の計測を開始しない（戻し動作の誤計測対策 2026-06-12）
@@ -574,6 +577,7 @@ $('btnRedo').textContent=STR.t('live.btn.redo');
 $('btnReaddress').textContent=STR.t('live.btn.recal');
 function updateDimBtn(){ $('btnDim').textContent=STR.t(focusDim?'live.dim.on':'live.dim.off'); }
 updateDimBtn();
+$('dimDesc').textContent=STR.t('live.dim.desc');
 $('statMeanLabel').textContent=STR.t('result.stat.mean');
 $('statSdLabel').textContent=STR.t('result.stat.sd');
 $('statZoneLabel').textContent=STR.t('result.stat.zone');
@@ -654,6 +658,12 @@ function startSet(){
   $('chipArea').innerHTML='';
   setLiveState('waiting');
   goto('live');
+  // スイング集中モードを初めてONにした直後の最初の1球だけ、暗転で驚かせないようヒントを出す
+  if(pendingFocusHint && focusDim){
+    pendingFocusHint=false;
+    GLStore.set('focusHintShown',true);
+    setTimeout(()=>{ if(STATE.phase==='live') showChip('ok',STR.t('live.hint')); }, 600);
+  }
 }
 
 // ライブ状態の表示（待機/計測可/計測中）。計測中は画面を暗転してボールへ視線を促す（ヘッドアップ対策）
@@ -666,7 +676,7 @@ function setLiveState(mode){
     if(dim) dim.classList.remove('on'); // リプレイは見せる＝暗転は必ず解除
   } else if(mode==='measuring'){
     el.textContent=STR.t('live.measuring'); el.classList.add('measuring');
-    // 暗転はボール集中モードがオンの時だけ（初期オフ＝画面を見て動作確認できる）
+    // 暗転はスイング集中モードがオンの時だけ（初期オフ＝画面を見て動作確認できる）
     if(dim){ if(focusDim){ dim.classList.add('on'); $('liveDimMsg').textContent=STR.t('live.ball'); } else dim.classList.remove('on'); }
   } else if(mode==='ready'){
     el.textContent=STR.t('live.ready'); el.classList.add('armed');
@@ -873,6 +883,28 @@ function showChip(cls,txt){
 }
 
 /* 結果 */
+// スイング集中モードの誘いカード（価値を体験した後にだけ・最大2回・一度ONにしたら二度と出さない）
+function renderFocusInvite(){
+  const box=$('focusInvite');
+  const seen=GLStore.get('focusHintSeen',0);
+  if(focusDim || GLStore.get('focusEverOn',false) || seen>=2){ box.style.display='none'; box.innerHTML=''; return; }
+  GLStore.set('focusHintSeen', seen+1); // 表示した回数をカウント（最大2回）
+  box.style.display='block';
+  box.innerHTML=
+    '<div style="background:var(--paper);border-left:3px solid var(--gold);border-radius:12px;padding:18px 18px 16px;text-align:left">'+
+    '<div style="font-family:\'Noto Serif JP\',serif;font-weight:600;font-size:16px;color:var(--ink);line-height:1.6">'+STR.t('live.focusHint.title')+'</div>'+
+    '<div style="font-family:\'Noto Serif JP\',serif;font-size:13px;line-height:1.85;color:#3A453C;margin-top:8px">'+STR.t('live.focusHint.body')+'</div>'+
+    '<button class="btn gold" id="btnFocusTry" style="margin-top:14px">'+STR.t('live.focusHint.cta')+'</button>'+
+    '<button class="link-btn" id="btnFocusLater">'+STR.t('live.focusHint.later')+'</button>'+
+    '</div>';
+  $('btnFocusTry').addEventListener('click',()=>{
+    focusDim=true; GLStore.set('focusDim',true); GLStore.set('focusEverOn',true);
+    pendingFocusHint=!GLStore.get('focusHintShown',false); // 初回ON時のみ1球目ヒントを予約
+    updateDimBtn(); GLAudio.click();
+    startSet(); // ライブへ（集中モードONで新しいセット）
+  });
+  $('btnFocusLater').addEventListener('click',()=>{ box.style.display='none'; GLAudio.click(); });
+}
 function showResult(){
   const sw=STATE.swings;
   const backs=sw.map(s=>Math.abs(s.back));
@@ -987,6 +1019,8 @@ function showResult(){
   }
   GLStore.push('pitch:sets',{v:1,date:iso,rank,score,mean:Math.round(mean),sd:+sd.toFixed(1),zone:zoneCt,decel:decelCt},200);
 
+  renderFocusInvite(); // スイング集中モードへの誘い（条件を満たす時だけ・最大2回）
+
   if(rank==='perfect') GLAudio.success();
   else if(rank==='good') GLAudio.good();
   else GLAudio.warn();
@@ -1036,7 +1070,18 @@ $('btnCalib').addEventListener('click',startCalib);
 $('btnFlip').addEventListener('click',()=>{ FLIP=!FLIP; GLStore.set('dialFlip',FLIP); GLAudio.click(); });
 $('btnRedo').addEventListener('click', redoLastSwing);
 $('stageLive').addEventListener('click',()=>{ if(replaying) finishReplay(); }); // リプレイ中にタップでスキップ
-$('btnDim').addEventListener('click',()=>{ focusDim=!focusDim; GLStore.set('focusDim',focusDim); GLAudio.click(); updateDimBtn(); });
+$('btnDim').addEventListener('click',()=>{
+  focusDim=!focusDim; GLStore.set('focusDim',focusDim);
+  if(focusDim){
+    GLStore.set('focusEverOn',true); // 一度でもONにしたら誘いカードは二度と出さない
+    if(!GLStore.get('focusHintShown',false)){
+      pendingFocusHint=true;
+      // すでにライブ画面なら、暗転で驚かせないヒントをその場で表示（次のstartSetを待たない）
+      if(STATE.phase==='live'){ pendingFocusHint=false; GLStore.set('focusHintShown',true); showChip('ok',STR.t('live.hint')); }
+    }
+  }
+  GLAudio.click(); updateDimBtn();
+});
 $('btnReaddress').addEventListener('click',()=>{ STATE.frame=null; $('calibCount').textContent='—'; goto('address'); });
 $('btnAgain').addEventListener('click',()=>{ GLAudio.click(); startSet(); });
 $('btnRecal2').addEventListener('click',()=>{ STATE.frame=null; $('calibCount').textContent='—'; goto('address'); });
