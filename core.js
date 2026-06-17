@@ -169,67 +169,166 @@ class SwingTracker {
   }
 }
 
-/* 音（Web Audio。iOSはユーザー操作後に ensure() を呼ぶこと） */
+/* 音（Web Audio。iOSはユーザー操作後に ensure() を呼ぶこと）
+   v2 上質化（2026-06-17）: 「静かな金の余韻」をテーマに、安っぽい純オシレーター単発を脱却。
+   ・インハーモニックなベル倍音（2.76 / 5.40 / 8.93… 非整数比）＋軽いFMで金属の艶
+   ・各声を微デチューン＆ステレオ定位（StereoPanner）して厚みと広がりを付与
+   ・速いアタック＋指数減衰の長い余韻（ベルは「カーン…」と尾を引く）
+   ・基音を支えるサブ成分で低域の薄さを解消
+   ・convolver IR をステレオ拡散＋プリディレイ＋滑らかな尾に。wetは控えめ
+   ・マスターに軽いハイシェルフの丸めとソフトクリップ（過大ピーク回避）
+   公開API（ensure/tone/arp/click/start/end/good/success/warn/calibDone/armReady）と
+   tone(opt)・arp(freqs,stg,base) のシグネチャは従来どおり維持。 */
 const GLAudio = (function(){
-  // 「静かな金の余韻」琴×ベル。FM＋倍音＋ローパス＋柔らかいエンベロープ＋軽い残響（Web Audioのみ・音源ファイル不要）
-  let ctx=null, master=null, dry=null, wet=null, conv=null;
+  let ctx=null, master=null, dry=null, wet=null, conv=null, preDelay=null;
+
+  // ステレオ拡散の滑らかなIR。指数減衰＋微小プリディレイ感、L/Rで僅かに位相をずらして広がりを出す
   function makeIR(sec,decay){
     const rate=ctx.sampleRate, len=Math.floor(rate*sec), buf=ctx.createBuffer(2,len,rate);
-    for(let ch=0;ch<2;ch++){ const d=buf.getChannelData(ch);
-      for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay); }
+    for(let ch=0;ch<2;ch++){
+      const d=buf.getChannelData(ch);
+      const seed=ch===0?0.0:0.5; // L/Rで初期位相をずらしステレオ感を作る
+      for(let i=0;i<len;i++){
+        const t=i/len;
+        // 最初の数ms はごく弱く（プリディレイ感）→ なめらかに立ち上げてから指数減衰
+        const onset=Math.min(1, i/(rate*0.012));
+        const env=Math.pow(1-t,decay)*onset;
+        d[i]=(Math.random()*2-1)*env*(0.85+0.15*Math.sin(i*0.0007+seed*6.28));
+      }
+    }
     return buf;
   }
+
   function ensure(){
     try{
       if(!ctx){
         ctx=new (window.AudioContext||window.webkitAudioContext)();
-        master=ctx.createGain(); master.gain.value=0.9; master.connect(ctx.destination);
+
+        // マスター: ソフトクリップ(waveshaper)で当たりを丸め、ハイシェルフを僅かに下げて耳障りさを抑える
+        master=ctx.createGain(); master.gain.value=0.82;
+        const shelf=ctx.createBiquadFilter(); shelf.type='highshelf'; shelf.frequency.value=5200; shelf.gain.value=-3.5;
+        const shaper=ctx.createWaveShaper(); shaper.curve=softCurve(); shaper.oversample='2x';
+        master.connect(shelf); shelf.connect(shaper); shaper.connect(ctx.destination);
+
         dry=ctx.createGain(); dry.gain.value=1; dry.connect(master);
-        wet=ctx.createGain(); wet.gain.value=0.20; wet.connect(master);
-        conv=ctx.createConvolver(); conv.buffer=makeIR(1.1,2.6); conv.connect(wet);
+
+        // wet: プリディレイ→convolver→wetゲイン。残響は上品な範囲に
+        wet=ctx.createGain(); wet.gain.value=0.22; wet.connect(master);
+        preDelay=ctx.createDelay(0.2); preDelay.delayTime.value=0.022;
+        conv=ctx.createConvolver(); conv.buffer=makeIR(2.0,3.2);
+        preDelay.connect(conv); conv.connect(wet);
       }
       if(ctx.state==='suspended') ctx.resume();
     }catch(e){}
   }
-  // 1音: 倍音 or FM ＋ ローパス ＋ 柔らかいアタック ＋ 指数減衰の余韻
+
+  // 過大ピークを柔らかく抑えるtanh風カーブ
+  function softCurve(){
+    const n=1024, c=new Float32Array(n);
+    for(let i=0;i<n;i++){ const x=(i/(n-1))*2-1; c[i]=Math.tanh(x*1.6)/Math.tanh(1.6); }
+    return c;
+  }
+
+  /* 1声を鳴らす内部ヘルパ。インハーモニック倍音＋微デチューン＋FM＋ステレオ定位＋指数減衰の余韻。
+     pan: -1..1 / detune: cent / partials: [{ratio,gain}] 非整数比でベルらしさ */
+  function voice(o){
+    const t0=ctx.currentTime+o.delay;
+    const filt=ctx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=o.cutoff; filt.Q.value=o.q;
+
+    // ステレオ定位（未対応環境は素通り）
+    let panNode=null;
+    try{ if(typeof ctx.createStereoPanner==='function'){ panNode=ctx.createStereoPanner(); panNode.pan.value=o.pan||0; } }catch(e){}
+
+    const env=ctx.createGain();
+    env.gain.setValueAtTime(0.0001,t0);
+    env.gain.exponentialRampToValueAtTime(Math.max(0.0002,o.gain),t0+o.attack); // 速いアタック
+    env.gain.setTargetAtTime(0.00008,t0+o.attack,o.release/3.2);                 // 長めの指数減衰（余韻）
+
+    filt.connect(env);
+    if(panNode){ env.connect(panNode); panNode.connect(dry); if(o.reverb){ panNode.connect(preDelay); } }
+    else { env.connect(dry); if(o.reverb) env.connect(preDelay); }
+
+    const stopT=t0+o.attack+o.release+0.4; // 尾を十分残す
+    const detCent=o.detune||0;
+
+    if(o.fm){
+      // FM: キャリア＋モジュレータ。indexは減衰させ、アタックだけ金属的に
+      const car=ctx.createOscillator(); car.type=o.type; car.frequency.value=o.freq; car.detune.value=detCent;
+      const mod=ctx.createOscillator(); mod.type='sine'; mod.frequency.value=o.freq*o.fm.ratio;
+      const mg=ctx.createGain(); mg.gain.value=o.freq*o.fm.index;
+      mg.gain.setTargetAtTime(o.freq*o.fm.index*0.08,t0,o.release/3);
+      mod.connect(mg); mg.connect(car.frequency); car.connect(filt);
+      car.start(t0); mod.start(t0); car.stop(stopT); mod.stop(stopT);
+    } else if(o.partials){
+      // インハーモニック倍音群（非整数比でベル/金属の艶）。上の倍音ほど早く減衰させると自然
+      o.partials.forEach(p=>{
+        const osc=ctx.createOscillator(); osc.type=o.type; osc.frequency.value=o.freq*p.ratio; osc.detune.value=detCent;
+        const pg=ctx.createGain(); pg.gain.value=0.0001;
+        const peak=Math.max(0.0002,p.gain);
+        pg.gain.setValueAtTime(0.0001,t0);
+        pg.gain.exponentialRampToValueAtTime(peak,t0+o.attack);
+        // 高次倍音ほど速く減衰（ratioが大きいほど短い尾）
+        const decayK=o.release/(3.2*Math.max(1,p.ratio*0.5));
+        pg.gain.setTargetAtTime(0.00006,t0+o.attack,decayK);
+        osc.connect(pg); pg.connect(filt); osc.start(t0); osc.stop(stopT);
+      });
+    } else {
+      const osc=ctx.createOscillator(); osc.type=o.type; osc.frequency.value=o.freq; osc.detune.value=detCent;
+      osc.connect(filt); osc.start(t0); osc.stop(stopT);
+    }
+
+    // サブ成分: 基音1オクターブ下を弱く重ねて低域の支えを作る（薄さ・細さの解消）
+    if(o.sub){
+      const so=ctx.createOscillator(); so.type='sine'; so.frequency.value=o.freq*0.5;
+      const sg=ctx.createGain(); sg.gain.setValueAtTime(0.0001,t0);
+      sg.gain.exponentialRampToValueAtTime(Math.max(0.0002,o.gain*o.sub),t0+o.attack*1.5);
+      sg.gain.setTargetAtTime(0.00006,t0+o.attack,o.release/3);
+      so.connect(sg); sg.connect(dry); so.start(t0); so.stop(stopT);
+    }
+  }
+
+  // 1音 = 微デチューンした2声をわずかに左右に振って厚み・広がりを作る（合成丸出しの細さを解消）
   function tone(opt){
     if(!ctx) return;
-    const o=Object.assign({freq:660,type:'sine',partials:null,fm:null,cutoff:2400,q:0.7,attack:0.012,release:0.5,gain:0.13,delay:0,reverb:true},opt);
+    const o=Object.assign({freq:660,type:'sine',partials:null,fm:null,cutoff:2400,q:0.7,
+                           attack:0.006,release:0.9,gain:0.12,delay:0,reverb:true,
+                           spread:6,sub:0,pan:0},opt);
     try{
-      const t0=ctx.currentTime+o.delay;
-      const filt=ctx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=o.cutoff; filt.Q.value=o.q;
-      const env=ctx.createGain();
-      env.gain.setValueAtTime(0.0001,t0);
-      env.gain.linearRampToValueAtTime(o.gain,t0+o.attack);
-      env.gain.setTargetAtTime(0.0001,t0+o.attack,o.release/4);
-      filt.connect(env); env.connect(dry); if(o.reverb) env.connect(conv);
-      const stopT=t0+o.attack+o.release+0.1;
-      if(o.fm){
-        const car=ctx.createOscillator(); car.type=o.type; car.frequency.value=o.freq;
-        const mod=ctx.createOscillator(); mod.type='sine'; mod.frequency.value=o.freq*o.fm.ratio;
-        const mg=ctx.createGain(); mg.gain.value=o.freq*o.fm.index; mg.gain.setTargetAtTime(o.freq*o.fm.index*0.1,t0,o.release/3);
-        mod.connect(mg); mg.connect(car.frequency); car.connect(filt);
-        car.start(t0); mod.start(t0); car.stop(stopT); mod.stop(stopT);
-      } else if(o.partials){
-        o.partials.forEach(p=>{ const osc=ctx.createOscillator(); osc.type=o.type; osc.frequency.value=o.freq*p.ratio;
-          const pg=ctx.createGain(); pg.gain.value=p.gain; osc.connect(pg); pg.connect(filt); osc.start(t0); osc.stop(stopT); });
+      const sp=o.spread||0;
+      if(sp>0){
+        voice(Object.assign({},o,{gain:o.gain*0.62,detune:-sp,pan:(o.pan||0)-0.16}));
+        voice(Object.assign({},o,{gain:o.gain*0.62,detune:+sp,pan:(o.pan||0)+0.16}));
       } else {
-        const osc=ctx.createOscillator(); osc.type=o.type; osc.frequency.value=o.freq; osc.connect(filt); osc.start(t0); osc.stop(stopT);
+        voice(o);
       }
     }catch(e){}
   }
+
   function arp(freqs,stg,base){ freqs.forEach((f,i)=>tone(Object.assign({},base,{freq:f,delay:((base&&base.delay)||0)+i*stg}))); }
+
+  // ベルらしいインハーモニック倍音セット（非整数比。トーン/ハンドベルの実測比を参考に）
+  const BELL=[{ratio:1,gain:1},{ratio:2.0,gain:0.5},{ratio:2.76,gain:0.32},{ratio:5.40,gain:0.14},{ratio:8.93,gain:0.06}];
+  const BELL_S=[{ratio:1,gain:1},{ratio:2.0,gain:0.42},{ratio:2.76,gain:0.22},{ratio:5.40,gain:0.08}]; // 簡素版（連打用）
+
   return {
     ensure, tone, arp,
-    click:()=>tone({freq:1320,type:'sine',cutoff:3000,attack:0.004,release:0.10,gain:0.06,reverb:false}),  // ボタン: 控えめな高い点
-    start:()=>tone({freq:392,type:'triangle',partials:[{ratio:1,gain:1},{ratio:2,gain:0.3}],cutoff:1600,attack:0.015,release:0.45,gain:0.12}),  // 計測開始: 低く軽い単音
-    end:()=>{ tone({freq:659.25,type:'triangle',partials:[{ratio:1,gain:1},{ratio:2,gain:0.4},{ratio:3,gain:0.15}],cutoff:2000,attack:0.01,release:0.6,gain:0.09});
-              tone({freq:987.77,type:'triangle',partials:[{ratio:1,gain:1},{ratio:2,gain:0.35}],cutoff:2000,attack:0.01,release:0.6,gain:0.08}); },  // 1打記録: 温かいベル和音 E+B（候補A）
-    good:()=>arp([659.25,987.77],0.07,{type:'sine',partials:[{ratio:1,gain:1},{ratio:2,gain:0.4},{ratio:3,gain:0.18}],cutoff:2400,attack:0.012,release:0.6,gain:0.11}),  // 良い振り: 上昇2音
-    success:()=>arp([523.25,659.25,783.99,1046.5],0.085,{type:'sine',partials:[{ratio:1,gain:1},{ratio:2,gain:0.4},{ratio:4.2,gain:0.1}],cutoff:2600,attack:0.012,release:0.7,gain:0.10}),  // 高評価: 解決する上昇4音
-    warn:()=>tone({freq:233.08,type:'triangle',partials:[{ratio:1,gain:1},{ratio:2,gain:0.25}],cutoff:1100,attack:0.02,release:0.55,gain:0.12}),  // 注意: こもった柔らかい音（ブザー廃止）
-    calibDone:()=>arp([783.99,523.25],0.10,{type:'sine',partials:[{ratio:1,gain:1},{ratio:2,gain:0.35}],cutoff:2200,attack:0.014,release:0.6,gain:0.12}),  // キャリブ完了: 下降ペア（ロック感）
-    armReady:()=>arp([523.25,659.25,880.0],0.075,{type:'sine',fm:{ratio:2.0,index:2},cutoff:2600,attack:0.01,release:0.55,gain:0.11})  // 次の1打どうぞ: 招く上昇3音
+    // ボタン: 控えめな高い点。短いがインハーモニックな艶で安っぽさを消す
+    click:()=>tone({freq:1318.5,type:'sine',partials:[{ratio:1,gain:1},{ratio:2.76,gain:0.18}],cutoff:5200,attack:0.003,release:0.18,gain:0.05,reverb:false,spread:3}),
+    // 計測開始: 低く軽い単音。サブで支え、柔らかく短い余韻
+    start:()=>tone({freq:392,type:'triangle',partials:[{ratio:1,gain:1},{ratio:2,gain:0.28},{ratio:2.76,gain:0.1}],cutoff:1700,attack:0.008,release:0.7,gain:0.11,sub:0.4,spread:5}),
+    // 1打記録: 温かいベル和音 E+B。フルベル倍音＋サブ＋長い余韻で「カーン…」と記録の手応え
+    end:()=>{ tone({freq:659.25,type:'sine',partials:BELL,cutoff:2600,attack:0.004,release:1.6,gain:0.085,sub:0.35,spread:5,pan:-0.1});
+              tone({freq:987.77,type:'sine',partials:BELL_S,cutoff:2800,attack:0.004,release:1.5,gain:0.07,spread:5,pan:0.12,delay:0.01}); },
+    // 良い振り: 上昇2音（ベル倍音で肯定的に）
+    good:()=>arp([659.25,987.77],0.08,{type:'sine',partials:BELL_S,cutoff:2800,attack:0.005,release:1.1,gain:0.1}),
+    // 高評価: 解決する上昇4音。最後に余韻長めで解決感
+    success:()=>arp([523.25,659.25,783.99,1046.5],0.09,{type:'sine',partials:BELL_S,cutoff:3000,attack:0.005,release:1.2,gain:0.09,sub:0.25}),
+    // 注意: こもった柔らかい音（ブザー廃止）。低めの基音＋強いローパスで角を丸める
+    warn:()=>tone({freq:220,type:'sine',partials:[{ratio:1,gain:1},{ratio:2,gain:0.22},{ratio:2.76,gain:0.06}],cutoff:900,q:0.5,attack:0.012,release:0.8,gain:0.11,sub:0.45,spread:4}),
+    // キャリブ完了: 下降ペア（ロック感）。低めで着地する確定の響き
+    calibDone:()=>arp([783.99,523.25],0.11,{type:'sine',partials:BELL_S,cutoff:2400,attack:0.006,release:1.0,gain:0.1,sub:0.3}),
+    // 次の1打どうぞ: 招く上昇3音。軽いFMで艶を足しつつ穏やかに
+    armReady:()=>arp([523.25,659.25,880.0],0.08,{type:'sine',fm:{ratio:2.76,index:1.4},cutoff:2900,attack:0.005,release:0.85,gain:0.1})
   };
 })();
 
