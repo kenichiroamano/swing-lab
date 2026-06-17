@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Golflev · The Setup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,600;1,800&family=Noto+Serif+JP:wght@300;400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css?v=13">
+<style>
+/* grip.html — グリップ無料フック（Lesson 00 / The Setup）
+   測らない＝"見せる"教材。実写は準備中につき、空プレースホルダ枠＋ゴールド指示線のみ。
+   既存idiom厳守: 金は線・縁のみ／Playfair斜体／ヘアライン／クリーム。計測UIは置かない。 */
+.screen{display:block}
+.grip-top{display:flex;align-items:center;min-height:36px}
+.grip-back{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--sub);
+  font-family:'Noto Serif JP',serif;font-size:12px;letter-spacing:.06em;cursor:pointer;padding:6px 4px}
+.grip-back i{font-style:normal}
+.intro-jp{font-family:'Noto Serif JP',serif;font-weight:300;font-size:13px;line-height:1.95;text-align:center;color:var(--ink);margin-top:14px}
+.not-measure{font-size:11px;color:var(--sub);text-align:center;line-height:1.8;letter-spacing:.02em;margin-top:14px;
+  border-top:1px solid rgba(184,128,76,.3);border-bottom:1px solid rgba(184,128,76,.3);padding:11px 6px}
+
+/* お手本: 実写プレースホルダ枠（額装はRehaut＝金縁）＋ゴールド指示線SVG */
+.show-frame{position:relative;width:100%;border-radius:16px;overflow:hidden;background:var(--paper);
+  border:1px solid rgba(31,42,33,.12);margin-top:18px}
+.show-frame .ph{position:relative;width:100%;aspect-ratio:4/5;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center}
+.show-frame .ph .ph-mk{font-family:'Playfair Display',serif;font-style:italic;font-size:13px;color:var(--gold);letter-spacing:.04em}
+.show-frame .ph .ph-tx{font-family:'Noto Serif JP',serif;font-weight:300;font-size:11px;color:var(--sub);margin-top:8px;letter-spacing:.06em}
+.show-frame svg.guide{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.rehaut{position:absolute;inset:7px;border:1.4px solid var(--gold);border-radius:11px;pointer-events:none}
+.show-cap{font-family:'Noto Serif JP',serif;font-weight:300;font-size:11px;line-height:1.7;text-align:center;color:var(--ink);margin-top:12px}
+.handed{font-size:10px;color:var(--sub);text-align:center;line-height:1.7;margin-top:8px;letter-spacing:.02em}
+
+/* 見るポイント（非採点・採点UIなし） */
+.pts-title{font-family:'Playfair Display',serif;font-weight:600;font-size:22px;text-align:center;margin-top:30px;letter-spacing:.01em}
+.pt{display:flex;gap:14px;padding:15px 0;border-top:1px solid rgba(31,42,33,.10)}
+.pt:last-of-type{border-bottom:1px solid rgba(31,42,33,.10)}
+.pt .no{font-family:'Playfair Display',serif;font-style:italic;font-size:25px;color:var(--gold);line-height:1;min-width:22px;text-align:center}
+.pt .ttl{font-family:'Noto Serif JP',serif;font-weight:600;font-size:14px;color:var(--ink)}
+.pt .bd{font-family:'Noto Serif JP',serif;font-weight:300;font-size:11.5px;color:var(--ink);opacity:.82;line-height:1.7;margin-top:5px}
+.pts-note{font-family:'Noto Serif JP',serif;font-weight:300;font-size:11px;color:var(--sub);text-align:center;margin-top:14px;letter-spacing:.02em}
+
+/* 締め: コア（ピッチ）への橋渡し */
+.cta-wrap{margin-top:30px;text-align:center}
+.cta-bridge{font-family:'Noto Serif JP',serif;font-weight:300;font-size:12px;color:var(--ink);opacity:.8}
+.cta-title{font-family:'Playfair Display',serif;font-style:italic;font-weight:600;font-size:20px;margin-top:6px}
+.cta-gold{display:block;width:100%;margin-top:18px;padding:15px;cursor:pointer;background:transparent;
+  border:1px solid var(--gold);border-radius:11px;color:var(--gold);
+  font-family:'Inter',sans-serif;font-size:12px;font-weight:500;letter-spacing:.26em;transition:background .2s ease}
+.cta-gold:active{background:rgba(184,128,76,.12)}
+</style>
+</head>
+<body>
+<div class="screen active">
+
+  <div class="grip-top">
+    <button class="grip-back" id="backTop"><i>‹</i><span id="backTxt"></span></button>
+  </div>
+
+  <div class="eyebrow" id="eyebrow" style="margin-top:8px"></div>
+  <h1 class="title-en" id="titleEn"></h1>
+  <div class="intro-jp" id="intro"></div>
+  <div class="not-measure" id="notMeasure"></div>
+
+  <!-- お手本（実写プレースホルダ＋ゴールド指示線） -->
+  <div class="show-frame">
+    <div class="ph">
+      <div class="ph-mk" id="phMk"></div>
+      <div class="ph-tx" id="phTx"></div>
+      <svg class="guide" viewBox="0 0 100 125" preserveAspectRatio="none" aria-hidden="true">
+        <!-- 模式的なグリップ棒（手は描かない＝誤った握りを示さない）。指示線で位置だけ示す -->
+        <rect x="46" y="20" width="8" height="86" rx="4" fill="none" stroke="rgba(31,42,33,.18)" stroke-width="1"/>
+        <!-- 1 握る位置（上部） -->
+        <circle cx="50" cy="38" r="1.6" fill="#B8804C"/>
+        <line x1="50" y1="38" x2="84" y2="30" stroke="#B8804C" stroke-width="1" stroke-linecap="round"/>
+        <text x="86" y="32" font-family="Playfair Display" font-style="italic" font-size="7" fill="#B8804C">1</text>
+        <!-- 2 被せ具合（中央） -->
+        <circle cx="50" cy="60" r="1.6" fill="#B8804C"/>
+        <line x1="50" y1="60" x2="84" y2="62" stroke="#B8804C" stroke-width="1" stroke-linecap="round"/>
+        <text x="86" y="64" font-family="Playfair Display" font-style="italic" font-size="7" fill="#B8804C">2</text>
+        <!-- 3 握る強さ（下部・破線=ガイド） -->
+        <circle cx="50" cy="84" r="1.6" fill="#B8804C"/>
+        <line x1="50" y1="84" x2="84" y2="92" stroke="#B8804C" stroke-width="1" stroke-linecap="round" stroke-dasharray="2,2.5"/>
+        <text x="86" y="94" font-family="Playfair Display" font-style="italic" font-size="7" fill="#B8804C">3</text>
+      </svg>
+    </div>
+    <div class="rehaut"></div>
+  </div>
+  <div class="show-cap" id="showCap"></div>
+  <div class="handed" id="handed"></div>
+
+  <!-- 見るポイント -->
+  <div class="pts-title" id="ptsTitle"></div>
+  <div class="hairline"></div>
+  <div id="pts"></div>
+  <div class="pts-note" id="ptsNote"></div>
+
+  <!-- 締め -->
+  <div class="cta-wrap">
+    <div class="cta-bridge" id="ctaBridge"></div>
+    <div class="cta-title" id="ctaTitle"></div>
+    <button class="cta-gold" id="ctaPitch"></button>
+    <button class="link-btn" id="ctaHome"></button>
+  </div>
+
+</div>
+
+<script src="strings.js?v=13"></script>
+<script>
+const $=id=>document.getElementById(id);
+const T=k=>STR.t(k);
+$('backTxt').textContent=T('grip.back');
+$('eyebrow').textContent=T('grip.eyebrow');
+$('titleEn').innerHTML='<em>'+T('grip.title.en')+'</em>';
+$('intro').innerHTML=T('grip.intro');
+$('notMeasure').textContent=T('grip.notMeasure');
+$('phMk').textContent=T('grip.title.en');
+$('phTx').textContent=T('grip.show.placeholder');
+$('showCap').textContent=T('grip.show.caption');
+$('handed').textContent=T('grip.handedness');
+$('ptsTitle').textContent=T('grip.check.title');
+$('ptsNote').textContent=T('grip.check.note');
+$('ctaBridge').textContent=T('grip.cta.bridge');
+$('ctaTitle').textContent=T('grip.cta.title');
+$('ctaPitch').textContent=T('grip.cta.btn');
+$('ctaHome').textContent=T('grip.cta.home');
+
+// 3つの見るポイント（非採点・チェックボックスなし＝"測った風"を避ける）
+let html='';
+for(let i=1;i<=3;i++){
+  html+='<div class="pt"><div class="no">'+i+'</div><div>'+
+        '<div class="ttl">'+T('grip.check.'+i+'.title')+'</div>'+
+        '<div class="bd">'+T('grip.check.'+i+'.body')+'</div></div></div>';
+}
+$('pts').innerHTML=html;
+
+$('backTop').onclick=()=>location.href='home-v3.html';
+$('ctaHome').onclick=()=>location.href='home-v3.html';
+$('ctaPitch').onclick=()=>location.href='drill-pitch.html';
+</script>
+</body>
+</html>

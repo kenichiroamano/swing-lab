@@ -79,6 +79,19 @@ body::before{ content:''; position:fixed; inset:0; pointer-events:none; z-index:
 
 /* ── タグライン ── */
 .tag{ text-align:center; margin:26px 0 0; font-family:var(--jp); font-weight:300; font-size:12px; color:var(--sub); letter-spacing:.2em }
+/* グリップ無料フック入口（二段構え）。金は線のみ・濃色面やボタンにはしない＝主役を奪わない */
+.grip-invite{ position:relative; margin:22px 0 2px; padding:16px 4px; cursor:pointer; text-align:center;
+  border-top:1px solid var(--hair-gold); border-bottom:1px solid var(--hair-gold) }
+.grip-invite .eb{ font-family:var(--serif); font-style:italic; font-weight:600; font-size:12px; color:var(--brass); letter-spacing:.04em }
+.grip-invite .tl{ font-family:var(--jp); font-size:14px; color:var(--ink); margin-top:6px }
+.grip-invite .tl em{ font-family:var(--serif); font-style:italic; font-size:13px; color:var(--brass); margin-left:6px }
+.grip-invite .sb{ font-size:9.5px; color:var(--sub); margin-top:5px; letter-spacing:.04em }
+.grip-row{ display:flex; align-items:center; gap:10px; margin-top:16px; padding:13px 2px; cursor:pointer;
+  border-top:1px solid var(--hair-gold); border-bottom:1px solid var(--hair-gold) }
+.grip-row .eb{ font-family:var(--serif); font-style:italic; font-weight:600; font-size:11px; color:var(--brass); white-space:nowrap }
+.grip-row .rt{ flex:1; text-align:right }
+.grip-row .rt .tl{ font-family:var(--jp); font-size:12.5px; color:var(--ink) }
+.grip-row .rt .tl em{ font-family:var(--serif); font-style:italic; font-size:11.5px; color:var(--brass); margin-left:5px }
 .foot{ text-align:center; margin-top:22px }
 .foot button{ background:none; border:none; color:var(--sub); font-family:var(--ui); font-size:9.5px; letter-spacing:.14em; text-decoration:underline; text-underline-offset:3px; opacity:.45 }
 </style>
@@ -110,6 +123,13 @@ body::before{ content:''; position:fixed; inset:0; pointer-events:none; z-index:
   <!-- サブ指標 -->
   <div class="stats" id="stats"></div>
 
+  <!-- 新規ユーザー向け グリップ入口（!hasBestのみ・ダイアルとThe Pitchの間） -->
+  <div class="grip-invite" id="gripInvite" style="display:none">
+    <div class="eb" id="giEb"></div>
+    <div class="tl" id="giTl"></div>
+    <div class="sb" id="giSb"></div>
+  </div>
+
   <!-- 本日の稽古 -->
   <div class="drill">
     <div class="wm">02</div>
@@ -120,11 +140,18 @@ body::before{ content:''; position:fixed; inset:0; pointer-events:none; z-index:
   </div>
 
   <div class="tag">振る、を整える。</div>
+
+  <!-- 既存ユーザー向け グリップ入口（hasBestのみ・最下部の控えめ一行） -->
+  <div class="grip-row" id="gripRow" style="display:none">
+    <span class="eb" id="grEb"></span>
+    <div class="rt"><div class="tl" id="grTl"></div></div>
+  </div>
+
   <div class="foot"><button id="resetLink">データを消去</button></div>
 </div>
 
-<script src="strings.js?v=12"></script>
-<script src="core.js?v=12"></script>
+<script src="strings.js?v=13"></script>
+<script src="core.js?v=13"></script>
 <script>
 const $=id=>document.getElementById(id);
 if(location.search.includes('demo')){
@@ -171,6 +198,22 @@ $('stats').innerHTML=
   '<div class="stat"><div class="v gold">'+(lastScore!=null?lastScore:'—')+'</div><div class="l">前回スコア</div></div>';
 
 $('todayBtn').onclick=()=>location.href='drill-pitch.html';
+
+// グリップ無料フック入口（二段構え）: 新規(!hasBest)=ダイアルとThe Pitchの間 / 既存(hasBest)=最下部一行
+const gripT=k=>STR.t(k);
+const gripTitleHTML=gripT('grip.entry.title')+'<em>'+gripT('grip.entry.en')+'</em> ›';
+if(!hasBest){
+  $('giEb').textContent=gripT('grip.entry.eyebrow');
+  $('giTl').innerHTML=gripTitleHTML;
+  $('giSb').textContent=gripT('grip.entry.sub');
+  $('gripInvite').style.display='block';
+  $('gripInvite').onclick=()=>location.href='grip.html';
+}else{
+  $('grEb').textContent=gripT('grip.entry.eyebrow');
+  $('grTl').innerHTML=gripTitleHTML;
+  $('gripRow').style.display='flex';
+  $('gripRow').onclick=()=>location.href='grip.html';
+}
 // S5: 確認の上、golflev: 名前空間のキーを一掃（旧仕様はGLProfile本体だけ消し、dialFlip/focusDim等が消し残っていた）
 $('resetLink').onclick=()=>{
   if(!confirm('保存データ（ベスト・連続日数・スコア・各種設定）をすべて消去します。よろしいですか？')) return;
