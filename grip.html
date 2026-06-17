@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,600;1,800&family=Noto+Serif+JP:wght@300;400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="theme.css?v=13">
+<link rel="stylesheet" href="theme.css?v=14">
 <style>
 /* grip.html — グリップ無料フック（Lesson 00 / The Setup）
    測らない＝"見せる"教材。実写は準備中につき、空プレースホルダ枠＋ゴールド指示線のみ。
@@ -34,6 +34,11 @@
 .handed{font-size:10px;color:var(--sub);text-align:center;line-height:1.7;margin-top:8px;letter-spacing:.02em}
 
 /* 見るポイント（非採点・採点UIなし） */
+/* 章立て（I 握り / II 立ち方）。英語名は増やさず日本語見出しで仕切る */
+.part-label{display:flex;align-items:baseline;gap:11px;justify-content:center;margin-top:38px;
+  font-family:'Noto Serif JP',serif;font-size:14px;color:var(--ink);letter-spacing:.22em}
+.part-label .pno{font-family:'Playfair Display',serif;font-style:italic;font-size:21px;color:var(--gold);letter-spacing:0}
+.part-rule{width:40px;height:1px;background:var(--gold);opacity:.5;margin:10px auto 0}
 .pts-title{font-family:'Playfair Display',serif;font-weight:600;font-size:22px;text-align:center;margin-top:30px;letter-spacing:.01em}
 .pt{display:flex;gap:14px;padding:15px 0;border-top:1px solid rgba(31,42,33,.10)}
 .pt:last-of-type{border-bottom:1px solid rgba(31,42,33,.10)}
@@ -63,6 +68,10 @@
   <h1 class="title-en" id="titleEn"></h1>
   <div class="intro-jp" id="intro"></div>
   <div class="not-measure" id="notMeasure"></div>
+
+  <!-- ── Part I 握り ── -->
+  <div class="part-label"><span class="pno" id="p1no"></span><span id="p1label"></span></div>
+  <div class="part-rule"></div>
 
   <!-- お手本（実写プレースホルダ＋ゴールド指示線） -->
   <div class="show-frame">
@@ -97,6 +106,41 @@
   <div id="pts"></div>
   <div class="pts-note" id="ptsNote"></div>
 
+  <!-- ── Part II 立ち方 ── -->
+  <div class="part-label"><span class="pno" id="p2no"></span><span id="p2label"></span></div>
+  <div class="part-rule"></div>
+
+  <!-- お手本（実写プレースホルダ＋ゴールド指示線：立ち方） -->
+  <div class="show-frame">
+    <div class="ph">
+      <div class="ph-mk" id="phMk2"></div>
+      <div class="ph-tx" id="phTx2"></div>
+      <svg class="guide" viewBox="0 0 100 125" preserveAspectRatio="none" aria-hidden="true">
+        <line x1="20" y1="100" x2="80" y2="100" stroke="rgba(31,42,33,.18)" stroke-width="1"/>
+        <line x1="46" y1="34" x2="52" y2="100" stroke="rgba(31,42,33,.18)" stroke-width="1.4" stroke-linecap="round"/>
+        <circle cx="40" cy="98" r="2.2" fill="none" stroke="rgba(31,42,33,.3)" stroke-width="1"/>
+        <line x1="18" y1="92" x2="74" y2="78" stroke="rgba(31,42,33,.16)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="22" y1="104" x2="78" y2="90" stroke="rgba(31,42,33,.16)" stroke-width="1" stroke-dasharray="3,3"/>
+        <circle cx="60" cy="83" r="1.6" fill="#B8804C"/>
+        <line x1="60" y1="83" x2="84" y2="56" stroke="#B8804C" stroke-width="1" stroke-linecap="round"/>
+        <text x="86" y="58" font-family="Playfair Display" font-style="italic" font-size="7" fill="#B8804C">1</text>
+        <circle cx="40" cy="98" r="1.6" fill="#B8804C"/>
+        <line x1="40" y1="98" x2="22" y2="116" stroke="#B8804C" stroke-width="1" stroke-linecap="round"/>
+        <text x="15" y="120" font-family="Playfair Display" font-style="italic" font-size="7" fill="#B8804C">2</text>
+        <circle cx="49" cy="64" r="1.6" fill="#B8804C"/>
+        <line x1="49" y1="64" x2="84" y2="72" stroke="#B8804C" stroke-width="1" stroke-linecap="round" stroke-dasharray="2,2.5"/>
+        <text x="86" y="74" font-family="Playfair Display" font-style="italic" font-size="7" fill="#B8804C">3</text>
+      </svg>
+    </div>
+    <div class="rehaut"></div>
+  </div>
+  <div class="show-cap" id="stanceCap"></div>
+
+  <div class="pts-title" id="stanceTitle"></div>
+  <div class="hairline"></div>
+  <div id="stancePts"></div>
+  <div class="pts-note" id="stanceNote"></div>
+
   <!-- 締め -->
   <div class="cta-wrap">
     <div class="cta-bridge" id="ctaBridge"></div>
@@ -107,7 +151,7 @@
 
 </div>
 
-<script src="strings.js?v=13"></script>
+<script src="strings.js?v=14"></script>
 <script>
 const $=id=>document.getElementById(id);
 const T=k=>STR.t(k);
@@ -116,25 +160,38 @@ $('eyebrow').textContent=T('grip.eyebrow');
 $('titleEn').innerHTML='<em>'+T('grip.title.en')+'</em>';
 $('intro').innerHTML=T('grip.intro');
 $('notMeasure').textContent=T('grip.notMeasure');
-$('phMk').textContent=T('grip.title.en');
+$('phMk').textContent=T('grip.part1.label');
 $('phTx').textContent=T('grip.show.placeholder');
 $('showCap').textContent=T('grip.show.caption');
 $('handed').textContent=T('grip.handedness');
+$('p1no').textContent=T('grip.part1.no');
+$('p1label').textContent=T('grip.part1.label');
 $('ptsTitle').textContent=T('grip.check.title');
 $('ptsNote').textContent=T('grip.check.note');
+$('p2no').textContent=T('grip.part2.no');
+$('p2label').textContent=T('grip.part2.label');
+$('phMk2').textContent=T('grip.part2.label');
+$('phTx2').textContent=T('grip.show.placeholder');
+$('stanceCap').textContent=T('grip.stance.caption');
+$('stanceTitle').textContent=T('grip.stance.checkTitle');
+$('stanceNote').textContent=T('grip.stance.note');
 $('ctaBridge').textContent=T('grip.cta.bridge');
 $('ctaTitle').textContent=T('grip.cta.title');
 $('ctaPitch').textContent=T('grip.cta.btn');
 $('ctaHome').textContent=T('grip.cta.home');
 
-// 3つの見るポイント（非採点・チェックボックスなし＝"測った風"を避ける）
-let html='';
-for(let i=1;i<=3;i++){
-  html+='<div class="pt"><div class="no">'+i+'</div><div>'+
-        '<div class="ttl">'+T('grip.check.'+i+'.title')+'</div>'+
-        '<div class="bd">'+T('grip.check.'+i+'.body')+'</div></div></div>';
+// 見るポイント（非採点・チェックボックスなし＝"測った風"を避ける）
+function renderPts(targetId, keyBase){
+  let html='';
+  for(let i=1;i<=3;i++){
+    html+='<div class="pt"><div class="no">'+i+'</div><div>'+
+          '<div class="ttl">'+T(keyBase+'.'+i+'.title')+'</div>'+
+          '<div class="bd">'+T(keyBase+'.'+i+'.body')+'</div></div></div>';
+  }
+  $(targetId).innerHTML=html;
 }
-$('pts').innerHTML=html;
+renderPts('pts','grip.check');         // Part I 握り
+renderPts('stancePts','grip.stance');  // Part II 立ち方
 
 $('backTop').onclick=()=>location.href='home-v3.html';
 $('ctaHome').onclick=()=>location.href='home-v3.html';
