@@ -5,7 +5,7 @@ const STR = {
   d: {
     'pitch.eyebrow':        { ja:'Level 2 — Drill',            en:'Level 2 — Drill' },
     'pitch.title.jp':       { ja:'ピッチ',                       en:'The Pitch' },
-    'pitch.intro.body':     { ja:'8時から、4時へ。<br>アプローチの距離感は、<br>この振り幅から生まれる。', en:'From 8 to 4.<br>Distance control begins<br>with this swing width.' },
+    'pitch.intro.body':     { ja:'8時から、4時へ。<br>アプローチの距離感は、<br>この振り幅の再現性から。', en:'From 8 to 4.<br>Distance control starts with<br>a repeatable swing width.' },
     'pitch.intro.note':     { ja:'両側60°のゾーンに、3回そろえて振る。それが今日の課題です。', en:'Three swings, both sides inside the 60° zone. That is today’s work.' },
     'pitch.btn.begin':      { ja:'はじめる',                     en:'Begin' },
 
