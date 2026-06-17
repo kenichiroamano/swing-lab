@@ -36,6 +36,26 @@
 .live-state.measuring{color:var(--ok)}
 #liveSub{font-family:'Inter',sans-serif;font-size:11px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--sub);margin-top:7px;min-height:14px}
 .live-chip-area .chip{font-size:14px;padding:9px 18px}
+/* ── 結果画面の Review：3球を刻印番号の札で選び、その球だけ3Dで見返す ── */
+.review-h{text-align:center;font-family:'Noto Serif JP',serif;font-weight:600;font-size:19px;color:var(--ink);margin:7px 0 18px;letter-spacing:.02em}
+.review-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:0 0 16px}
+.review-card{position:relative;padding:15px 6px 13px;text-align:center;border-radius:11px;background:transparent;cursor:pointer}
+.review-card .top{position:absolute;left:14px;right:14px;top:0;height:1.5px}
+.review-card.sel{background:var(--paper);box-shadow:inset 0 0 0 1px rgba(184,128,76,.30),0 1px 2px rgba(31,42,33,.05)}
+.review-card .num{font-family:'Playfair Display',serif;font-style:italic;font-size:27px;color:var(--sub);line-height:1}
+.review-card.sel .num{color:var(--ink)}
+.review-card .deg{font-size:13px;color:var(--sub);margin-top:5px;font-variant-numeric:tabular-nums}
+.review-card .tag{font-size:9.5px;color:var(--err);margin-top:3px;letter-spacing:.08em;min-height:12px}
+.review-stage{height:34vh;min-height:260px;display:none}
+.review-stage.open{display:block}
+#stageReview .rh-act{opacity:1}
+#reviewRep{position:absolute;top:14px;left:0;right:0;text-align:center;font-family:'Playfair Display',serif;font-style:italic;font-size:14px;letter-spacing:.1em;color:var(--gold);z-index:7}
+.review-anchor{text-align:center;font-family:'Noto Serif JP',serif;font-size:14px;color:var(--ink);margin-top:12px;display:none}
+.review-anchor.open{display:block}
+.review-links{text-align:center;margin-top:2px;display:none}
+.review-links.open{display:block}
+.review-links .link-btn{display:inline-block;margin:8px 11px 0}
+.review-card.disabled{opacity:.45;cursor:default}
 #liveDim{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;background:rgba(20,26,21,.92);opacity:0;pointer-events:none;transition:opacity .16s ease;border-radius:14px}
 #liveDim.on{opacity:1}
 #liveDim span{color:var(--gold);font-family:'Noto Serif JP',serif;font-size:21px;font-weight:600;letter-spacing:.08em}
@@ -132,6 +152,21 @@
     </div>
     <svg id="chart" width="100%" viewBox="0 0 300 150" xmlns="http://www.w3.org/2000/svg"></svg>
   </div>
+
+  <!-- Review：3球を個別に見返す -->
+  <div id="reviewBlock" style="display:none;margin-top:22px">
+    <div class="hairline"></div>
+    <div class="eyebrow">Review</div>
+    <div class="review-h" id="reviewH"></div>
+    <div class="review-cards" id="reviewCards"></div>
+    <div class="stage3d review-stage" id="stageReview">
+      <svg id="rehautReview" preserveAspectRatio="none" aria-hidden="true"><rect class="rh-base"/><rect class="rh-act"/></svg>
+      <div id="reviewRep">Replay</div>
+    </div>
+    <div class="review-anchor" id="reviewAnchor"></div>
+    <div class="review-links" id="reviewLinks"><button class="link-btn" id="btnReviewAgain"></button><button class="link-btn" id="btnReviewClose"></button></div>
+  </div>
+
   <div class="card">
     <div class="eyebrow" style="text-align:left" id="issuesTitle"></div>
     <div id="issuesList"></div>
@@ -144,8 +179,8 @@
   <button class="link-btn" id="btnHome">ホームへ</button>
 </section>
 
-<script src="core.js?v=8"></script>
-<script src="strings.js?v=8"></script>
+<script src="core.js?v=9"></script>
+<script src="strings.js?v=9"></script>
 
 <!-- ════════════ 3Dステージ（時計の文字盤 × 白磁のゴルファー × 計測スクラブ） ════════════ -->
 <script type="module">
@@ -563,7 +598,7 @@ let acSum=0, acCnt=0;
 const tracker=new SwingTracker();
 let chipTimer=null;
 let resultTimer=null;   // 3球目確定→結果画面への遷移タイマー（やり直し時にキャンセルするため保持）
-// ステージ2: 振った直後の3Dリプレイ（ボール集中モードON時のみ。振る最中に軌跡を記録→振り終わりに再生）
+// 各球の軌跡を記録（振る最中に記録→各球のsw.traceへ退避）。結果画面のReviewで1球ずつ3D再生する
 let swingTrace=[], traceActive=false, replaying=false, replayRAF=null;
 const REPLAY_SPEED=1.25, REPLAY_HOLD=420;
 
@@ -836,17 +871,18 @@ function onSwing(r){
   // 次のスイングは「（動いて）構えに戻して静止」で再アーミング＋再ゼロ化
   armed=false; armSince=null; disarmT=performance.now(); angAtEnd=lastA;
   rearmPhase='wait-move'; // 振り終わり直後は必ず一度動かして構え直す＝惰性の静止での誤アーム/不意打ちを防ぐ
-  // リプレイ可否（有効な軌跡＋有効スイング）。集中モードのON/OFFに関わらず毎回再生する。可なら待機表示を出さずリプレイへ
-  const willReplay = traceActive && swingTrace.length>=4 && Math.abs(r.backAngle)>=MIN_BACK;
+  // この球の軌跡を退避（毎回の自動再生は廃止。結果画面のReviewで1球ずつ見返す）
+  const trace = (traceActive && swingTrace.length>=4) ? swingTrace.slice() : [];
   traceActive=false;
-  if(!willReplay) setLiveState('waiting'); // 振り終わったら確実に明るく戻す（暗転の残留を防ぐ）
+  setLiveState('waiting'); // 振り終わったら必ず明るく戻す（暗転の残留を防ぐ）
   if(Math.abs(r.backAngle)<MIN_BACK){ showChip('muted',STR.t('live.tooSmall')); return; }
   const acRatio=acCnt>=3? acSum/acCnt : null;
   const sw={
     back:r.backAngle, follow:r.followAngle, complete:r.complete,
     broken: acRatio===null? null : acRatio<0.75,
     decel: (r.complete && !r.slowSwing)? r.decel : null,
-    slow: r.slowSwing, tempo:r.tempoRatio
+    slow: r.slowSwing, tempo:r.tempoRatio,
+    trace: trace
   };
   STATE.swings.push(sw);
   GLAudio.end();
@@ -860,24 +896,44 @@ function onSwing(r){
   else { showChip('ok',STR.t('live.chip.ok')); GLAudio.good(); }
 
   renderDots();
-  if(STATE.swings.length>=SET_SIZE && !willReplay){
-    resultTimer=setTimeout(showResult, 1000); // リプレイ無しなら従来どおり結果へ
+  if(STATE.swings.length>=SET_SIZE){
+    resultTimer=setTimeout(showResult, 1000); // 3球そろったら結果へ（毎回の自動再生は廃止）
   }
   // 球番号は「次の計測が可になった瞬間」(tickのアーミング完了)で進める。ここでは進めない（不意打ち防止）
-  if(willReplay) startReplay(); // 振った直後に、その1球を3Dで再生（ヘッドアップ対策の"振った後に見る"）
 }
 
-// 記録した軌跡を時間どおりに再生。既存 Stage3D.setLive を流すだけ（3D本体は無変更）
-function startReplay(){
-  const trace=swingTrace.slice();
-  if(trace.length<2){ finishReplay(); return; }
+// ── 結果画面の Review：選んだ球の軌跡を、結果画面の小ステージ(#stageReview)で3D再生 ──
+// 既存 Stage3D.setLive を流すだけ（3D本体は無変更）。計測画面のリプレイは廃止し、ここに集約。
+let reviewPeri=0, reviewIdx=-1;
+function layoutReview(){
+  const s=$('stageReview'), svg=$('rehautReview'); if(!s||!svg) return;
+  const w=s.clientWidth, h=s.clientHeight; if(!w||!h) return;
+  svg.setAttribute('viewBox','0 0 '+w+' '+h);
+  const ins=7, rx=13, bw=w-2*ins, bh=h-2*ins;
+  svg.querySelectorAll('rect').forEach(r=>{ r.setAttribute('x',ins); r.setAttribute('y',ins); r.setAttribute('width',bw); r.setAttribute('height',bh); r.setAttribute('rx',rx); r.setAttribute('ry',rx); });
+  reviewPeri = 2*(bw+bh) - 8*rx + 2*Math.PI*rx;
+}
+function reviewArc(p){ const a=$('rehautReview'); if(a){ const r=a.querySelector('.rh-act'); if(r){ if(!reviewPeri) layoutReview(); r.style.strokeDasharray=reviewPeri+' '+reviewPeri; r.style.strokeDashoffset=String(reviewPeri*(1-Math.min(1,Math.max(0,p)))); } } }
+
+function playReview(idx){
+  const sw=STATE.swings[idx]; if(!sw || !sw.trace || sw.trace.length<2) return;
+  reviewIdx=idx;
+  document.querySelectorAll('.review-card').forEach((c,i)=>c.classList.toggle('sel', i===idx)); // 選択中の札を灯す
+  $('stageReview').classList.add('open');
+  $('reviewAnchor').classList.add('open'); $('reviewLinks').classList.add('open');
+  $('reviewAnchor').textContent=STR.t('live.swing')+' '+(idx+1)+' ・ '+Math.round(Math.abs(sw.back))+'°';
+  if(window.Stage3D){ Stage3D.setMode('live'); Stage3D.mount('stageReview'); if(Stage3D.resize) Stage3D.resize(); } // canvasをレビューへ移し寄りの構図に
+  layoutReview();
+  startReview(sw.trace);
+}
+function startReview(trace){
+  if(replayRAF){ cancelAnimationFrame(replayRAF); replayRAF=null; }
   replaying=true;
-  setLiveState('replay');
-  $('btnRedo').style.display='none';
   const t0=trace[0].t, startWall=performance.now();
   const dur=(trace[trace.length-1].t - t0)/REPLAY_SPEED;
   let i=0;
   if(window.Stage3D) Stage3D.setLive(trace[0].ang, trace[0].state);
+  reviewArc(0);
   function step(){
     if(!replaying) return;
     const wall=performance.now()-startWall;
@@ -886,21 +942,23 @@ function startReplay(){
     while(i<trace.length-1 && trace[i+1].t<=target) i++;
     const fr=trace[Math.min(i,trace.length-1)];
     if(window.Stage3D) Stage3D.setLive(fr.ang, fr.state);
-    rehautArc(Math.min(1, wall/Math.max(1,dur))); // 縁の金弧が再生に合わせて満ちる
+    reviewArc(Math.min(1, wall/Math.max(1,dur))); // 縁の金弧が再生に合わせて満ちる
     if(wall < dur + REPLAY_HOLD) replayRAF=requestAnimationFrame(step);
-    else finishReplay();
+    else finishReview();
   }
   replayRAF=requestAnimationFrame(step);
 }
-function finishReplay(){
+function finishReview(){
   if(replayRAF){ cancelAnimationFrame(replayRAF); replayRAF=null; }
   replaying=false;
-  lastT=null; lastA=0; omegaS=0; // リプレイで止まっていた計測の時間基準をリセット（再開時の暴れ防止）
-  if(window.Stage3D) Stage3D.setLive(0,'idle'); // アドレス相当へ戻す
-  setLiveState('waiting');                       // ここで再アーミング受付に戻す
-  if(STATE.swings.length>=SET_SIZE && !resultTimer){
-    resultTimer=setTimeout(showResult, 600);     // 3球目はリプレイを見せ終えてから結果へ
-  }
+  if(window.Stage3D) Stage3D.setLive(0,'idle'); // アドレスで静止
+}
+function closeReview(){
+  if(replayRAF){ cancelAnimationFrame(replayRAF); replayRAF=null; }
+  replaying=false; reviewIdx=-1;
+  $('stageReview').classList.remove('open');
+  $('reviewAnchor').classList.remove('open'); $('reviewLinks').classList.remove('open');
+  document.querySelectorAll('.review-card').forEach(c=>c.classList.remove('sel'));
 }
 
 // 直前の1球だけ取り消して、その球を再計測（キャリブは保持）。2・3球目のやり直し用
@@ -958,6 +1016,32 @@ function renderFocusInvite(){
     startSet(); // ライブへ（集中モードONで新しいセット）
   });
   $('btnFocusLater').addEventListener('click',()=>{ box.style.display='none'; GLAudio.click(); });
+}
+// Review：3球を刻印番号の札で並べ、タップでその球を3D再生（初期は畳む）
+function renderReview(){
+  const block=$('reviewBlock'), cards=$('reviewCards');
+  if(!block||!cards) return;
+  const swings=STATE.swings;
+  if(!swings.some(s=>s.trace && s.trace.length>=2)){ block.style.display='none'; return; }
+  block.style.display='block';
+  $('reviewH').textContent=STR.t('review.title');
+  $('btnReviewAgain').textContent=STR.t('review.again');
+  $('btnReviewClose').textContent=STR.t('review.close');
+  cards.innerHTML=swings.map((s,i)=>{
+    const ok=swingOk(s), b=Math.abs(s.back);
+    const tag = ok? '' : (b<ZONE_MIN?'浅い':(b>ZONE_MAX?'深い':(s.decel===true?'減速':'')));
+    const top = ok? 'var(--gold)':'var(--err)';
+    const playable = !!(s.trace && s.trace.length>=2);
+    return '<div class="review-card'+(playable?'':' disabled')+'" data-i="'+i+'" role="button" tabindex="0" aria-label="'+STR.t('live.swing')+(i+1)+'">'+
+      '<div class="top" style="background:'+top+'"></div>'+
+      '<div class="num">'+(i+1)+'</div>'+
+      '<div class="deg">'+Math.round(b)+'°</div>'+
+      '<div class="tag">'+tag+'</div></div>';
+  }).join('');
+  cards.querySelectorAll('.review-card').forEach(c=>{
+    c.addEventListener('click',()=>{ const i=+c.dataset.i, s=STATE.swings[i]; if(s && s.trace && s.trace.length>=2){ GLAudio.click(); playReview(i); } });
+  });
+  closeReview(); // 初期は畳んだ状態
 }
 function showResult(){
   const sw=STATE.swings;
@@ -1073,6 +1157,7 @@ function showResult(){
   }
   GLStore.push('pitch:sets',{v:1,date:iso,rank,score,mean:Math.round(mean),sd:+sd.toFixed(1),zone:zoneCt,decel:decelCt},200);
 
+  renderReview();      // 3球を1つずつ見返すReviewセクションを生成（毎回の自動再生の代替）
   renderFocusInvite(); // スイング集中モードへの誘い（条件を満たす時だけ・最大2回）
 
   if(rank==='perfect') GLAudio.success();
@@ -1123,7 +1208,9 @@ $('btnPerm').addEventListener('click',requestPermission);
 $('btnCalib').addEventListener('click',startCalib);
 $('btnFlip').addEventListener('click',()=>{ FLIP=!FLIP; GLStore.set('dialFlip',FLIP); GLAudio.click(); });
 $('btnRedo').addEventListener('click', redoLastSwing);
-$('stageLive').addEventListener('click',()=>{ if(replaying) finishReplay(); }); // リプレイ中にタップでスキップ
+$('stageReview').addEventListener('click',()=>{ if(replaying) finishReview(); }); // 再生中にタップでスキップ
+$('btnReviewAgain').addEventListener('click',()=>{ if(reviewIdx>=0){ GLAudio.click(); playReview(reviewIdx); } });
+$('btnReviewClose').addEventListener('click',()=>{ GLAudio.click(); closeReview(); });
 $('btnDim').addEventListener('click',()=>{
   focusDim=!focusDim; GLStore.set('focusDim',focusDim);
   if(focusDim){
