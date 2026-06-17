@@ -17,8 +17,8 @@
 .live-chip-area{min-height:34px;text-align:center;margin-top:4px}
 /* ── The Rehaut：時計の縁の金弧で状態を語る（帯/ピル/点滅/直線バーは使わない） ── */
 /* 文字盤の縁取り弧。計測中＝静かに灯る／リプレイ＝満ちていく。3Dには触れずSVGオーバーレイ1枚 */
-#rehaut{position:absolute;inset:0;width:100%;height:100%;z-index:6;pointer-events:none}
-#rehaut rect{fill:none}
+#rehaut,#rehautReview{position:absolute;inset:0;width:100%;height:100%;z-index:6;pointer-events:none}
+#rehaut rect,#rehautReview rect{fill:none}
 .rh-base{stroke:rgba(31,42,33,.10);stroke-width:1.4}
 .rh-act{stroke:var(--gold);stroke-width:1.6;opacity:0;transition:opacity .3s ease}
 #stageLive.rh-lit .rh-act{opacity:1}
