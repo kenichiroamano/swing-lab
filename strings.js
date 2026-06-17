@@ -21,7 +21,9 @@ const STR = {
     'address.done':         { ja:'記録完了',                     en:'Recorded' },
     'address.vertical':     { ja:'シャフトが鉛直に近すぎます。通常のアドレスの角度で構え直してください。', en:'Shaft too vertical. Please address at a normal angle.' },
 
-    'live.ready':           { ja:'セット完了。どうぞ',             en:'Set. Go ahead.' },
+    'live.ready':           { ja:'どうぞ',                       en:'Go.' },
+    'live.sub.ready':       { ja:'振ってください',                 en:'Swing through.' },
+    'live.sub.waiting':     { ja:'そのまま静止',                  en:'Hold still.' },
     'live.hint':            { ja:'振る間は、ボールを見て。画面は見なくて大丈夫です。', en:'Watch the ball while you swing. No need to look at the screen.' },
     'live.flip':            { ja:'針の向きを反転',                 en:'Flip needle direction' },
     'live.measuring':       { ja:'計測中',                       en:'Measuring' },
@@ -47,8 +49,7 @@ const STR = {
     'live.chip.shallow':    { ja:'浅い — もう少し上まで',          en:'Shallow' },
     'live.chip.deep':       { ja:'深い — 8時で止める',            en:'Too deep' },
     'live.chip.noFollow':   { ja:'フォローまで振り切る',           en:'Swing through' },
-    'live.return':          { ja:'構えて、静止してください',         en:'Address and hold still' },
-    'live.set':             { ja:'セット完了。どうぞ',             en:'Set. Go ahead.' },
+    'live.return':          { ja:'構えて、止まる',                 en:'Address. Hold.' },
     'live.chip.over':       { ja:'振りかぶり過ぎ — 8時で止める',    en:'Too far back — stop at 8' },
 
     'result.title.jp':      { ja:'結果',                        en:'The Result' },

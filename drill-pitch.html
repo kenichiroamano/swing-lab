@@ -15,11 +15,26 @@
 .stage-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   color:#B8804C;font-size:11px;letter-spacing:.22em}
 .live-chip-area{min-height:34px;text-align:center;margin-top:4px}
-/* 合図表示は読みやすさ最優先（実機で小さく読みにくいとの指摘を反映）。和文は大文字化せず字間も詰める */
-.live-state{font-family:'Noto Serif JP',serif;font-size:15px;letter-spacing:.04em;color:var(--gold);text-align:center;margin-bottom:6px;min-height:30px;font-weight:500;line-height:1.5;transition:color .2s ease,font-size .2s ease}
-.live-state.waiting{color:var(--sub);font-size:15px;font-weight:400}
-.live-state.armed{color:var(--gold);font-size:22px;font-weight:600;letter-spacing:.02em}   /* セット完了/いまのスイング等の重要な合図を大きく */
-.live-state.measuring{color:var(--ok);font-size:16px}
+/* ── The Rehaut：時計の縁の金弧で状態を語る（帯/ピル/点滅/直線バーは使わない） ── */
+/* 文字盤の縁取り弧。計測中＝静かに灯る／リプレイ＝満ちていく。3Dには触れずSVGオーバーレイ1枚 */
+#rehaut{position:absolute;inset:0;width:100%;height:100%;z-index:6;pointer-events:none}
+#rehaut rect{fill:none}
+.rh-base{stroke:rgba(31,42,33,.10);stroke-width:1.4}
+.rh-act{stroke:var(--gold);stroke-width:1.6;opacity:0;transition:opacity .3s ease}
+#stageLive.rh-lit .rh-act{opacity:1}
+#stageLive.rh-glow{box-shadow:inset 0 0 0 1px rgba(184,128,76,.26),0 0 26px -8px rgba(184,128,76,.48)} /* 計測中の静かな発光 */
+/* モード見出し（文字盤上の英字キャプス。計測中=Inter / リプレイ=Playfair斜体） */
+#liveEb{position:absolute;top:14px;left:0;right:0;z-index:7;text-align:center;font-family:'Inter',sans-serif;font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);min-height:15px;transition:opacity .2s ease}
+#liveEb.it{font-family:'Playfair Display',serif;font-style:italic;text-transform:none;letter-spacing:.1em;font-size:14px}
+/* 指示は紙の上にインクの明朝で大きく。帯で殴らず、ヘアラインで彫像と分ける */
+#liveCue{text-align:center;margin:12px 0 2px}
+#liveHairline{width:42px;height:1px;background:var(--gold);margin:0 auto 11px;position:relative;opacity:.85}
+#liveHairline::after{content:"";position:absolute;left:7px;right:7px;top:3px;height:1px;background:rgba(184,128,76,.42)}
+.live-state{font-family:'Noto Serif JP',serif;font-weight:600;font-size:clamp(27px,7.6vw,34px);line-height:1.2;letter-spacing:.01em;color:var(--ink);transition:color .2s ease;min-height:1.2em}
+.live-state.waiting{color:var(--sub)}
+.live-state.armed{color:var(--ink)}
+.live-state.measuring{color:var(--ok)}
+#liveSub{font-family:'Inter',sans-serif;font-size:11px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--sub);margin-top:7px;min-height:14px}
 .live-chip-area .chip{font-size:14px;padding:9px 18px}
 #liveDim{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;background:rgba(20,26,21,.92);opacity:0;pointer-events:none;transition:opacity .16s ease;border-radius:14px}
 #liveDim.on{opacity:1}
@@ -84,9 +99,13 @@
 
 <!-- ④ ライブ計測 -->
 <section class="screen" id="sc-live">
-  <div class="live-state" id="liveState"></div>
   <div class="swing-count"><span id="swingLabel"></span> <span id="swingNum">1</span> / 3</div>
-  <div class="stage3d" id="stageLive"><div id="liveDim"><span id="liveDimMsg"></span></div></div>
+  <div class="stage3d" id="stageLive">
+    <div id="liveDim"><span id="liveDimMsg"></span></div>
+    <svg id="rehaut" preserveAspectRatio="none" aria-hidden="true"><rect class="rh-base"/><rect class="rh-act"/></svg>
+    <div id="liveEb"></div>
+  </div>
+  <div id="liveCue"><div id="liveHairline"></div><div class="live-state" id="liveState"></div><div id="liveSub"></div></div>
   <p class="note center" id="liveHint"></p>
   <div class="dots" id="dots"></div>
   <div class="live-chip-area" id="chipArea"></div>
@@ -125,8 +144,8 @@
   <button class="link-btn" id="btnHome">ホームへ</button>
 </section>
 
-<script src="core.js?v=7"></script>
-<script src="strings.js?v=7"></script>
+<script src="core.js?v=8"></script>
+<script src="strings.js?v=8"></script>
 
 <!-- ════════════ 3Dステージ（時計の文字盤 × 白磁のゴルファー × 計測スクラブ） ════════════ -->
 <script type="module">
@@ -573,7 +592,7 @@ $('addrJp').textContent=STR.t('address.title.jp');
 $('addrBody').textContent=STR.t('address.body');
 $('btnCalib').textContent=STR.t('address.btn');
 $('swingLabel').textContent=STR.t('live.swing');
-$('liveHint').textContent=STR.t('live.hint');
+$('liveHint').textContent=''; // 常設の小注記は廃止（指示＋補助行で代替・画面を静かに保つ）
 $('btnFlip').textContent=STR.t('live.flip');
 $('btnRedo').textContent=STR.t('live.btn.redo');
 $('btnReaddress').textContent=STR.t('live.btn.recal');
@@ -660,6 +679,7 @@ function startSet(){
   $('chipArea').innerHTML='';
   setLiveState('waiting');
   goto('live');
+  layoutRehaut(); // ステージ表示後に縁取り弧を実寸へ合わせる
   // スイング集中モードを初めてONにした直後の最初の1球だけ、暗転で驚かせないようヒントを出す
   if(pendingFocusHint && focusDim){
     pendingFocusHint=false;
@@ -669,23 +689,54 @@ function startSet(){
 }
 
 // ライブ状態の表示（待機/計測可/計測中）。計測中は画面を暗転してボールへ視線を促す（ヘッドアップ対策）
+// 角丸長方形の縁取り弧（rehaut）をステージ実寸に合わせて配置。3Dには触らずSVGオーバーレイのみ
+let rehautPeri=0;
+function layoutRehaut(){
+  const s=$('stageLive'), svg=$('rehaut'); if(!s||!svg) return;
+  const w=s.clientWidth, h=s.clientHeight; if(!w||!h) return;
+  svg.setAttribute('viewBox','0 0 '+w+' '+h);
+  const ins=7, rx=13, bw=w-2*ins, bh=h-2*ins;
+  svg.querySelectorAll('rect').forEach(r=>{ r.setAttribute('x',ins); r.setAttribute('y',ins); r.setAttribute('width',bw); r.setAttribute('height',bh); r.setAttribute('rx',rx); r.setAttribute('ry',rx); });
+  rehautPeri = 2*(bw+bh) - 8*rx + 2*Math.PI*rx; // 周長（角丸補正）
+}
+function rehautFull(){ const a=$('rehaut'); if(a){ const r=a.querySelector('.rh-act'); if(r){ r.style.strokeDasharray='none'; r.style.strokeDashoffset='0'; } } } // 全周点灯
+function rehautArc(p){ const a=$('rehaut'); if(a){ const r=a.querySelector('.rh-act'); if(r){ if(!rehautPeri) layoutRehaut(); r.style.strokeDasharray=rehautPeri+' '+rehautPeri; r.style.strokeDashoffset=String(rehautPeri*(1-Math.min(1,Math.max(0,p)))); } } } // 弧が満ちる
+
 function setLiveState(mode){
   const el=$('liveState'); if(!el) return;
   el.classList.remove('waiting','armed','measuring');
-  const dim=$('liveDim');
+  const dim=$('liveDim'), eb=$('liveEb'), sub=$('liveSub'), stage=$('stageLive');
+  const setSub=t=>{ if(sub) sub.textContent=t||''; };
+  const setEb=(t,it)=>{ if(eb){ eb.textContent=t||''; eb.className=it?'it':''; } };
+  if(stage) stage.classList.remove('rh-lit','rh-glow');
   if(mode==='replay'){
     el.textContent=STR.t('live.replay'); el.classList.add('armed');
     if(dim) dim.classList.remove('on'); // リプレイは見せる＝暗転は必ず解除
+    setEb('Replay', true);            // Playfair斜体の英字キャプス
+    setSub('');
+    if(stage) stage.classList.add('rh-lit');
+    rehautArc(0);                     // 弧は空から始まり、startReplayで満ちていく＝計測中との決定的な違い
   } else if(mode==='measuring'){
     el.textContent=STR.t('live.measuring'); el.classList.add('measuring');
     // 暗転はスイング集中モードがオンの時だけ（初期オフ＝画面を見て動作確認できる）
     if(dim){ if(focusDim){ dim.classList.add('on'); $('liveDimMsg').textContent=STR.t('live.ball'); } else dim.classList.remove('on'); }
+    setEb('Measuring', false);
+    setSub('');
+    if(stage){ stage.classList.add('rh-lit','rh-glow'); } // 弧が静かに灯る＋微発光
+    rehautFull();
   } else if(mode==='ready'){
     el.textContent=STR.t('live.ready'); el.classList.add('armed');
     if(dim) dim.classList.remove('on');
+    setEb('', false);
+    setSub(STR.t('live.sub.ready'));
+    if(stage) stage.classList.add('rh-lit'); // 「どうぞ」＝弧が灯る
+    rehautFull();
   } else {
     el.textContent=STR.t('live.return'); el.classList.add('waiting');
     if(dim) dim.classList.remove('on');
+    setEb('', false);
+    setSub(STR.t('live.sub.waiting'));
+    rehautFull(); // 弧は消灯（rh-lit無し）。基準だけ整える
   }
 }
 
@@ -732,8 +783,7 @@ function tick(){
           armed=true; overshootWarned=false; triEMA=1; acSum=0; acCnt=0;
           lastA=0; omegaS=0;
           $('swingNum').textContent=String(STATE.swings.length+1); // 計測可になった瞬間に球番号を進める（不意打ち防止）
-          GLAudio.armReady();   // 専用の上昇音（汎用クリックと区別）
-          showChip('ok',STR.t('live.set'));
+          GLAudio.armReady();   // 専用の上昇音（汎用クリックと区別）。大きな「どうぞ」帯＋上昇音で合図し、重複チップは廃止
         }
       } else armSince=null;
     }
@@ -830,12 +880,14 @@ function startReplay(){
   if(window.Stage3D) Stage3D.setLive(trace[0].ang, trace[0].state);
   function step(){
     if(!replaying) return;
-    const elapsed=(performance.now()-startWall)*REPLAY_SPEED;
+    const wall=performance.now()-startWall;
+    const elapsed=wall*REPLAY_SPEED;
     const target=t0+elapsed;
     while(i<trace.length-1 && trace[i+1].t<=target) i++;
     const fr=trace[Math.min(i,trace.length-1)];
     if(window.Stage3D) Stage3D.setLive(fr.ang, fr.state);
-    if(performance.now()-startWall < dur + REPLAY_HOLD) replayRAF=requestAnimationFrame(step);
+    rehautArc(Math.min(1, wall/Math.max(1,dur))); // 縁の金弧が再生に合わせて満ちる
+    if(wall < dur + REPLAY_HOLD) replayRAF=requestAnimationFrame(step);
     else finishReplay();
   }
   replayRAF=requestAnimationFrame(step);
@@ -1088,6 +1140,7 @@ $('btnReaddress').addEventListener('click',()=>{ STATE.frame=null; $('calibCount
 $('btnAgain').addEventListener('click',()=>{ GLAudio.click(); startSet(); });
 $('btnRecal2').addEventListener('click',()=>{ STATE.frame=null; $('calibCount').textContent='—'; goto('address'); });
 $('btnHome').addEventListener('click',()=>{ GLAudio.click(); location.href='home-v3.html'; });
+window.addEventListener('resize', layoutRehaut); // 画面サイズ変化で縁取り弧を再配置
 </script>
 </body>
 </html>
