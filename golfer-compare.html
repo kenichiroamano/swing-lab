@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Golflev · Avatar Compare（現行 ⇄ リファイン）</title>
+<style>
+*{margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#F7F1E3;font-family:'Inter',sans-serif}
+#c{position:fixed;inset:0;width:100%;height:100%}
+#loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#B8804C;font-size:12px;letter-spacing:.2em;z-index:5;background:#F7F1E3}
+.modebar{position:fixed;top:16px;left:0;right:0;display:flex;gap:8px;justify-content:center;z-index:4}
+.mbtn{padding:9px 18px;border-radius:999px;border:1px solid rgba(31,42,33,.3);background:rgba(247,241,227,.85);
+  color:#1F2A21;font-size:12px;letter-spacing:.12em;font-family:'Inter',sans-serif}
+.mbtn.on{background:#1F2A21;color:#F7F1E3;border-color:#1F2A21}
+#cap{position:fixed;bottom:16px;left:0;right:0;text-align:center;color:#8A8A82;font-size:11px;letter-spacing:.08em;z-index:4}
+</style>
+<script>window.__err=[];window.onerror=m=>window.__err.push(String(m));</script>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="loading">LOADING…</div>
+<div class="modebar">
+  <button class="mbtn" id="bCur">現行</button>
+  <button class="mbtn on" id="bRef">リファイン</button>
+</div>
+<div id="cap">画面タップで角度切替（3/4正面 → 側面 → 正面）</div>
+
+<script type="module">
+import * as THREE from 'three';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
+
+const PAPER=0xF7F1E3;
+const canvas=document.getElementById('c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=0.92;
+
+const scene=new THREE.Scene(); scene.background=new THREE.Color(PAPER);
+const pmrem=new THREE.PMREMGenerator(renderer);
+scene.environment=pmrem.fromScene(new RoomEnvironment(),0.04).texture;
+
+// ── ライト2系統 ──
+const key=new THREE.DirectionalLight(0xfff0dd,2.0);
+key.position.set(2.5,5,2.5); key.castShadow=true;
+key.shadow.mapSize.set(2048,2048);
+key.shadow.camera.left=-3;key.shadow.camera.right=3;key.shadow.camera.top=4;key.shadow.camera.bottom=-1;
+key.shadow.radius=6; key.shadow.bias=-0.0004; scene.add(key);
+const rim=new THREE.PointLight(0xC8956C,12,18); rim.position.set(-3,2,-3); scene.add(rim);
+const hemi=new THREE.HemisphereLight(0xFBF6EA,0xEDE6D5,0.0); scene.add(hemi); // refinedで使う平面的フィル
+
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(50,50),
+  new THREE.MeshStandardMaterial({color:0xEDE6D5,roughness:.6}));
+ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
+const GOLD=new THREE.MeshStandardMaterial({color:0xB8804C,metalness:1.0,roughness:0.25,envMapIntensity:1.0});
+const ring=new THREE.Mesh(new THREE.TorusGeometry(0.95,0.012,16,128),GOLD);
+ring.rotation.x=Math.PI/2; ring.position.y=0.012; scene.add(ring);
+
+const camera=new THREE.PerspectiveCamera(30,innerWidth/innerHeight,0.1,60);
+const VIEWS={ hero:{pos:[-1.5,1.28,3.7],look:[0,0.72,0],fov:30},
+  side:{pos:[4.4,1.30,0.6],look:[0,0.82,0],fov:31}, front:{pos:[0,1.30,4.5],look:[0,0.80,0],fov:31} };
+const VORDER=['hero','side','front']; let curView='hero';
+function view(n){const v=VIEWS[n]||VIEWS.hero;curView=n;camera.position.set(...v.pos);camera.fov=v.fov;camera.lookAt(...v.look);camera.updateProjectionMatrix();}
+
+// ── マテリアル2系統 ──
+const bodyCurrent=new THREE.MeshPhysicalMaterial({color:0xF2E8D6,metalness:0,roughness:.3,clearcoat:.55,clearcoatRoughness:.35,envMapIntensity:.7});
+const bodyRefined=new THREE.MeshStandardMaterial({color:0xEFE7D6,metalness:0,roughness:.66,envMapIntensity:.32}); // マット白磁
+const jointCurrent=new THREE.MeshStandardMaterial({color:0xC8956C,metalness:.95,roughness:.3,envMapIntensity:1.0});
+const jointRefined=new THREE.MeshStandardMaterial({color:0xB8804C,metalness:.85,roughness:.42,envMapIntensity:.6}); // 落ち着いた縁金
+const whiteCurrent=new THREE.MeshPhysicalMaterial({color:0xF2E8D6,metalness:0,roughness:.22,clearcoat:.7,clearcoatRoughness:.25,envMapIntensity:.8});
+const whiteRefined=bodyRefined;
+
+let bodyMeshes=[], jointMeshes=[], splitOk=[], headOvoid=null, golfer=null, mixer=null, action=null, clipDur=1.93;
+
+new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
+  golfer=fbx; golfer.scale.setScalar(0.01);
+  golfer.traverse(c=>{ if(c.isMesh){ c.castShadow=true;
+    const n=((c.material&&c.material.name)||c.name||'').toLowerCase();
+    (n.includes('joint')?jointMeshes:bodyMeshes).push(c); } });
+  const GOLD_JOINT_RE=/Neck|Head|Shoulder|(Left|Right)Arm$|(Left|Right)ForeArm$|Hand|(Left|Right)Leg$|Foot|Toe/;
+  function splitJointFaces(mesh){
+    const geo=mesh.geometry;
+    if(!geo.attributes.skinIndex || !mesh.skeleton) return false;
+    const boneNames=mesh.skeleton.bones.map(b=>b.name||'');
+    const si=geo.attributes.skinIndex, sw=geo.attributes.skinWeight, pos=geo.attributes.position;
+    const comp=(a,v,j)=>a.array[v*a.itemSize+j];
+    geo.computeBoundingBox(); const bb=geo.boundingBox;
+    const mins=[bb.min.x,bb.min.y,bb.min.z], maxs=[bb.max.x,bb.max.y,bb.max.z];
+    const sizes=[maxs[0]-mins[0],maxs[1]-mins[1],maxs[2]-mins[2]];
+    const up=sizes.indexOf(Math.max(...sizes)); const lat=[0,1,2].filter(a=>a!==up);
+    const H=sizes[up]; const c0=(maxs[lat[0]]+mins[lat[0]])/2, c1=(maxs[lat[1]]+mins[lat[1]])/2;
+    const inTorso=v=>{ const p=[comp(pos,v,0),comp(pos,v,1),comp(pos,v,2)];
+      const h=(p[up]-mins[up])/H; const r=Math.hypot(p[lat[0]]-c0,p[lat[1]]-c1); return h>0.44&&h<0.80&&r<0.095*H; };
+    const hasIdx=!!geo.index;
+    const faceCount=hasIdx?geo.index.count/3:geo.attributes.position.count/3;
+    const vAt=hasIdx?(f,k)=>geo.index.array[f*3+k]:(f,k)=>f*3+k;
+    const goldIdx=[], whiteIdx=[];
+    for(let f=0;f<faceCount;f++){ let votes=0; const tri=[vAt(f,0),vAt(f,1),vAt(f,2)];
+      for(const v of tri){ let best=0,bw=-1; for(let j=0;j<4;j++){const w=comp(sw,v,j);if(w>bw){bw=w;best=comp(si,v,j);}}
+        if(!inTorso(v)&&GOLD_JOINT_RE.test(boneNames[best])) votes++; }
+      (votes>=2?goldIdx:whiteIdx).push(tri[0],tri[1],tri[2]); }
+    geo.setIndex(goldIdx.concat(whiteIdx)); geo.clearGroups();
+    geo.addGroup(0,goldIdx.length,0); geo.addGroup(goldIdx.length,whiteIdx.length,1); return true;
+  }
+  splitOk=jointMeshes.map(m=>splitJointFaces(m));
+  scene.add(golfer);
+
+  // アドレス補正
+  if(fbx.animations&&fbx.animations.length){
+    mixer=new THREE.AnimationMixer(golfer);
+    action=mixer.clipAction(fbx.animations[0]); clipDur=fbx.animations[0].duration;
+    action.play(); action.paused=true; action.time=0; mixer.update(0);
+    const ident=new THREE.Quaternion();
+    const want={Spine:0.30,Spine1:0.30,Spine2:0.26,Neck:0.55,Head:0.74};
+    golfer.traverse(o=>{ if(o.isBone){const k=o.name.replace('mixamorig','');if(k in want)o.quaternion.slerp(ident,want[k]);} });
+    golfer.updateMatrixWorld(true);
+  }
+  // 無顔オーボイド（リファイン時のみ表示）＝頭ボーン位置に滑らかな白磁
+  const headBone=golfer.getObjectByName('mixamorigHead');
+  headOvoid=new THREE.Mesh(new THREE.SphereGeometry(0.092,32,24), bodyRefined);
+  headOvoid.castShadow=true; headOvoid.scale.set(1,1.18,1.02);
+  if(headBone){ const v=new THREE.Vector3(); headBone.getWorldPosition(v); headOvoid.position.copy(v).add(new THREE.Vector3(0,0.085,0.01)); }
+  scene.add(headOvoid);
+
+  view('hero'); applyMode('refined');
+  document.getElementById('loading').style.display='none';
+},undefined,e=>{ window.__err.push('FBX: '+(e.message||e)); document.getElementById('loading').textContent='LOAD ERROR'; });
+
+function applyMode(mode){
+  const refined = mode==='refined';
+  bodyMeshes.forEach(m=>m.material = refined?bodyRefined:bodyCurrent);
+  jointMeshes.forEach((m,i)=>{ m.material = splitOk[i] ? (refined?[jointRefined,whiteRefined]:[jointCurrent,whiteCurrent]) : (refined?jointRefined:jointCurrent); });
+  // ライト/影：refined=平面・影なし・縁金、current=立体・暖色・落ち影
+  key.intensity = refined?1.15:2.0;
+  key.color.set(refined?0xFFF6EC:0xFFF0DD);
+  key.castShadow = !refined;          // refinedは落ち影なし（ホームの「影なし」に寄せる）
+  rim.intensity = refined?0:12;
+  hemi.intensity = refined?0.85:0.0;  // refinedは平面的フィル
+  ground.visible = !refined;          // refinedは地面を消し、金リングだけ残す
+  if(headOvoid) headOvoid.visible = refined; // refined=無顔オーボイド
+  document.getElementById('bRef').classList.toggle('on',refined);
+  document.getElementById('bCur').classList.toggle('on',!refined);
+  document.getElementById('cap').textContent = (refined?'リファイン：無顔・マット白磁・平面/縁金・影なし':'現行：白磁の艶・暖色ライト・落ち影・顔あり')+'　／　画面タップで角度切替';
+}
+window.applyMode=applyMode;
+document.getElementById('bCur').addEventListener('click',e=>{e.stopPropagation();applyMode('current');});
+document.getElementById('bRef').addEventListener('click',e=>{e.stopPropagation();applyMode('refined');});
+addEventListener('pointerdown',()=>{ const i=VORDER.indexOf(curView); view(VORDER[(i+1)%VORDER.length]); });
+
+function animate(){ renderer.render(scene,camera); requestAnimationFrame(animate); }
+animate();
+addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+</script>
+</body>
+</html>
