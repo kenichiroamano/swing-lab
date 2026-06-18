@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Golflev · Line-art Golfer Proto</title>
+<style>
+*{margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#F7F1E3;font-family:'Inter',sans-serif}
+#c{position:fixed;inset:0;width:100%;height:100%}
+#loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#B8804C;font-size:12px;letter-spacing:.2em;z-index:5;background:#F7F1E3}
+#cap{position:fixed;bottom:16px;left:0;right:0;text-align:center;color:#8A8A82;font-size:11px;letter-spacing:.08em;z-index:4}
+</style>
+<script>window.__err=[];window.onerror=m=>window.__err.push(String(m));</script>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="loading">LOADING…</div>
+<div id="cap">line-art golfer (proto) / tap to play-pause</div>
+
+<script type="module">
+import * as THREE from 'three';
+import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
+
+const PAPER=0xF7F1E3;
+const canvas=document.getElementById('c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.NoToneMapping;
+renderer.shadowMap.enabled=false;
+
+const scene=new THREE.Scene(); scene.background=new THREE.Color(PAPER);
+const dir=new THREE.DirectionalLight(0xffffff,0.9); dir.position.set(1.5,3,2.5); scene.add(dir);
+scene.add(new THREE.HemisphereLight(0xFBF6EA,0xEDE6D5,0.6));
+
+const camera=new THREE.PerspectiveCamera(30,innerWidth/innerHeight,0.1,60);
+camera.position.set(-1.5,1.28,3.9); camera.lookAt(0,0.82,0);
+
+const tcv=document.createElement('canvas'); tcv.width=4; tcv.height=1;
+const tcx=tcv.getContext('2d');
+tcx.fillStyle='#E7DECB'; tcx.fillRect(0,0,2,1);
+tcx.fillStyle='#F7F1E3'; tcx.fillRect(2,0,2,1);
+const gradMap=new THREE.CanvasTexture(tcv); gradMap.minFilter=gradMap.magFilter=THREE.NearestFilter;
+const lineMat=new THREE.MeshToonMaterial({color:0xF7F1E3, gradientMap:gradMap});
+
+const OUTLINE=0x7A7468; let THICK=1.4;
+const outlineMats=[];
+function makeOutlineMat(){
+  const m=new THREE.MeshBasicMaterial({color:OUTLINE, side:THREE.BackSide});
+  m.onBeforeCompile=(sh)=>{ sh.uniforms.uThick={value:THICK}; m.userData.sh=sh;
+    sh.vertexShader='uniform float uThick;\n'+sh.vertexShader
+      .replace('#include <skinning_vertex>','#include <skinning_vertex>\n transformed += objectNormal * uThick;');
+  };
+  outlineMats.push(m); return m;
+}
+window.setThick=(t)=>{ THICK=t; outlineMats.forEach(m=>{ if(m.userData.sh) m.userData.sh.uniforms.uThick.value=t; }); };
+
+let mixer=null, action=null, golfer=null;
+new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
+  golfer=fbx; golfer.scale.setScalar(0.0095);
+  golfer.traverse(c=>{
+    if(c.isMesh){
+      c.castShadow=false; c.material=lineMat;
+      const shell=new THREE.SkinnedMesh(c.geometry, makeOutlineMat());
+      try{ shell.bind(c.skeleton, c.bindMatrix); }catch(e){
+        shell.skeleton=c.skeleton; shell.bindMatrix.copy(c.bindMatrix); shell.bindMatrixInverse.copy(c.bindMatrixInverse);
+      }
+      shell.frustumCulled=false; c.add(shell);
+    }
+  });
+  golfer.traverse(b=>{ if(b.isBone){
+    if(/Head$/.test(b.name)) b.scale.setScalar(0.78);
+    if(/Neck$/.test(b.name)) b.scale.set(1,1.08,1);
+  }});
+  scene.add(golfer);
+  if(fbx.animations&&fbx.animations.length){
+    mixer=new THREE.AnimationMixer(golfer);
+    action=mixer.clipAction(fbx.animations[0]); action.play(); mixer.timeScale=0.5;
+  }
+  window.GL={scene,camera,golfer,mixer,action};
+  document.getElementById('loading').style.display='none';
+},undefined,e=>{ window.__err.push('FBX: '+(e.message||e)); document.getElementById('loading').textContent='LOAD ERROR'; });
+
+let playing=true;
+canvas.addEventListener('pointerdown',()=>{ playing=!playing; });
+const clock=new THREE.Clock();
+function animate(){ const dt=clock.getDelta(); if(mixer&&playing) mixer.update(dt); renderer.render(scene,camera); requestAnimationFrame(animate); }
+animate();
+addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+</script>
+</body>
+</html>
