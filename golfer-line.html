@@ -49,9 +49,10 @@ const tcx=tcv.getContext('2d');
 tcx.fillStyle='#E7DECB'; tcx.fillRect(0,0,2,1);
 tcx.fillStyle='#F7F1E3'; tcx.fillRect(2,0,2,1);
 const gradMap=new THREE.CanvasTexture(tcv); gradMap.minFilter=gradMap.magFilter=THREE.NearestFilter;
-const lineMat=new THREE.MeshToonMaterial({color:0xF7F1E3, gradientMap:gradMap});
+// 塗りはフラットなクリーム（紙）。陰影なし＝線画寄りの最善形
+const lineMat=new THREE.MeshBasicMaterial({color:0xF7F1E3});
 
-const OUTLINE=0x7A7468; let THICK=1.4;
+const OUTLINE=0x6B6258; let THICK=5;
 const outlineMats=[];
 function makeOutlineMat(){
   const m=new THREE.MeshBasicMaterial({color:OUTLINE, side:THREE.BackSide});
