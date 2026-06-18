@@ -162,7 +162,7 @@ function applyMode(mode){
 window.applyMode=applyMode;
 document.getElementById('bCur').addEventListener('click',e=>{e.stopPropagation();applyMode('current');});
 document.getElementById('bRef').addEventListener('click',e=>{e.stopPropagation();applyMode('refined');});
-addEventListener('pointerdown',()=>{ const i=VORDER.indexOf(curView); view(VORDER[(i+1)%VORDER.length]); });
+canvas.addEventListener('pointerdown',()=>{ const i=VORDER.indexOf(curView); view(VORDER[(i+1)%VORDER.length]); });
 
 function animate(){ renderer.render(scene,camera); requestAnimationFrame(animate); }
 animate();
