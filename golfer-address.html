@@ -22,7 +22,7 @@ html,body{height:100%;overflow:hidden;background:#F7F1E3;font-family:'Inter',san
 <body>
 <canvas id="c"></canvas>
 <div id="loading">LOADING…</div>
-<div id="hud"></div>
+<div id="hud">タップで角度を切替：3/4正面 → 側面 → 正面</div>
 
 <script type="module">
 import * as THREE from 'three';
@@ -64,21 +64,18 @@ const GOLD=new THREE.MeshStandardMaterial({color:0xc09455,metalness:1.0,roughnes
 const ring=new THREE.Mesh(new THREE.TorusGeometry(0.95,0.015,16,128),GOLD);
 ring.rotation.x=Math.PI/2; ring.position.y=0.012; scene.add(ring);
 
-// カメラプリセット（被写体の足元中心 ~y0.95 を見る）
-const TARGET=new THREE.Vector3(0,0.95,0);
+// カメラプリセット
 const VIEWS={
-  front:{pos:[0,1.35,4.6]},      // 正面（顔/胸がこちら）
-  side: {pos:[4.6,1.35,0]},      // 側面（前傾・距離が分かる）
-  dtl:  {pos:[0,1.35,-4.6]},     // 背面（飛球線後方）
+  hero: {pos:[-1.5,1.28,3.7], look:[0,0.72,0], fov:30},  // 3/4 正面
+  front:{pos:[0,1.30,4.5],     look:[0,0.80,0], fov:31},  // 正面
+  side: {pos:[4.4,1.30,0.6],   look:[0,0.82,0], fov:31},  // 側面（前傾・距離）
 };
-let curFOV=32;
-window.view=(name)=>{ const v=VIEWS[name]||VIEWS.front; camera.position.set(...v.pos); camera.lookAt(TARGET); hud(); };
-window.zoom=(f)=>{ camera.fov=curFOV/f; camera.updateProjectionMatrix(); hud(); };
-window.target=(x,y,z)=>{ TARGET.set(x,y,z); camera.lookAt(TARGET); hud(); };
+const VORDER=['hero','side','front']; let curView='hero';
+window.view=(name)=>{ const v=VIEWS[name]||VIEWS.hero; curView=name;
+  camera.position.set(...v.pos); camera.fov=v.fov; camera.lookAt(...v.look); camera.updateProjectionMatrix(); hud(); };
 
 let mixer=null, golfer=null, action=null, clipDur=0;
-function hud(){ document.getElementById('hud').textContent=
-  `t=${action?action.time.toFixed(3):'-'}/${clipDur.toFixed(2)} cam=[${camera.position.toArray().map(n=>n.toFixed(1))}] fov=${camera.fov.toFixed(0)}`; }
+function hud(){ try{ console.log('view',curView,'t',action&&action.time.toFixed(3)); }catch(e){} }
 
 new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
   golfer=fbx; golfer.scale.setScalar(0.01);
@@ -124,12 +121,22 @@ new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
     action=mixer.clipAction(fbx.animations[0]);
     clipDur=fbx.animations[0].duration;
     action.play(); action.paused=true;
-    window.setT=(t)=>{ action.paused=true; action.time=Math.max(0,Math.min(clipDur,t)); mixer.update(0); hud(); };
-    window.setT(0.10); // 初期＝アドレス候補
+    // アドレス補正：チップ動作の構えは前傾が極端なので、脊椎/首/頭を起こして現実的なアドレスに
+    function applyAddress(){
+      const ident=new THREE.Quaternion();
+      const want={Spine:0.30, Spine1:0.30, Spine2:0.26, Neck:0.55, Head:0.74};
+      golfer.traverse(o=>{ if(o.isBone){ const k=o.name.replace('mixamorig',''); if(k in want) o.quaternion.slerp(ident,want[k]); } });
+      golfer.updateMatrixWorld(true);
+    }
+    window.applyAddress=applyAddress;
+    window.setT=(t)=>{ action.paused=true; action.time=Math.max(0,Math.min(clipDur,t)); mixer.update(0); applyAddress(); hud(); };
+    window.setT(0.0); // アドレスフレーム＋補正
   }
   window.GL={scene,camera,renderer,mixer,golfer,action,get dur(){return clipDur;}};
   window.__golfer={anims:fbx.animations.length,dur:clipDur};
-  window.view('front');
+  window.view('hero');
+  // タップで 3/4正面 → 側面 → 正面 を切替
+  addEventListener('pointerdown',()=>{ const i=VORDER.indexOf(curView); window.view(VORDER[(i+1)%VORDER.length]); });
   document.getElementById('loading').style.display='none';
 },undefined,(e)=>{ window.__err.push('FBX load: '+(e.message||e)); document.getElementById('loading').textContent='LOAD ERROR'; });
 
