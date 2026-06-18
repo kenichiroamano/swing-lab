@@ -110,6 +110,7 @@ const STR = {
     'grip.back':            { ja:'ホーム',                       en:'Home' },
     'grip.show.title':      { ja:'基本の握りを、見る。',           en:'See the basic grip.' },
     'grip.show.caption':    { ja:'ゴールドの線が示すのは、握る位置・被せ具合・力の入れ方です。', en:'The gold lines point to grip position, how the knuckles show, and pressure.' },
+    'grip.show.modelCap':   { ja:'クラブの握りのお手本です。下の3点と見比べて、ご自身の握りを整えてください。', en:'A model of the club grip. Compare it with the three points below and set your own.' },
     'grip.show.placeholder':{ ja:'お手本の映像を準備中です。',       en:'Model footage coming soon.' },
     'grip.handedness':      { ja:'※ 右打ちの方向けです。左打ちの方は、左右を入れ替えてご覧ください。', en:'For right-handed players. If you play left-handed, reverse left and right.' },
     'grip.check.title':     { ja:'握りを見る、3つのポイント。',     en:'Three points to look at.' },

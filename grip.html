@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,600;1,800&family=Noto+Serif+JP:wght@300;400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="theme.css?v=17">
+<link rel="stylesheet" href="theme.css?v=18">
 <style>
 /* grip.html — グリップ無料フック（Lesson 00 / The Setup）
    測らない＝"見せる"教材。実写は準備中につき、空プレースホルダ枠＋ゴールド指示線のみ。
@@ -81,8 +81,12 @@
   <div class="part-label"><span class="pno" id="p1no"></span><span id="p1label"></span></div>
   <div class="part-rule"></div>
 
-  <!-- 握りのお手本（クラブの握りクローズアップ線画）は画像生成が整い次第ここに差し込む。
-       それまでは空枠を置かず、編集的にテキストの3点で見せる。 -->
+  <!-- お手本＝クラブの握りの線画クローズアップ（Firefly生成・onboard同タッチ）。立ち方と同じ金縁の作法 -->
+  <div class="show-frame stance-photo-frame">
+    <img class="stance-photo" src="assets/onboard-grip-close.png" alt="クラブの握りのお手本">
+    <div class="rehaut"></div>
+  </div>
+  <div class="show-cap" id="gripCap"></div>
   <div class="handed" id="handed"></div>
 
   <!-- 見るポイント -->
@@ -117,7 +121,7 @@
 
 </div>
 
-<script src="strings.js?v=17"></script>
+<script src="strings.js?v=18"></script>
 <script>
 const $=id=>document.getElementById(id);
 const T=k=>STR.t(k);
@@ -126,6 +130,7 @@ $('eyebrow').textContent=T('grip.eyebrow');
 $('titleEn').innerHTML='<em>'+T('grip.title.en')+'</em>';
 $('intro').innerHTML=T('grip.intro');
 $('notMeasure').textContent=T('grip.notMeasure');
+$('gripCap').textContent=T('grip.show.modelCap');
 $('handed').textContent=T('grip.handedness');
 $('p1no').textContent=T('grip.part1.no');
 $('p1label').textContent=T('grip.part1.label');
