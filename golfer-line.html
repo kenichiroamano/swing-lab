@@ -66,15 +66,15 @@ window.setThick=(t)=>{ THICK=t; outlineMats.forEach(m=>{ if(m.userData.sh) m.use
 let mixer=null, action=null, golfer=null;
 new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
   golfer=fbx; golfer.scale.setScalar(0.0095);
-  golfer.traverse(c=>{
-    if(c.isMesh){
-      c.castShadow=false; c.material=lineMat;
-      const shell=new THREE.SkinnedMesh(c.geometry, makeOutlineMat());
-      try{ shell.bind(c.skeleton, c.bindMatrix); }catch(e){
-        shell.skeleton=c.skeleton; shell.bindMatrix.copy(c.bindMatrix); shell.bindMatrixInverse.copy(c.bindMatrixInverse);
-      }
-      shell.frustumCulled=false; c.add(shell);
+  // traverse中に子を足すと無限再帰になるので、先にメッシュを集めてから処理する
+  const meshes=[]; golfer.traverse(c=>{ if(c.isMesh) meshes.push(c); });
+  meshes.forEach(c=>{
+    c.castShadow=false; c.material=lineMat;
+    const shell=new THREE.SkinnedMesh(c.geometry, makeOutlineMat());
+    try{ shell.bind(c.skeleton, c.bindMatrix); }catch(e){
+      shell.skeleton=c.skeleton; shell.bindMatrix.copy(c.bindMatrix); shell.bindMatrixInverse.copy(c.bindMatrixInverse);
     }
+    shell.frustumCulled=false; c.add(shell);
   });
   golfer.traverse(b=>{ if(b.isBone){
     if(/Head$/.test(b.name)) b.scale.setScalar(0.78);
