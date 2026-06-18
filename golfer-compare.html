@@ -125,12 +125,19 @@ new FBXLoader().load('assets/golfer-chip.fbx',(fbx)=>{
     golfer.traverse(o=>{ if(o.isBone){const k=o.name.replace('mixamorig','');if(k in want)o.quaternion.slerp(ident,want[k]);} });
     golfer.updateMatrixWorld(true);
   }
-  // 無顔オーボイド（リファイン時のみ表示）＝頭ボーン位置に滑らかな白磁
+  // 無顔オーボイド（リファイン時のみ表示）＝頭ボーンと頭頂ボーンの中点に滑らかな白磁で頭を置換
   const headBone=golfer.getObjectByName('mixamorigHead');
-  headOvoid=new THREE.Mesh(new THREE.SphereGeometry(0.092,32,24), bodyRefined);
-  headOvoid.castShadow=true; headOvoid.scale.set(1,1.18,1.02);
-  if(headBone){ const v=new THREE.Vector3(); headBone.getWorldPosition(v); headOvoid.position.copy(v).add(new THREE.Vector3(0,0.085,0.01)); }
+  const headTop=golfer.getObjectByName('mixamorigHeadTop_End');
+  let hCenter=new THREE.Vector3(0,1.5,0), hRad=0.1;
+  if(headBone&&headTop){ const a=new THREE.Vector3(),b=new THREE.Vector3();
+    headBone.getWorldPosition(a); headTop.getWorldPosition(b);
+    hCenter=a.clone().add(b).multiplyScalar(0.5); hRad=a.distanceTo(b)*0.62; }
+  else if(headBone){ headBone.getWorldPosition(hCenter); hCenter.y+=0.09; }
+  headOvoid=new THREE.Mesh(new THREE.SphereGeometry(hRad,40,28), bodyRefined);
+  headOvoid.castShadow=true; headOvoid.scale.set(1,1.12,1); headOvoid.position.copy(hCenter);
   scene.add(headOvoid);
+  window.GL={scene,camera,golfer,headOvoid,view,applyMode}; // 微調整用
+  window.tune=(x,y,z,s,sy)=>{ headOvoid.position.set(x,y,z); headOvoid.scale.set(s,sy,s); };
 
   view('hero'); applyMode('refined');
   document.getElementById('loading').style.display='none';
