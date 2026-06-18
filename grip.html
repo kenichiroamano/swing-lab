@@ -81,15 +81,8 @@
   <div class="part-label"><span class="pno" id="p1no"></span><span id="p1label"></span></div>
   <div class="part-rule"></div>
 
-  <!-- お手本（実体アセット待ち：Luma/Mixamo or 実写。手描きの絵は置かない＝人体はコードで描かないルール） -->
-  <div class="show-frame">
-    <div class="ph">
-      <div class="ph-mk" id="phMk"></div>
-      <div class="ph-tx" id="phTx"></div>
-    </div>
-    <div class="rehaut"></div>
-  </div>
-  <div class="show-cap" id="showCap"></div>
+  <!-- 握りのお手本（クラブの握りクローズアップ線画）は画像生成が整い次第ここに差し込む。
+       それまでは空枠を置かず、編集的にテキストの3点で見せる。 -->
   <div class="handed" id="handed"></div>
 
   <!-- 見るポイント -->
@@ -133,9 +126,6 @@ $('eyebrow').textContent=T('grip.eyebrow');
 $('titleEn').innerHTML='<em>'+T('grip.title.en')+'</em>';
 $('intro').innerHTML=T('grip.intro');
 $('notMeasure').textContent=T('grip.notMeasure');
-$('phMk').textContent=T('grip.part1.label');
-$('phTx').textContent=T('grip.show.placeholder');
-$('showCap').textContent=T('grip.show.caption');
 $('handed').textContent=T('grip.handedness');
 $('p1no').textContent=T('grip.part1.no');
 $('p1label').textContent=T('grip.part1.label');
