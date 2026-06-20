@@ -139,6 +139,12 @@ body::before{ content:''; position:fixed; inset:0; pointer-events:none; z-index:
     <button class="cta" id="todayBtn">はじめる</button>
   </div>
 
+  <!-- Lv3 ビジネスゾーン入口（暫定: Lv2到達後に表示。正式なアンロック条件はken判断待ち） -->
+  <div class="grip-row" id="bzRow" style="display:none">
+    <span class="eb" id="bzEb">Level 3</span>
+    <div class="rt"><div class="tl" id="bzTl"></div></div>
+  </div>
+
   <div class="tag">振る、を整える。</div>
 
   <!-- 既存ユーザー向け グリップ入口（hasBestのみ・最下部の控えめ一行） -->
@@ -150,8 +156,8 @@ body::before{ content:''; position:fixed; inset:0; pointer-events:none; z-index:
   <div class="foot"><button id="resetLink">データを消去</button></div>
 </div>
 
-<script src="strings.js?v=18"></script>
-<script src="core.js?v=18"></script>
+<script src="strings.js?v=19"></script>
+<script src="core.js?v=19"></script>
 <script>
 const $=id=>document.getElementById(id);
 if(location.search.includes('demo')){
@@ -199,6 +205,13 @@ $('stats').innerHTML=
 
 $('todayBtn').onclick=()=>location.href='drill-pitch.html';
 
+// Lv3 ビジネスゾーン入口（暫定: Lv2到達=currentLevel>=2 で表示。正式なアンロック条件はken判断待ち）
+if(GLProfile.get('progress.currentLevel',1)>=2){
+  $('bzTl').innerHTML='ビジネスゾーン <em>The Business Zone</em> ›';
+  $('bzRow').style.display='flex';
+  $('bzRow').onclick=()=>location.href='drill-business.html';
+}
+
 // グリップ無料フック入口（二段構え）: 新規(!hasBest)=ダイアルとThe Pitchの間 / 既存(hasBest)=最下部一行
 const gripT=k=>STR.t(k);
 const gripTitleHTML=gripT('grip.entry.title')+'<em>'+gripT('grip.entry.en')+'</em> ›';
@@ -209,17 +222,4 @@ if(!hasBest){
   $('gripInvite').style.display='block';
   $('gripInvite').onclick=()=>location.href='grip.html';
 }else{
-  $('grEb').textContent=gripT('grip.entry.eyebrow');
-  $('grTl').innerHTML=gripTitleHTML;
-  $('gripRow').style.display='flex';
-  $('gripRow').onclick=()=>location.href='grip.html';
-}
-// S5: 確認の上、golflev: 名前空間のキーを一掃（旧仕様はGLProfile本体だけ消し、dialFlip/focusDim等が消し残っていた）
-$('resetLink').onclick=()=>{
-  if(!confirm('保存データ（ベスト・連続日数・スコア・各種設定）をすべて消去します。よろしいですか？')) return;
-  try{ Object.keys(localStorage).filter(k=>k.indexOf('golflev:')===0).forEach(k=>localStorage.removeItem(k)); }catch(e){}
-  location.reload();
-};
-</script>
-</body>
-</html>
+  $('grEb').textContent=grip

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-<title>Golflev · The Pitch</title>
+<title>Golflev · The Business Zone</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,800;1,800&family=Noto+Serif+JP:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -250,16 +250,16 @@ function dialTexture(){
     x.rotate(Math.PI*2/60);
   }
   x.restore();
-  // 観客視点: ゴルファーが正面を向くため、バックは画面左 → 8=左, 4=右
+  // 観客視点: ゴルファーが正面を向くため、バックは画面左 → 9=左, 3=右
   x.fillStyle='#1F2A21'; x.textAlign='center'; x.textBaseline='middle';
   x.font='italic 800 120px Georgia, serif';
   const NR=320;
-  x.fillText('8', S/2-Math.sin(Math.PI/3)*NR, S/2+Math.cos(Math.PI/3)*NR);
-  x.fillText('4', S/2+Math.sin(Math.PI/3)*NR, S/2+Math.cos(Math.PI/3)*NR);
+  x.fillText('9', S/2-Math.sin(Math.PI/2)*NR, S/2+Math.cos(Math.PI/2)*NR);
+  x.fillText('3', S/2+Math.sin(Math.PI/2)*NR, S/2+Math.cos(Math.PI/2)*NR);
   x.font='600 30px Inter, sans-serif'; x.fillStyle='rgba(31,42,33,.8)';
   x.save(); x.translate(S/2,S/2-210); x.letterSpacing='12px'; x.fillText('G O L F L E V',6,0); x.restore();
   x.font='500 19px Inter, sans-serif'; x.fillStyle='rgba(184,128,76,.9)';
-  x.fillText('T H E   P I T C H', S/2+3, S/2-168);
+  x.fillText('B U S I N E S S   Z O N E', S/2+3, S/2-168);
   const tex=new THREE.CanvasTexture(cv);
   tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=8;
   return tex;
@@ -293,28 +293,28 @@ function zoneArc(centerDeg){
   const arc=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),24,0.03,10,false),GOLD);
   stageG.add(arc);
 }
-zoneArc(-60); zoneArc(60);
+zoneArc(-90); zoneArc(90);
 { const [dx,,dz]=dialPos(0,R-0.30);
   const dot=new THREE.Mesh(new THREE.SphereGeometry(0.045,20,20),GOLD);
   dot.position.set(dx,0.135,dz); stageG.add(dot); }
 
-/* ── 縦アーク振り幅ゲージ（demo-lab v3でken承認 2026-06-12） ──
+/* ── 縦アーク振り幅ゲージ（demo-lab v3でken承認 2026-06-12 / Lv3で±90°化） ──
    支点=手元(1.12m)、半径=クラブ相当(0.81m)。クラブヘッドの実軌道に重なる。
-   光球=計測シャフト角。±55°到達で金ゾーン（8時/4時、10°幅）が点灯。言葉なしで伝わる */
+   光球=計測シャフト角。±75°以上で金ゾーン（9時/3時、20°幅）が点灯。言葉なしで伝わる */
 const ARC_R=0.81, ARC_CY=1.12, ARC_Z=-0.55, d2rA=Math.PI/180;
 const arcGroup=new THREE.Group();
 arcGroup.position.set(0,ARC_CY,ARC_Z);
 scene.add(arcGroup);
 const arcMat=new THREE.MeshStandardMaterial({color:0xB8804C,metalness:.9,roughness:.35,transparent:true,opacity:.38});
-const arcMesh=new THREE.Mesh(new THREE.TorusGeometry(ARC_R,0.011,10,96,144*d2rA),arcMat);
-arcMesh.rotation.z=198*d2rA;
+const arcMesh=new THREE.Mesh(new THREE.TorusGeometry(ARC_R,0.011,10,96,200*d2rA),arcMat);
+arcMesh.rotation.z=170*d2rA;
 arcGroup.add(arcMesh);
 const zoneMatL=new THREE.MeshStandardMaterial({color:0xC8956C,metalness:1,roughness:.22,emissive:0xC8956C,emissiveIntensity:.25});
 const zoneMatR=zoneMatL.clone();
-const zoneVL=new THREE.Mesh(new THREE.TorusGeometry(ARC_R,0.025,12,24,10*d2rA),zoneMatL);
-zoneVL.rotation.z=205*d2rA;  // θ=-65°..-55°（8時）
-const zoneVR=new THREE.Mesh(new THREE.TorusGeometry(ARC_R,0.025,12,24,10*d2rA),zoneMatR);
-zoneVR.rotation.z=325*d2rA;  // θ=+55°..+65°（4時）
+const zoneVL=new THREE.Mesh(new THREE.TorusGeometry(ARC_R,0.025,12,24,20*d2rA),zoneMatL);
+zoneVL.rotation.z=175*d2rA;  // θ=-95°..-75°（9時）
+const zoneVR=new THREE.Mesh(new THREE.TorusGeometry(ARC_R,0.025,12,24,20*d2rA),zoneMatR);
+zoneVR.rotation.z=345*d2rA;  // θ=+75°..+95°（3時）
 arcGroup.add(zoneVL,zoneVR);
 const gaugeBall=new THREE.Mesh(new THREE.SphereGeometry(0.04,24,24),
   new THREE.MeshStandardMaterial({color:0xF7F1E3,metalness:.2,roughness:.15,emissive:0xC8956C,emissiveIntensity:1.0}));
@@ -326,8 +326,8 @@ function setBall(angDeg){
   gaugeAng+=(angDeg-gaugeAng)*0.35;
   const a=gaugeAng*d2rA;
   gaugeBall.position.set(ARC_R*Math.sin(a),-ARC_R*Math.cos(a),0);
-  zoneMatL.emissiveIntensity=gaugeAng<=-55?1.4:.25;
-  zoneMatR.emissiveIntensity=gaugeAng>=55?1.4:.25;
+  zoneMatL.emissiveIntensity=gaugeAng<=-75?1.4:.25;
+  zoneMatR.emissiveIntensity=gaugeAng>=75?1.4:.25;
 }
 /* 振りかぶり過ぎ: 該当側ゾーンをテラコッタで0.7秒点滅 */
 Stage.flashOver=(side)=>{
@@ -504,8 +504,8 @@ Stage.resize=()=>{
 };
 Stage.setMode=m=>{ Stage.mode=m; trailSamples=[]; demoSi=0; demoT0=null; renderT=ANCH.addr; };
 
-/* お手本の模擬スイング: 0→-60(1.3s)→+60(1.15s)→0(1.1s) テンポ約2:1（demo-lab B方式、ken承認） */
-const DSEG=[[0,-60,1300,400],[-60,60,1150,900],[60,0,1100,800]];
+/* お手本の模擬スイング: 0→-90(1.3s)→+90(1.15s)→0(1.1s) テンポ約2:1（demo-lab B方式 / Lv3で±90°化） */
+const DSEG=[[0,-90,1300,400],[-90,90,1150,900],[90,0,1100,800]];
 let demoSi=0, demoT0=null;
 Stage.setLive=(ang,state)=>{
   liveAng=ang;
@@ -518,13 +518,13 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const lerp=(a,b,u)=>a+(b-a)*u;
 function angleToTime(ang,state){
   // バック側(負)=addr→top / ダウン=top→impact / フォロー側(正)=impact→finish
-  // /60 = ドリル目標の60°でちょうどトップ/フィニッシュに届く
-  if(state==='back'||(state==='idle'&&ang<-3)) return lerp(ANCH.addr,ANCH.top,clamp(-ang/60,0,1));
+  // /90 = ドリル目標の90°でちょうどトップ/フィニッシュに届く
+  if(state==='back'||(state==='idle'&&ang<-3)) return lerp(ANCH.addr,ANCH.top,clamp(-ang/90,0,1));
   if(state==='down'){
     if(ang<-2) return lerp(ANCH.top,ANCH.impact,clamp(1-(ang/topAng),0,1));
-    return lerp(ANCH.impact,ANCH.finish,clamp(ang/60,0,1));
+    return lerp(ANCH.impact,ANCH.finish,clamp(ang/90,0,1));
   }
-  if(ang>3) return lerp(ANCH.impact,ANCH.finish,clamp(ang/60,0,1));
+  if(ang>3) return lerp(ANCH.impact,ANCH.finish,clamp(ang/90,0,1));
   return ANCH.addr;
 }
 
@@ -542,7 +542,7 @@ function animate(ts){
       else if(sdt>seg[2]+seg[3]){ demoSi=(demoSi+1)%DSEG.length; demoT0=ts; }
       const st=demoSi===0?'back':(demoSi===1?'down':'idle');
       const target=st==='down'&&d<-2
-        ? lerp(ANCH.top,ANCH.impact,clamp(1-(d/-60),0,1))  // demoのトップは-60固定
+        ? lerp(ANCH.top,ANCH.impact,clamp(1-(d/-90),0,1))  // demoのトップは-90固定
         : angleToTime(d,st);
       renderT+=(target-renderT)*Math.min(1,dts*12);
       action.paused=true;
@@ -586,7 +586,7 @@ Stage.mount('stageIntro');
 
 <!-- ════════════ 計測エンジン（検証済み・不変） ════════════ -->
 <script>
-const SET_SIZE=3, TARGET=60, ZONE_MIN=50, ZONE_MAX=70, MIN_BACK=30; // 3球/セット（気軽に反復。ken判断 2026-06-12）
+const SET_SIZE=3, TARGET=90, ZONE_MIN=75, ZONE_MAX=105, MIN_BACK=45; // Lv3 Business Zone: 9-3時/±90°（暫定値・実機チューニング前提）
 const $=id=>document.getElementById(id);
 // S1: 3Dが一定時間で準備できない（CDN読込失敗/WebGL不可）場合の出口。ローディング表示を案内に差し替え（計測は別scriptで動く）
 setTimeout(()=>{ if(!(window.Stage3D && window.Stage3D.ready)){ const ld=$('stageLoading'); if(ld && ld.style.display!=='none') ld.textContent='3Dプレビューは表示できませんが、計測はそのまま使えます。'; } }, 9000);
@@ -627,12 +627,12 @@ function goto(phase){
 }
 
 /* 文言 */
-$('introEyebrow').textContent=STR.t('pitch.eyebrow');
-$('introJp').textContent=STR.t('pitch.title.jp');
-$('introBody').innerHTML=STR.t('pitch.intro.body');
-$('introNote').textContent=STR.t('pitch.intro.note');
+$('introEyebrow').textContent=STR.t('bz.eyebrow');
+$('introJp').textContent=STR.t('bz.title.jp');
+$('introBody').innerHTML=STR.t('bz.intro.body');
+$('introNote').textContent=STR.t('bz.intro.note');
 $('bodyNote').textContent=STR.t('live.bodyNote');
-$('btnBegin').textContent=STR.t('pitch.btn.begin');
+$('btnBegin').textContent=STR.t('bz.btn.begin');
 $('permJp').textContent=STR.t('sensor.title.jp');
 $('permBody').innerHTML=STR.t('sensor.body');
 $('btnPerm').textContent=STR.t('sensor.btn');
@@ -869,7 +869,7 @@ function tick(){
     overshootWarned=true;
     GLAudio.warn();
     if(navigator.vibrate) try{ navigator.vibrate(150); }catch(e){}
-    showChip('ng',STR.t('live.chip.over'));
+    showChip('ng',STR.t('bz.chip.over'));
     if(window.Stage3D && Stage3D.flashOver) Stage3D.flashOver(ang<0?-1:1);
   }
 
@@ -906,7 +906,7 @@ function onSwing(r){
   // broken(三角形崩れ=チキンウィング)は検出不可のため判定に使わない（D7誠実さ）
   if(sw.decel===true){ showChip('ng',STR.t('live.chip.decel')); GLAudio.warn(); }
   else if(b<ZONE_MIN){ showChip('ng',STR.t('live.chip.shallow')); }
-  else if(b>ZONE_MAX){ showChip('ng',STR.t('live.chip.deep')); }
+  else if(b>ZONE_MAX){ showChip('ng',STR.t('bz.chip.deep')); }
   else if(f<20){ showChip('ng',STR.t('live.chip.noFollow')); }
   else { showChip('ok',STR.t('live.chip.ok')); GLAudio.good(); }
 
@@ -1069,11 +1069,17 @@ function showResult(){
   const noFollowCt=sw.filter(s=>Math.abs(s.follow)<20).length;
   const zoneCt=backs.filter(b=>b>=ZONE_MIN&&b<=ZONE_MAX).length;
 
-  // 合否は検証済み指標(振り幅ゾーン・再現性・緩み)のみで判定。broken(三角形)は使わない（D7誠実さ）
+  // 合否＝±90°の速度域でも正確に測れる指標のみ（緩み・ゾーン到達・テンポ再現性）。
+  // 角度の精密採点(σ)・フェース・三角形は高速域で信頼できないため使わない（D7誠実さ・誠実版Lv3）
+  const tempos=sw.map(s=>s.tempo).filter(t=>typeof t==='number'&&isFinite(t)&&t>0);
+  const tMean=tempos.length? GLMath.avg(tempos):0;
+  const tSd=tempos.length>1? Math.sqrt(tempos.reduce((s,v)=>s+(v-tMean)*(v-tMean),0)/(tempos.length-1)):0;
+  const tempoCV=tMean>0? tSd/tMean : 1;                 // テンポ比の変動係数（タイミングは全速度で正確）
+  const tempoConsistency=Math.max(0,Math.min(1,1-tempoCV/0.35)); // ばらつき小=高
   let rank;
-  if(decelCt===0 && sd<=5 && zoneCt>=3) rank='perfect';
-  else if(decelCt<=1 && sd<=8 && zoneCt>=2) rank='good';
-  else if(sd<=12) rank='almost';
+  if(decelCt===0 && zoneCt>=3) rank='perfect';
+  else if(decelCt<=1 && zoneCt>=2) rank='good';
+  else if(zoneCt>=1) rank='almost';
   else rank='tryagain';
 
   const words={perfect:'Perfect.',good:'Good.',almost:'Almost.',tryagain:'Try again.'};
@@ -1082,18 +1088,16 @@ function showResult(){
   $('rankJp').textContent=STR.t('result.rank.'+rank);
 
   $('statMean').textContent=Math.round(mean)+'°';
-  $('statSd').textContent='±'+Math.round(sd)+'°';   // 3球の推定値、過剰精度を避け整数表示
+  $('statSd').textContent='±'+Math.round(sd)+'°';   // 到達角の実測ばらつき（参考値・採点には使わない）
   $('statZone').textContent=zoneCt+'/'+SET_SIZE;
 
-  // ── セッションスコア（測れる4指標だけ・within-subject。肘/三角形は入れない=D7誠実さ）──
+  // ── セッションスコア（±90°で正確に測れる指標のみ・within-subject。角度σ/肘/フェースは使わない=D7誠実さ）──
   const n=SET_SIZE;
   const zoneRate=zoneCt/n;
-  const consistency=Math.max(0,Math.min(1,1-sd/12));   // ばらつき小=高（再現性が主役）
   const noDecel=1-decelCt/n;
-  const followRate=1-noFollowCt/n;
-  const score=Math.round((0.40*consistency + 0.30*zoneRate + 0.15*noDecel + 0.15*followRate)*100);
+  const score=Math.round((0.45*noDecel + 0.30*zoneRate + 0.25*tempoConsistency)*100);
   // 前回スコア（自分の過去比）
-  const hist=(typeof GLProfile!=='undefined')? GLProfile.get('history.sessions',[]).filter(s=>s.drill==='pitch') : [];
+  const hist=(typeof GLProfile!=='undefined')? GLProfile.get('history.sessions',[]).filter(s=>s.drill==='business') : [];
   const prev=hist.length? hist[hist.length-1].score : null;
   const diff=(prev!=null)? score-prev : null;
   $('repScore').innerHTML=
@@ -1106,20 +1110,20 @@ function showResult(){
   drawChart(sw);
 
   const issues=[];
-  // 三角形崩れ(チキンウィング)は検出不可のため課題に出さない（D7誠実さ）
+  // 三角形/フェースは±90°では信頼できる検出ができないため課題に出さない（D7誠実さ）
   if(decelCt>0) issues.push({k:'decel', label:STR.t('result.issue.decel'), desc:`${decelCt}回、最下点の手前で減速しています。振り抜く意識を。`});
-  if(sd>5) issues.push({k:'spread', label:STR.t('result.issue.spread'), desc:`ばらつき ±${Math.round(sd)}°（目標 ±5°以内）。距離感はそろえることから。`});
-  if(zoneCt<SET_SIZE && mean<ZONE_MIN) issues.push({k:'shallow', label:STR.t('result.issue.shallow'), desc:`平均 ${Math.round(mean)}°。8時（60°）までしっかり上げましょう。`});
-  if(zoneCt<SET_SIZE && mean>ZONE_MAX) issues.push({k:'deep', label:STR.t('result.issue.deep'), desc:`平均 ${Math.round(mean)}°。振りすぎです。8時で止めましょう。`});
-  if(noFollowCt>0) issues.push({k:'follow', label:STR.t('result.issue.follow'), desc:`${noFollowCt}回、フォロー側（4時）まで振り切れていません。`});
+  if(tempoConsistency<0.6 && tempos.length>=2) issues.push({k:'tempo', label:STR.t('result.issue.tempo'), desc:`振りのテンポ（上げと下ろしのリズム）が毎回ばらついています。同じリズムで。`});
+  if(zoneCt<SET_SIZE && mean<ZONE_MIN) issues.push({k:'shallow', label:STR.t('result.issue.shallow'), desc:`平均 ${Math.round(mean)}°。9時（90°）まで届かせましょう。`});
+  if(zoneCt<SET_SIZE && mean>ZONE_MAX) issues.push({k:'deep', label:STR.t('result.issue.deep'), desc:`平均 ${Math.round(mean)}°。振りすぎです。9時で止めましょう。`});
+  if(noFollowCt>0) issues.push({k:'follow', label:STR.t('result.issue.follow'), desc:`${noFollowCt}回、フォロー側（3時）まで振り切れていません。`});
 
   // ── 「次の一振りへ、ひとつ。」最優先課題の処方を判定語の直下に昇格（P0。文言キー化はP1）──
   const RX={
     decel:'下りでゆるめず、ボールの先まで振り抜いて。',
-    spread:'まずは振り幅の大きさをそろえて。強さは後で大丈夫です。',
-    shallow:'あと少し、8時まで上げて。',
-    deep:'8時で止めて。振りすぎなくて大丈夫です。',
-    follow:'振り終わりは4時まで。途中で力を抜かないで。'
+    tempo:'上げる速さと下ろす速さを、毎回同じリズムで。',
+    shallow:'あと少し、9時まで上げて。',
+    deep:'9時で止めて。振りすぎなくて大丈夫です。',
+    follow:'振り終わりは3時まで。途中で力を抜かないで。'
   };
   const _rxName=issues.length>0? issues[0].label : 'この感覚を、覚えておく';
   const _rxLine=issues.length>0? (RX[issues[0].k]||'') : 'いまの形のまま、もう一度振ってみて。';
@@ -1152,7 +1156,7 @@ function showResult(){
 
   const partial=[];
   // 肘/三角形は測れないため「未計測」と正直に明示（誇張しない）
-  partial.push('このセットでは振り幅・テンポ・再現性を計測（肘や三角形は未計測）');
+  partial.push('このセットでは振り幅の到達・テンポ・緩みを計測（角度の精密採点・フェース・肘は未計測）');
   if(slowCt>0) partial.push(`緩み判定の保留が${slowCt}回（ゆっくりすぎる素振り）`);
   $('partialNote').textContent=partial.join(' / ');
   $('focusNote').classList.remove('show');
@@ -1160,7 +1164,7 @@ function showResult(){
   // ── ループ閉鎖: 統一スキーマGLProfileに保存＋ストリーク＋現在地 ──
   const iso=new Date().toISOString();
   if(typeof GLProfile!=='undefined'){
-    GLProfile.addSession({date:iso, drill:'pitch', level:2, score, sd:Math.round(sd), zone:zoneCt, rank});
+    GLProfile.addSession({date:iso, drill:'business', level:3, score, sd:Math.round(sd), zone:zoneCt, rank});
     // W1: 週次ストリーク（週1セッション以上で達成）＋自動フリーズ（1週の空きは維持／2週続けて空けばリセット）
     const curWk=weekIndex(Date.now()), lastWk=GLProfile.get('streak.lastWeek',null);
     if(lastWk===null){
@@ -1172,9 +1176,9 @@ function showResult(){
     } // 同一週内の再プレイは加算しない（curWk===lastWk）
     GLProfile.set('streak.lastWeek', curWk);
     GLProfile.set('streak.lastPlayed', new Date().toDateString()); // 互換のため日付も保持
-    GLProfile.set('progress.currentLevel',2);
+    GLProfile.set('progress.currentLevel',3);
   }
-  GLStore.push('pitch:sets',{v:1,date:iso,rank,score,mean:Math.round(mean),sd:+sd.toFixed(1),zone:zoneCt,decel:decelCt},200);
+  GLStore.push('business:sets',{v:1,date:iso,rank,score,mean:Math.round(mean),sd:+sd.toFixed(1),zone:zoneCt,decel:decelCt},200);
 
   renderReview();      // 3球を1つずつ見返すReviewセクションを生成（毎回の自動再生の代替）
   renderFocusInvite(); // スイング集中モードへの誘い（条件を満たす時だけ・最大2回）

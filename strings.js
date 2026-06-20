@@ -70,6 +70,7 @@ const STR = {
     'result.issue.elbow':   { ja:'右肘の曲がり',                  en:'Trail elbow bend' },
     'result.issue.decel':   { ja:'インパクトの緩み',               en:'Deceleration' },
     'result.issue.spread':  { ja:'振り幅のばらつき',               en:'Width spread' },
+    'result.issue.tempo':   { ja:'テンポのばらつき',               en:'Tempo spread' },
     'result.issue.shallow': { ja:'振り幅が浅い',                  en:'Too shallow' },
     'result.issue.deep':    { ja:'振り幅が深い',                  en:'Too deep' },
     'result.issue.follow':  { ja:'フォロー不足',                  en:'Short follow' },
@@ -146,7 +147,15 @@ const STR = {
     'lv2.name.en':          { ja:'The Pitch',                    en:'The Pitch' },
     'lv2.name.jp':          { ja:'ピッチ',                       en:'Pitch' },
     'lv3.name.en':          { ja:'The Business Zone',            en:'The Business Zone' },
-    'lv3.name.jp':          { ja:'ビジネスゾーン',                en:'Business Zone' }
+    'lv3.name.jp':          { ja:'ビジネスゾーン',                en:'Business Zone' },
+
+    'bz.eyebrow':           { ja:'Level 3 — Drill',              en:'Level 3 — Drill' },
+    'bz.title.jp':          { ja:'ビジネスゾーン',                en:'The Business Zone' },
+    'bz.intro.body':        { ja:'9時から、3時へ。<br>コントロールショットは、<br>この振り幅を毎回そろえることから。', en:'From 9 to 3.<br>Control comes from repeating<br>this swing width every time.' },
+    'bz.intro.note':        { ja:'両側90°のゾーンに、3回そろえて振る。それが今日の課題です。', en:'Three swings, both sides inside the 90° zone. That is today’s work.' },
+    'bz.btn.begin':         { ja:'はじめる',                     en:'Begin' },
+    'bz.chip.deep':         { ja:'深い — 9時で止める',            en:'Too deep' },
+    'bz.chip.over':         { ja:'振りかぶり過ぎ — 9時で止める',    en:'Too far back — stop at 9' }
   },
   t(key){
     const e=this.d[key];
