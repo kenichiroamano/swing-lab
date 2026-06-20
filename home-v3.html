@@ -193,15 +193,39 @@ $('ticks').innerHTML=ticks;
 
 $('gaugeCenter').innerHTML= hasBest
   ? '<div class="top">100を 切るまで</div><div class="num"><span class="accent">'+diff+'</span></div><div class="bot">打　残り</div>'
-  : '<div class="top">100を 切るまで</div><div class="num"><span class="accent">—</span></div><div class="bot" style="font-family:var(--jp);letter-spacing:.06em">ベストを記録して始めよう</div>';
+  : '<div class="top">100を 切るまで</div><div class="num"><span class="accent">—</span></div><div class="bot best-link" id="recordBest" style="font-family:var(--jp);letter-spacing:.06em;color:var(--brass);cursor:pointer">ベストを記録して始める ›</div>';
 
-// 直近セットのセッションスコア（ループが閉じると毎回ここに反映される）
-const pitchHist=GLProfile.get('history.sessions',[]).filter(s=>s.drill==='pitch');
-const lastScore=pitchHist.length? pitchHist[pitchHist.length-1].score : null;
+/* ベスト（18ホールのラウンドスコア）入力。アプリはラウンドスコアを測れないので本人入力。
+   計器が空のままにならないよう、空状態タップ／Best欄タップから記録・修正できる。 */
+function openBestEditor(){
+  const cur=GLProfile.get('goals.bestScore',null);
+  $('gaugeCenter').innerHTML=
+    '<div class="top">ベストスコア（18ホール）</div>'+
+    '<input id="bestInput" type="number" inputmode="numeric" min="50" max="200" value="'+(cur!=null?cur:'')+'" placeholder="108" '+
+      'style="width:130px;margin-top:6px;padding:4px 4px 6px;text-align:center;font-family:var(--serif);font-style:italic;font-weight:600;font-size:44px;color:var(--ink);background:transparent;border:none;border-bottom:1px solid var(--hair-gold);outline:none">'+
+    '<button id="bestSave" style="margin-top:14px;padding:9px 24px;background:transparent;border:1px solid var(--brass);border-radius:9px;font-family:var(--ui);font-size:11px;font-weight:500;letter-spacing:.22em;color:var(--brass-lo);cursor:pointer">記録する</button>'+
+    '<div class="bot" style="margin-top:8px;color:var(--sub);font-size:10px;letter-spacing:.06em">いつでも修正できます</div>';
+  const inp=$('bestInput'); try{ inp.focus(); }catch(e){}
+  $('bestSave').onclick=()=>{
+    const v=parseInt(inp.value,10);
+    if(!(v>=50 && v<=200)){ inp.style.borderBottomColor='#C45B4A'; try{ inp.focus(); }catch(e){} return; }
+    GLProfile.set('goals.bestScore',v);
+    if(GLProfile.get('goals.targetScore',null)==null) GLProfile.set('goals.targetScore',100);
+    GLProfile.set('profile.onboarded',true);
+    location.reload(); // 保存値から計器・弧・差分を再計算
+  };
+}
+if(!hasBest){ const rb=$('recordBest'); if(rb) rb.onclick=openBestEditor; }
+
+// 直近セットのセッションスコア（ドリル問わず最新1件。Lv3のみ勢にも出るよう修正＝旧 pitch 限定バグ）
+const allSess=GLProfile.get('history.sessions',[]);
+const lastScore=allSess.length? allSess[allSess.length-1].score : null;
 $('stats').innerHTML=
-  '<div class="stat"><div class="v">'+(hasBest?best:'—')+'</div><div class="l">Best</div></div>'+
+  '<div class="stat" id="bestStat" style="cursor:pointer"><div class="v">'+(hasBest?best:'—')+'</div><div class="l">Best</div></div>'+
   '<div class="stat"><div class="v">'+target+'</div><div class="l">Target</div></div>'+
   '<div class="stat"><div class="v gold">'+(lastScore!=null?lastScore:'—')+'</div><div class="l">前回スコア</div></div>';
+// Best欄タップでいつでも記録・修正
+{ const bs=$('bestStat'); if(bs) bs.onclick=openBestEditor; }
 
 $('todayBtn').onclick=()=>location.href='drill-pitch.html';
 
