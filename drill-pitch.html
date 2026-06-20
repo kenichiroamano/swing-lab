@@ -143,6 +143,7 @@
   <h1 class="rank-word" id="rankWord"></h1>
   <div class="title-jp" id="rankJp"></div>
   <div class="hairline"></div>
+  <div id="ahaLine" style="margin:0 0 16px"></div>
   <div id="topRx" style="margin:0 0 18px"></div>
   <div id="repScore" style="text-align:center;margin:4px 0 16px"></div>
   <div class="card">
@@ -1128,6 +1129,22 @@ function showResult(){
     '<div style="font-family:Inter,sans-serif;font-size:9.5px;letter-spacing:.14em;color:var(--gold)">次の一振りへ、ひとつ。</div>'+
     '<div style="font-family:\'Noto Serif JP\',serif;font-weight:600;font-size:19px;color:var(--ink);margin-top:7px">'+_rxName+'</div>'+
     '<div style="font-family:\'Noto Serif JP\',serif;font-size:14px;line-height:1.7;color:#3A453C;margin-top:6px">'+_rxLine+'</div>'+
+    '</div>';
+
+  // ── アハ：今日の傾向に「名前」をつける（1セットの傾向と明示・断定しない・測れない物は黙る＝誠実さ）──
+  const AHA={
+    decel:'今日の3球は「インパクト前で“緩む”」傾向が出ました。',
+    spread:'今日の3球は「振り幅がそろわない（ばらつき）」傾向が出ました。',
+    shallow:'今日の3球は「振り幅が浅い（届いていない）」傾向でした。',
+    deep:'今日の3球は「振りすぎ」の傾向でした。',
+    follow:'今日の3球は「フォローが浅い」傾向でした。'
+  };
+  const _ahaText=issues.length>0 ? (AHA[issues[0].k]||('今日の3球は「'+issues[0].label+'」が出ました。')) : '今日の3球は、よくそろっていました。';
+  $('ahaLine').innerHTML=
+    '<div style="text-align:left">'+
+    '<div style="font-family:Inter,sans-serif;font-size:9.5px;letter-spacing:.14em;color:var(--gold)">あなたの傾向</div>'+
+    '<div style="font-family:\'Noto Serif JP\',serif;font-weight:600;font-size:18px;line-height:1.5;color:var(--ink);margin-top:6px">'+_ahaText+'</div>'+
+    '<div style="font-family:\'Noto Serif JP\',serif;font-size:11.5px;line-height:1.65;color:var(--sub);margin-top:6px">1セットの傾向です。違うと感じたら、もう1セットで確かめましょう。フェースや弾道は測っていません。</div>'+
     '</div>';
 
   const list=$('issuesList');
