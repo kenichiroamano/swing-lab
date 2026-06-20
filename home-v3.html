@@ -222,4 +222,17 @@ if(!hasBest){
   $('gripInvite').style.display='block';
   $('gripInvite').onclick=()=>location.href='grip.html';
 }else{
-  $('grEb').textContent=grip
+  $('grEb').textContent=gripT('grip.entry.eyebrow');
+  $('grTl').innerHTML=gripTitleHTML;
+  $('gripRow').style.display='flex';
+  $('gripRow').onclick=()=>location.href='grip.html';
+}
+// S5: 確認の上、golflev: 名前空間のキーを一掃（旧仕様はGLProfile本体だけ消し、dialFlip/focusDim等が消し残っていた）
+$('resetLink').onclick=()=>{
+  if(!confirm('保存データ（ベスト・連続日数・スコア・各種設定）をすべて消去します。よろしいですか？')) return;
+  try{ Object.keys(localStorage).filter(k=>k.indexOf('golflev:')===0).forEach(k=>localStorage.removeItem(k)); }catch(e){}
+  location.reload();
+};
+</script>
+</body>
+</html>
