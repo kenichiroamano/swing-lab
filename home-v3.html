@@ -94,6 +94,19 @@ body::before{ content:''; position:fixed; inset:0; pointer-events:none; z-index:
 .grip-row .rt .tl em{ font-family:var(--serif); font-style:italic; font-size:11.5px; color:var(--brass); margin-left:5px }
 .foot{ text-align:center; margin-top:22px }
 .foot button{ background:none; border:none; color:var(--sub); font-family:var(--ui); font-size:9.5px; letter-spacing:.14em; text-decoration:underline; text-underline-offset:3px; opacity:.45 }
+/* 今週の振り＝「同じ振りを繰り返せた日」(再現性カード)。金のヘアラインで仕切る・濃色面は足さない */
+.weekcard{ position:relative; margin:22px 0 2px; padding:16px 4px; text-align:center; border-top:1px solid var(--hair-gold); border-bottom:1px solid var(--hair-gold) }
+.weekcard .eb{ font-family:var(--serif); font-style:italic; font-weight:600; font-size:12px; color:var(--brass); letter-spacing:.04em }
+.weekcard .sub{ font-family:var(--jp); font-size:11.5px; color:var(--ink-soft); margin-top:4px }
+.weekcard .dots{ display:flex; gap:7px; justify-content:center; margin-top:12px }
+.weekcard .dot{ width:12px; height:12px; border-radius:50%; display:inline-block }
+.weekcard .dot.on{ background:var(--brass) }
+.weekcard .dot.off{ background:transparent; border:1px solid var(--hair-gold) }
+.weekcard .big{ font-family:var(--serif); font-style:italic; font-weight:600; font-size:44px; color:var(--ink) }
+.weekcard .unit{ font-family:var(--jp); font-size:14px; color:var(--ink-soft); margin-left:4px }
+.weekcard .cmp{ font-size:11px; color:var(--sub); margin-top:11px; letter-spacing:.04em }
+.weekcard .cmp b{ color:var(--brass-lo); font-weight:500 }
+.weekcard .early{ font-family:var(--jp); font-size:13.5px; color:var(--ink-soft); margin-top:12px; line-height:1.7 }
 </style>
 </head>
 <body>
@@ -122,6 +135,9 @@ body::before{ content:''; position:fixed; inset:0; pointer-events:none; z-index:
 
   <!-- サブ指標 -->
   <div class="stats" id="stats"></div>
+
+  <!-- 今週の振り（再現性カード・データがある時だけJSで表示） -->
+  <div class="weekcard" id="weekCard" style="display:none"></div>
 
   <!-- 新規ユーザー向け グリップ入口（!hasBestのみ・ダイアルとThe Pitchの間） -->
   <div class="grip-invite" id="gripInvite" style="display:none">
@@ -226,6 +242,43 @@ $('stats').innerHTML=
   '<div class="stat"><div class="v gold">'+(lastScore!=null?lastScore:'—')+'</div><div class="l">前回スコア</div></div>';
 // Best欄タップでいつでも記録・修正
 { const bs=$('bestStat'); if(bs) bs.onclick=openBestEditor; }
+
+// ── 今週の振り＝「同じ振りを繰り返せた日」(再現性カード) ──
+// 点数グラフでなく日数で進歩を見せる。下降は責めない（増えた時だけ称える）。
+// 「そろった日」＝その日に ばらつき(sd) ≤ STEADY_SD のセットがあった日（実測・自分比・捏造なし）。
+(function renderWeekCard(){
+  const sessions=GLProfile.get('history.sessions',[]);
+  if(!sessions.length) return;                 // 新規ユーザーには出さない
+  const STEADY_SD=5;                            // ±5°以内＝「そろった」。実機で調整可
+  const DAY=86400000;
+  const weekStart=ts=>{ const d=new Date(ts); d.setHours(0,0,0,0); const wd=(d.getDay()+6)%7; return d.getTime()-wd*DAY; }; // 月曜起点
+  const now=Date.now(), thisStart=weekStart(now), lastStart=thisStart-7*DAY;
+  const steadyDays=start=>{
+    const days=[false,false,false,false,false,false,false];
+    sessions.forEach(s=>{
+      const ts=Date.parse(s.date); if(isNaN(ts)) return;
+      if(ts<start || ts>=start+7*DAY) return;
+      if(s.sd==null || s.sd>STEADY_SD) return;
+      const i=Math.floor((ts-start)/DAY); if(i>=0&&i<7) days[i]=true;
+    });
+    return days;
+  };
+  const tw=steadyDays(thisStart), twN=tw.filter(Boolean).length, lwN=steadyDays(lastStart).filter(Boolean).length;
+  const lastHadPlay=sessions.some(s=>{ const ts=Date.parse(s.date); return !isNaN(ts)&&ts>=lastStart&&ts<thisStart; });
+  let dots=''; for(let i=0;i<7;i++) dots+='<span class="dot '+(tw[i]?'on':'off')+'"></span>';
+  let body;
+  if(lastHadPlay){
+    const d=twN-lwN;
+    const cmp = d>0 ? '先週は '+lwN+'日。<b>'+d+'日ふえています。</b>' : '先週は '+lwN+'日。';
+    body='<div style="margin-top:10px"><span class="big">'+twN+'</span><span class="unit">日</span></div>'+
+         '<div class="dots">'+dots+'</div><div class="cmp">'+cmp+'</div>';
+  } else {
+    body='<div class="early">同じ振りを繰り返せた日を、ここに残します。<br>らいしゅうから、先週とくらべられます。</div>'+
+         '<div class="dots">'+dots+'</div><div class="cmp">今週 '+twN+'日</div>';
+  }
+  $('weekCard').innerHTML='<div class="eb">今週の振り</div><div class="sub">同じ振りを、繰り返せた日</div>'+body;
+  $('weekCard').style.display='block';
+})();
 
 $('todayBtn').onclick=()=>location.href='drill-pitch.html';
 
