@@ -70,6 +70,10 @@ body::before{ content:''; position:fixed; inset:0; pointer-events:none; z-index:
 .drill .nm{ font-family:var(--serif); font-weight:600; font-style:italic; font-size:36px; color:#F1E9D9; line-height:1.05; margin-top:8px }
 .drill .nm em{ color:var(--champagne) }
 .drill .jp{ font-family:var(--jp); font-weight:300; font-size:12.5px; color:rgba(241,233,217,.78); letter-spacing:.05em; margin-top:10px }
+/* 前回の続き＝おかえり＋今日はこれ（伴走の一言）。前回のばらつきから出し分け */
+.drill .carry{ margin-top:16px; padding-top:14px; border-top:1px solid rgba(228,214,186,.18) }
+.drill .carry .cre{ font-family:var(--ui); font-size:9px; letter-spacing:.28em; text-transform:uppercase; color:var(--brass-hi) }
+.drill .carry .crt{ font-family:var(--jp); font-size:13px; color:#F1E9D9; line-height:1.7; margin-top:6px }
 /* 塗らない金縁ボタン（招待状の作法） */
 .cta{ display:block; width:100%; margin-top:22px; padding:15px; cursor:pointer; background:transparent;
   border:1px solid var(--brass); border-radius:10px;
@@ -152,6 +156,7 @@ body::before{ content:''; position:fixed; inset:0; pointer-events:none; z-index:
     <div class="eyebrow">本日の稽古</div>
     <div class="nm">The <em>Pitch</em></div>
     <div class="jp">同じ振り幅を、繰り返す。アプローチの土台に。</div>
+    <div class="carry" id="carryover" style="display:none"></div>
     <button class="cta" id="todayBtn">はじめる</button>
   </div>
 
@@ -278,6 +283,20 @@ $('stats').innerHTML=
   }
   $('weekCard').innerHTML='<div class="eb">今週の振り</div><div class="sub">同じ振りを、繰り返せた日</div>'+body;
   $('weekCard').style.display='block';
+})();
+
+// ── 前回の続き＝おかえり＋今日はこれ（伴走の一言）。前回セッションのばらつきから出し分け ──
+(function carryover(){
+  const sessions=GLProfile.get('history.sessions',[]);
+  if(!sessions.length) return;                 // 新規には出さない（カードのデフォルト文のまま）
+  const sd=sessions[sessions.length-1].sd;
+  let msg;
+  if(sd==null)      msg='前回の続きから。今日もゆっくり、同じ3回をそろえましょう。';
+  else if(sd>7)     msg='前回は振りがばらつき気味でした。今日はゆっくり、同じ3回を。';
+  else if(sd>5)     msg='あと少しで揃います。今日は速さも幅も8割で、同じ3回を。';
+  else              msg='前回はよく揃っていました。今日も、そのリズムで。';
+  $('carryover').innerHTML='<div class="cre">前回の続き</div><div class="crt">'+msg+'</div>';
+  $('carryover').style.display='block';
 })();
 
 $('todayBtn').onclick=()=>location.href='drill-pitch.html';
