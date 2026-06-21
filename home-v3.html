@@ -48,6 +48,10 @@ body::before{ content:''; position:fixed; inset:0; pointer-events:none; z-index:
   font-variant-numeric:tabular-nums; text-shadow:0 1px 0 rgba(255,255,255,.55) }
 .gauge .num .accent{ color:var(--brass) }
 .gauge .bot{ font-family:var(--jp); font-size:12px; color:var(--ink-soft); letter-spacing:.18em; margin-top:2px }
+/* ベスト記録画面の「ゴルフ歴（任意）」チップ */
+.gauge .expwrap{ display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:9px; max-width:232px }
+.gauge .expchip{ padding:6px 9px; border-radius:8px; border:1px solid var(--hair-gold); font-family:var(--jp); font-size:11px; color:var(--ink-soft); cursor:pointer; white-space:nowrap }
+.gauge .expchip.on{ border-color:var(--brass); background:rgba(169,143,88,.16); color:var(--brass-lo) }
 
 /* ── サブ指標: 刻印数字＋金の細罫で仕切る ── */
 .stats{ display:grid; grid-template-columns:1fr 1fr 1fr; margin:18px 0 2px }
@@ -220,17 +224,32 @@ $('gaugeCenter').innerHTML= hasBest
    計器が空のままにならないよう、空状態タップ／Best欄タップから記録・修正できる。 */
 function openBestEditor(){
   const cur=GLProfile.get('goals.bestScore',null);
+  const curExp=GLProfile.get('profile.golfExp',null);
+  const EXPS=['1年未満','1〜3年','3〜10年','10年以上'];
+  let selExp=curExp;
+  const chips=EXPS.map(e=>'<span class="expchip'+(e===curExp?' on':'')+'" data-e="'+e+'">'+e+'</span>').join('');
   $('gaugeCenter').innerHTML=
     '<div class="top">ベストスコア（18ホール）</div>'+
     '<input id="bestInput" type="number" inputmode="numeric" min="50" max="200" value="'+(cur!=null?cur:'')+'" placeholder="108" '+
-      'style="width:130px;margin-top:6px;padding:4px 4px 6px;text-align:center;font-family:var(--serif);font-style:italic;font-weight:600;font-size:44px;color:var(--ink);background:transparent;border:none;border-bottom:1px solid var(--hair-gold);outline:none">'+
-    '<button id="bestSave" style="margin-top:14px;padding:9px 24px;background:transparent;border:1px solid var(--brass);border-radius:9px;font-family:var(--ui);font-size:11px;font-weight:500;letter-spacing:.22em;color:var(--brass-lo);cursor:pointer">記録する</button>'+
-    '<div class="bot" style="margin-top:8px;color:var(--sub);font-size:10px;letter-spacing:.06em">いつでも修正できます</div>';
+      'style="width:120px;margin-top:4px;padding:2px 4px 5px;text-align:center;font-family:var(--serif);font-style:italic;font-weight:600;font-size:40px;color:var(--ink);background:transparent;border:none;border-bottom:1px solid var(--hair-gold);outline:none">'+
+    '<div class="top" style="margin-top:16px">ゴルフ歴（任意）</div>'+
+    '<div class="expwrap" id="expWrap">'+chips+'</div>'+
+    '<button id="bestSave" style="margin-top:16px;padding:9px 22px;background:transparent;border:1px solid var(--brass);border-radius:9px;font-family:var(--ui);font-size:11px;font-weight:500;letter-spacing:.22em;color:var(--brass-lo);cursor:pointer">記録する</button>'+
+    '<div class="bot" style="margin-top:8px;color:var(--sub);font-size:10px;letter-spacing:.06em">未選択でもOK・いつでも直せます</div>';
   const inp=$('bestInput'); try{ inp.focus(); }catch(e){}
+  // ゴルフ歴チップ（任意・トグル選択。再タップで解除）
+  Array.prototype.forEach.call(document.querySelectorAll('#expWrap .expchip'), el=>{
+    el.onclick=()=>{
+      const e=el.getAttribute('data-e');
+      if(selExp===e){ selExp=null; el.classList.remove('on'); }
+      else{ selExp=e; document.querySelectorAll('#expWrap .expchip').forEach(x=>x.classList.remove('on')); el.classList.add('on'); }
+    };
+  });
   $('bestSave').onclick=()=>{
     const v=parseInt(inp.value,10);
     if(!(v>=50 && v<=200)){ inp.style.borderBottomColor='#C45B4A'; try{ inp.focus(); }catch(e){} return; }
     GLProfile.set('goals.bestScore',v);
+    if(selExp) GLProfile.set('profile.golfExp',selExp); // 任意・選択時のみ保存
     if(GLProfile.get('goals.targetScore',null)==null) GLProfile.set('goals.targetScore',100);
     GLProfile.set('profile.onboarded',true);
     location.reload(); // 保存値から計器・弧・差分を再計算
