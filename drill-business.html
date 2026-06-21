@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,800;1,800&family=Noto+Serif+JP:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="theme.css?v=19">
+<link rel="stylesheet" href="theme.css?v=20">
 <style>
 /* The Pitch v6 — 3Dステージ統合（白磁のゴルファー × 時計の文字盤 × 計測スクラブ） */
 .stage3d{width:100%;height:46vh;min-height:300px;position:relative;margin:4px 0}
@@ -181,8 +181,8 @@
   <button class="link-btn" id="btnHome">ホームへ</button>
 </section>
 
-<script src="core.js?v=19"></script>
-<script src="strings.js?v=19"></script>
+<script src="core.js?v=20"></script>
+<script src="strings.js?v=20"></script>
 
 <!-- ════════════ 3Dステージ（時計の文字盤 × 白磁のゴルファー × 計測スクラブ） ════════════ -->
 <script type="module">
@@ -1115,18 +1115,18 @@ function showResult(){
   // sev=深刻度(0〜1)。issues[0]をアハ・処方・推奨に使うので、push順固定で「緩む」が常に最上位になるバグを解消＝sev降順で並べる
   if(decelCt>0) issues.push({k:'decel', sev:decelCt/SET_SIZE, label:STR.t('result.issue.decel'), desc:`${decelCt}回、最下点の手前で減速しています。振り抜く意識を。`});
   if(tempoConsistency<0.6 && tempos.length>=2) issues.push({k:'tempo', sev:Math.min(1,(0.6-tempoConsistency)/0.6), label:STR.t('result.issue.tempo'), desc:`振りのテンポ（上げと下ろしのリズム）が毎回ばらついています。同じリズムで。`});
-  if(zoneCt<SET_SIZE && mean<ZONE_MIN) issues.push({k:'shallow', sev:Math.min(1,(ZONE_MIN-mean)/ZONE_MIN), label:STR.t('result.issue.shallow'), desc:`平均 ${Math.round(mean)}°。9時（90°）まで届かせましょう。`});
-  if(zoneCt<SET_SIZE && mean>ZONE_MAX) issues.push({k:'deep', sev:Math.min(1,(mean-ZONE_MAX)/ZONE_MAX), label:STR.t('result.issue.deep'), desc:`平均 ${Math.round(mean)}°。振りすぎです。9時で止めましょう。`});
-  if(noFollowCt>0) issues.push({k:'follow', sev:noFollowCt/SET_SIZE, label:STR.t('result.issue.follow'), desc:`${noFollowCt}回、フォロー側（3時）まで振り切れていません。`});
+  if(zoneCt<SET_SIZE && mean<ZONE_MIN) issues.push({k:'shallow', sev:Math.min(1,(ZONE_MIN-mean)/ZONE_MIN), label:STR.t('result.issue.shallow'), desc:`平均 ${Math.round(mean)}°。もう少し大きく、時計の9時（肩の高さ）まで届かせましょう。`});
+  if(zoneCt<SET_SIZE && mean>ZONE_MAX) issues.push({k:'deep', sev:Math.min(1,(mean-ZONE_MAX)/ZONE_MAX), label:STR.t('result.issue.deep'), desc:`平均 ${Math.round(mean)}°。振りすぎです。時計の9時（肩の高さ）で止めましょう。`});
+  if(noFollowCt>0) issues.push({k:'follow', sev:noFollowCt/SET_SIZE, label:STR.t('result.issue.follow'), desc:`${noFollowCt}回、振り終わり（時計の3時）まで振り切れていません。`});
   issues.sort((a,b)=>b.sev-a.sev); // 最も深刻な課題を先頭に（アハ／処方／推奨バッジが一致）
 
   // ── 「次の一振りへ、ひとつ。」最優先課題の処方を判定語の直下に昇格（P0。文言キー化はP1）──
   const RX={
     decel:'下りでゆるめず、ボールの先まで振り抜いて。',
     tempo:'上げる速さと下ろす速さを、毎回同じリズムで。',
-    shallow:'あと少し、9時まで上げて。',
-    deep:'9時で止めて。振りすぎなくて大丈夫です。',
-    follow:'振り終わりは3時まで。途中で力を抜かないで。'
+    shallow:'あと少し、9時（肩の高さ）まで上げて。',
+    deep:'9時（肩の高さ）で止めて。振りすぎなくて大丈夫です。',
+    follow:'振り終わりは3時（反対側の同じ高さ）まで。途中で力を抜かないで。'
   };
   const _rxName=issues.length>0? issues[0].label : 'この感覚を、覚えておく';
   const _rxLine=issues.length>0? (RX[issues[0].k]||'') : 'いまの形のまま、もう一度振ってみて。';
@@ -1141,7 +1141,7 @@ function showResult(){
   const AHA={
     decel:'今日の3球は「インパクト前で“緩む”」傾向が出ました。',
     tempo:'今日の3球は「振りのテンポがそろわない」傾向が出ました。',
-    shallow:'今日の3球は「振り幅が浅い（9時まで届いていない）」傾向でした。',
+    shallow:'今日の3球は「振り幅が浅い（9時＝肩の高さまで届いていない）」傾向でした。',
     deep:'今日の3球は「振りすぎ」の傾向でした。',
     follow:'今日の3球は「フォローが浅い」傾向でした。'
   };

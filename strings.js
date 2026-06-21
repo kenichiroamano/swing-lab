@@ -5,7 +5,7 @@ const STR = {
   d: {
     'pitch.eyebrow':        { ja:'Level 2 — Drill',            en:'Level 2 — Drill' },
     'pitch.title.jp':       { ja:'ピッチ',                       en:'The Pitch' },
-    'pitch.intro.body':     { ja:'8時から、4時へ。<br>アプローチの距離感は、<br>この振り幅の再現性から。', en:'From 8 to 4.<br>Distance control starts with<br>a repeatable swing width.' },
+    'pitch.intro.body':     { ja:'時計の8時から4時へ。<br>腰から腰くらいの小さな振り幅を、<br>毎回そろえる練習です。', en:'From 8 to 4.<br>Distance control starts with<br>a repeatable swing width.' },
     'pitch.intro.note':     { ja:'両側60°のゾーンに、3回そろえて振る。それが今日の課題です。', en:'Three swings, both sides inside the 60° zone. That is today’s work.' },
     'pitch.btn.begin':      { ja:'はじめる',                     en:'Begin' },
 
@@ -51,14 +51,14 @@ const STR = {
     'live.chip.broken':     { ja:'三角形が崩れました',             en:'Triangle broke' },
     'live.chip.decel':      { ja:'緩みました',                    en:'Decelerated' },
     'live.chip.shallow':    { ja:'浅い — もう少し上まで',          en:'Shallow' },
-    'live.chip.deep':       { ja:'深い — 8時で止める',            en:'Too deep' },
+    'live.chip.deep':       { ja:'大きすぎ — 8時（腰の高さ）で止める',            en:'Too deep' },
     'live.chip.noFollow':   { ja:'フォローまで振り切る',           en:'Swing through' },
     'live.return':          { ja:'構えて、止まる',                 en:'Address. Hold.' },
-    'live.chip.over':       { ja:'振りかぶり過ぎ — 8時で止める',    en:'Too far back — stop at 8' },
+    'live.chip.over':       { ja:'上げすぎ — 8時（腰の高さ）で止める',    en:'Too far back — stop at 8' },
 
     'result.title.jp':      { ja:'結果',                        en:'The Result' },
     'result.rank.perfect':  { ja:'3球がそろっています',            en:'Three matching swings.' },
-    'result.rank.good':     { ja:'よい再現性です',                en:'Good consistency.' },
+    'result.rank.good':     { ja:'よく揃っていました',                en:'Good consistency.' },
     'result.rank.almost':   { ja:'も う 少 し',                  en:'Almost.' },
     'result.rank.tryagain': { ja:'も う 一 度',                  en:'Once more.' },
     'result.stat.mean':     { ja:'平均振り幅',                    en:'Avg width' },
@@ -151,11 +151,11 @@ const STR = {
 
     'bz.eyebrow':           { ja:'Level 3 — Drill',              en:'Level 3 — Drill' },
     'bz.title.jp':          { ja:'ビジネスゾーン',                en:'The Business Zone' },
-    'bz.intro.body':        { ja:'9時から、3時へ。<br>コントロールショットは、<br>この振り幅を毎回そろえることから。', en:'From 9 to 3.<br>Control comes from repeating<br>this swing width every time.' },
+    'bz.intro.body':        { ja:'時計の9時から3時へ。<br>肩から肩くらいの振り幅を、<br>毎回そろえる練習です。', en:'From 9 to 3.<br>Control comes from repeating<br>this swing width every time.' },
     'bz.intro.note':        { ja:'両側90°のゾーンに、3回そろえて振る。それが今日の課題です。', en:'Three swings, both sides inside the 90° zone. That is today’s work.' },
     'bz.btn.begin':         { ja:'はじめる',                     en:'Begin' },
-    'bz.chip.deep':         { ja:'深い — 9時で止める',            en:'Too deep' },
-    'bz.chip.over':         { ja:'振りかぶり過ぎ — 9時で止める',    en:'Too far back — stop at 9' }
+    'bz.chip.deep':         { ja:'大きすぎ — 9時（肩の高さ）で止める',            en:'Too deep' },
+    'bz.chip.over':         { ja:'上げすぎ — 9時（肩の高さ）で止める',    en:'Too far back — stop at 9' }
   },
   t(key){
     const e=this.d[key];
