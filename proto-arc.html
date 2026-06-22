@@ -80,6 +80,7 @@ canvas{ display:block; width:100%; height:300px; background:#F4EEE2; border-radi
     <p class="muted">緑=構え（始点）／中空の丸=トップ／金=フォロー（終点）。矢印＝振った向き。</p>
     <canvas id="cv" width="360" height="320"></canvas>
     <button class="btn" id="btnReplay">もう一度 再生 ▶</button>
+    <button class="btn" id="btnFlip">左右を反転（向きが逆なら押す）</button>
     <div class="stat"><span>1枚の面で振れているか</span><b id="rPlane">—</b></div>
     <button class="btn" id="btnAgain">もう一度振る</button>
     <button class="btn" id="btnRecal">構えからやり直す</button>
@@ -234,7 +235,7 @@ function tickSwing(q,s){
 }
 
 /* 4. 復元＆描画 */
-let ARC=null, MAP=null, raf=null;
+let ARC=null, MAP=null, raf=null, flipX=false;
 function finishSwing(){
   if(samples.length<10){ $('swingState').textContent='短すぎます。取り直してください'; return; }
   const S=samples.map(o=>o.s);
@@ -263,9 +264,12 @@ function finishSwing(){
   if(dot(sideP,f)<0) sideP={x:-sideP.x,y:-sideP.y,z:-sideP.z}; // 右=目標側に固定
   // ヘッド方向の弧を固定フレームへ投影（横=sideP, 縦=upP）。半径Rは自動スケールで相殺
   const pts=S.map(v=>({a:dot(v,sideP), b:dot(v,upP)}));
-  // トップ＝アドレスのシャフト向きから最も離れた点
-  let topIdx=0,maxAng=-1;
-  for(let i=0;i<S.length;i++){ const a=Math.acos(Math.max(-1,Math.min(1,dot(norm(S[i]),norm(S[0]))))); if(a>maxAng){maxAng=a;topIdx=i;} }
+  // インパクト＝中間で最もアドレス向きに戻る点／トップ＝その手前で最も離れた点／フォロー＝終点
+  const angOf=v=>Math.acos(Math.max(-1,Math.min(1,dot(norm(v),norm(S[0])))));
+  let impactIdx=Math.floor(S.length/2), minA=1e9;
+  for(let i=Math.floor(S.length*0.25); i<Math.floor(S.length*0.85); i++){ const a=angOf(S[i]); if(a<minA){minA=a; impactIdx=i;} }
+  let topIdx=0,maxA=-1;
+  for(let i=0;i<=impactIdx;i++){ const a=angOf(S[i]); if(a>maxA){maxA=a; topIdx=i;} }
   const cv=$('cv'); cv.width=cv.clientWidth||340; cv.height=cv.clientHeight||320;
   ARC={pts,topIdx}; MAP=null;
   drawArc();
@@ -276,11 +280,12 @@ function finishSwing(){
 
 function computeMap(pts){
   const cv=$('cv'), W=cv.width,H=cv.height;
+  const A=p=>flipX?-p.a:p.a;
   let mnA=1e9,mxA=-1e9,mnB=1e9,mxB=-1e9;
-  pts.forEach(p=>{mnA=Math.min(mnA,p.a);mxA=Math.max(mxA,p.a);mnB=Math.min(mnB,p.b);mxB=Math.max(mxB,p.b);});
-  const pad=46, sc=Math.min((W-2*pad)/((mxA-mnA)||1),(H-2*pad)/((mxB-mnB)||1));
+  pts.forEach(p=>{const a=A(p);mnA=Math.min(mnA,a);mxA=Math.max(mxA,a);mnB=Math.min(mnB,p.b);mxB=Math.max(mxB,p.b);});
+  const pad=52, sc=0.85*Math.min((W-2*pad)/((mxA-mnA)||1),(H-2*pad)/((mxB-mnB)||1));
   const cx=W/2-((mnA+mxA)/2)*sc, cy=H/2+((mnB+mxB)/2)*sc;
-  return {X:a=>cx+a*sc, Y:b=>cy-b*sc};
+  return {X:a=>cx+(flipX?-a:a)*sc, Y:b=>cy-b*sc};
 }
 function chevron(ctx,X,Y,p0,p1){
   const x1=X(p1.a),y1=Y(p1.b),dx=X(p1.a)-X(p0.a),dy=Y(p1.b)-Y(p0.b),len=Math.hypot(dx,dy)||1;
@@ -332,6 +337,7 @@ function playArc(){
 }
 
 $('btnReplay').addEventListener('click', playArc);
+$('btnFlip').addEventListener('click', ()=>{ flipX=!flipX; MAP=null; drawArc(); playArc(); });
 $('btnAgain').addEventListener('click', ()=>{ ARC=null; MAP=null; STATE='swing'; show2('cardSwing'); resetSwing(); });
 $('btnRecal').addEventListener('click', ()=>{ ARC=null; MAP=null; baseQ=null; STATE='aim'; show2('cardAim'); $('aimCount').textContent='—'; $('aimHint').textContent='ボタンを押したら動かないで。'; });
 
