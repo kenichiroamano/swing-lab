@@ -77,7 +77,7 @@ canvas{ display:block; width:100%; height:300px; background:#F4EEE2; border-radi
   <!-- 4. 結果 -->
   <div class="card hide" id="cardResult">
     <h2>あなたのスイングの形（推定）</h2>
-    <p class="muted">緑=構え（始点）／中空の丸=トップ／金=フォロー（終点）。矢印＝振った向き。</p>
+    <p class="muted">緑=構え／中空=トップ（時計位置の目安つき）／金=フォロー。矢印=向き。薄い外円=満円（振り幅の基準。半なら小さい扇、フルなら大きい扇）。</p>
     <canvas id="cv" width="360" height="320"></canvas>
     <button class="btn" id="btnReplay">もう一度 再生 ▶</button>
     <button class="btn" id="btnFlip">左右を反転（向きが逆なら押す）</button>
@@ -280,12 +280,9 @@ function finishSwing(){
 
 function computeMap(pts){
   const cv=$('cv'), W=cv.width,H=cv.height;
-  const A=p=>flipX?-p.a:p.a;
-  let mnA=1e9,mxA=-1e9,mnB=1e9,mxB=-1e9;
-  pts.forEach(p=>{const a=A(p);mnA=Math.min(mnA,a);mxA=Math.max(mxA,a);mnB=Math.min(mnB,p.b);mxB=Math.max(mxB,p.b);});
-  const pad=52, sc=0.85*Math.min((W-2*pad)/((mxA-mnA)||1),(H-2*pad)/((mxB-mnB)||1));
-  const cx=W/2-((mnA+mxA)/2)*sc, cy=H/2+((mnB+mxB)/2)*sc;
-  return {X:a=>cx+(flipX?-a:a)*sc, Y:b=>cy-b*sc};
+  const R=0.40*Math.min(W,H), cx=W/2, cy=H/2;
+  // 固定スケール：単位ベクトル長=R。自動拡大しない＝弧の大きさが実際の振り幅を表す
+  return {cx,cy,R, X:a=>cx+(flipX?-a:a)*R, Y:b=>cy-b*R};
 }
 function chevron(ctx,X,Y,p0,p1){
   const x1=X(p1.a),y1=Y(p1.b),dx=X(p1.a)-X(p0.a),dy=Y(p1.b)-Y(p0.b),len=Math.hypot(dx,dy)||1;
@@ -309,10 +306,12 @@ function drawArc(progress){
   ctx.clearRect(0,0,W,H);
   if(!MAP) MAP=computeMap(pts);
   const X=MAP.X, Y=MAP.Y;
-  // ガイド：地面(横)＋鉛直(縦・構えの位置)
-  ctx.strokeStyle='rgba(169,143,88,.16)'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(34,Y(pts[0].b)); ctx.lineTo(W-34,Y(pts[0].b)); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(X(pts[0].a),18); ctx.lineTo(X(pts[0].a),H-18); ctx.stroke();
+  // ガイド：固定の満円(=振り幅の基準)＋十字。弧がこの円のどれだけを覆うか＝振り幅
+  ctx.strokeStyle='rgba(169,143,88,.20)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.arc(MAP.cx,MAP.cy,MAP.R,0,Math.PI*2); ctx.stroke();
+  ctx.strokeStyle='rgba(169,143,88,.10)';
+  ctx.beginPath(); ctx.moveTo(MAP.cx-MAP.R,MAP.cy); ctx.lineTo(MAP.cx+MAP.R,MAP.cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(MAP.cx,MAP.cy-MAP.R); ctx.lineTo(MAP.cx,MAP.cy+MAP.R); ctx.stroke();
   // 弧：往き(構え→トップ)=細く淡い／返り(トップ→フォロー)=太く濃い
   for(let i=1;i<pts.length;i++){
     const back=i<=topIdx;
@@ -322,9 +321,11 @@ function drawArc(progress){
   }
   // 進行方向シェブロン
   [0.3,0.6,0.9].forEach(fr=>{ const i=Math.max(1,Math.floor(fr*(pts.length-1))); chevron(ctx,X,Y,pts[i-1],pts[i]); });
-  // マーカー
+  // マーカー（トップは時計位置の目安つき。12時=真上,3時=右,6時=下,9時=左）
+  const adT=(flipX?-pts[topIdx].a:pts[topIdx].a);
+  let clk=Math.round(((Math.atan2(adT,pts[topIdx].b)*180/Math.PI+360)%360)/30); if(clk===0) clk=12;
   mark(ctx,X(pts[0].a),Y(pts[0].b),'#3B6D11','構え');
-  mark(ctx,X(pts[topIdx].a),Y(pts[topIdx].b),null,'トップ');
+  mark(ctx,X(pts[topIdx].a),Y(pts[topIdx].b),null,'トップ '+clk+'時');
   mark(ctx,X(pts[pts.length-1].a),Y(pts[pts.length-1].b),'#A98F58','フォロー');
   // 再生ドット
   if(progress!=null){ const idx=Math.min(pts.length-1,Math.floor(progress*(pts.length-1)));
