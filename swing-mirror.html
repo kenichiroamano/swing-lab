@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Golflev · スイングの鏡</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600&family=Noto+Serif+JP:wght@300;400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{ --bone:#E8E2D4; --ink:#1B2620; --ink-soft:#3A453C; --brass:#A98F58; --brass-lo:#876F40;
+  --hair:rgba(169,143,88,.4); --sub:#8C8676; --green:#243229;
+  --serif:'Cormorant Garamond',serif; --jp:'Noto Serif JP',serif; --ui:'Inter',sans-serif; }
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{ background:#EDE7DA; color:var(--ink); font-family:var(--ui); line-height:1.6; min-height:100vh; padding:24px 20px calc(36px + env(safe-area-inset-bottom)) }
+.wrap{ max-width:440px; margin:0 auto }
+.brand{ text-align:center; font-family:var(--serif); font-weight:600; font-size:13px; letter-spacing:.4em; color:var(--ink) }
+.brand b{ color:var(--brass) }
+.tag{ text-align:center; font-family:var(--jp); font-size:11px; color:var(--sub); margin-top:6px }
+.card{ background:#E8E2D4; border:1px solid var(--hair); border-radius:18px; padding:22px 20px; margin-top:18px }
+h2{ font-family:var(--serif); font-style:italic; font-weight:600; font-size:22px; color:var(--ink) }
+p.lead{ font-family:var(--jp); font-size:13px; color:var(--ink-soft); margin-top:10px; line-height:1.8 }
+.btn{ display:block; width:100%; margin-top:16px; padding:15px; cursor:pointer; background:transparent; border:1px solid var(--brass); border-radius:10px; font-family:var(--ui); font-size:13px; font-weight:500; letter-spacing:.18em; color:var(--brass-lo) }
+.btn.solid{ background:linear-gradient(155deg,var(--green),#18211B); color:#E4D6BA; border-color:transparent }
+.btn:active{ opacity:.85 }
+.row{ display:flex; align-items:center; gap:10px; margin-top:14px }
+.row label{ font-family:var(--jp); font-size:13px; color:var(--ink-soft); white-space:nowrap }
+.row input{ flex:1; padding:10px 12px; border:1px solid var(--hair); border-radius:8px; background:#F4EEE2; font-family:var(--ui); font-size:16px; color:var(--ink); outline:none }
+.live{ text-align:center; font-family:var(--serif); font-style:italic; font-size:30px; color:var(--brass); margin-top:8px }
+.muted{ font-family:var(--jp); font-size:11.5px; color:var(--sub); margin-top:8px; line-height:1.7 }
+canvas{ display:block; width:100%; height:340px; background:#F4EEE2; border-radius:14px; border:1px solid var(--hair); margin-top:8px }
+.metrics{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px }
+.metric{ background:#F4EEE2; border:1px solid var(--hair); border-radius:12px; padding:12px 14px; text-align:center }
+.metric .v{ font-family:var(--serif); font-style:italic; font-weight:600; font-size:30px; color:var(--ink) }
+.metric .v .u{ font-size:13px; color:var(--sub); font-style:normal }
+.metric .l{ font-family:var(--jp); font-size:11.5px; color:var(--sub); margin-top:4px }
+.metric .d{ font-family:var(--jp); font-size:11px; margin-top:5px }
+.metric .d.up{ color:var(--brass-lo) } .metric .d.flat{ color:var(--sub) }
+.note{ font-family:var(--jp); font-size:11px; color:var(--sub); margin-top:14px; line-height:1.7; border-top:1px solid var(--hair); padding-top:12px }
+.note b{ color:var(--brass-lo); font-weight:500 }
+.hide{ display:none }
+.err{ color:#C45B4A; font-size:11px; font-family:var(--jp); margin-top:8px }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">GOLF<b>LEV</b></div>
+  <div class="tag">スイングの鏡（お試し・あなたの動きを映します）</div>
+
+  <!-- 1. 許可 -->
+  <div class="card" id="cardPerm">
+    <h2>はじめに</h2>
+    <p class="lead">スマホをクラブのように両手で握り、ゆっくり素振りをします。<br>振ると、画面のクラブが<b>あなたの動きに連動</b>して弧を描きます。<br>振り終わると、<b>振りの速さ・テンポ</b>が出ます。</p>
+    <div class="row"><label>身長(cm)</label><input id="height" type="number" inputmode="numeric" placeholder="170" value="170"></div>
+    <button class="btn solid" id="btnPerm">センサーを有効にする</button>
+    <div class="err hide" id="permErr"></div>
+  </div>
+
+  <!-- 2. アドレス -->
+  <div class="card hide" id="cardAim">
+    <h2>構える</h2>
+    <p class="lead">いつものアドレスで構え、<b>2秒間そのまま静止</b>してください。ここを基準にします。</p>
+    <div class="live" id="aimCount">—</div>
+    <button class="btn" id="btnAim">アドレスを記録する</button>
+  </div>
+
+  <!-- 3. ライブ（鏡） -->
+  <div class="card hide" id="cardLive">
+    <h2>振る</h2>
+    <canvas id="cv" width="360" height="340"></canvas>
+    <div class="live" id="liveState" style="font-size:18px">そのまま、ゆっくり振ってください</div>
+    <button class="btn" id="btnReset">取り直す</button>
+  </div>
+
+  <!-- 4. 結果 -->
+  <div class="card hide" id="cardResult">
+    <h2>振り終わり</h2>
+    <canvas id="cv2" width="360" height="300"></canvas>
+    <div class="metrics">
+      <div class="metric"><div class="v" id="mSpeed">—</div><div class="l">振りの速さ</div><div class="d" id="dSpeed"></div></div>
+      <div class="metric"><div class="v" id="mTempo">—</div><div class="l">テンポ（上げ：下ろし）</div><div class="d" id="dTempo"></div></div>
+    </div>
+    <button class="btn" id="btnAgain">もう一度振る</button>
+    <button class="btn" id="btnRecal">構えからやり直す</button>
+    <p class="note"><b>この弧はあなたの動きを映した“鏡”です。</b>振り幅の長さは目安で、距離や正しさの測定ではありません。実際に測れているのは「振りの速さ」と「テンポ（リズム）」で、これは前回のあなたと比べられます。</p>
+  </div>
+
+  <div class="err" id="globalErr"></div>
+</div>
+
+<script>
+window.__err=[]; window.onerror=m=>{ window.__err.push(String(m)); var e=document.getElementById('globalErr'); if(e) e.textContent=String(m); };
+const $=id=>document.getElementById(id);
+const D2R=Math.PI/180, R2D=180/Math.PI;
+
+/* ── クォータニオン／ベクトル ── */
+function qFromEuler(a,b,g){a=(a||0)*D2R;b=(b||0)*D2R;g=(g||0)*D2R;
+  const cX=Math.cos(b/2),cY=Math.cos(g/2),cZ=Math.cos(a/2),sX=Math.sin(b/2),sY=Math.sin(g/2),sZ=Math.sin(a/2);
+  return {w:cX*cY*cZ-sX*sY*sZ, x:sX*cY*cZ-cX*sY*sZ, y:cX*sY*cZ+sX*cY*sZ, z:cX*cY*sZ+sX*sY*cZ};}
+function rotVec(q,v){const{w,x,y,z}=q,{x:vx,y:vy,z:vz}=v;
+  const tx=2*(y*vz-z*vy),ty=2*(z*vx-x*vz),tz=2*(x*vy-y*vx);
+  return {x:vx+w*tx+(y*tz-z*ty), y:vy+w*ty+(z*tx-x*tz), z:vz+w*tz+(x*ty-y*tx)};}
+const dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
+const cross=(a,b)=>({x:a.y*b.z-a.z*b.y,y:a.z*b.x-a.x*b.z,z:a.x*b.y-a.y*b.x});
+function norm(v){const l=Math.hypot(v.x,v.y,v.z)||1;return{x:v.x/l,y:v.y/l,z:v.z/l};}
+function angBetween(a,b){return Math.acos(Math.max(-1,Math.min(1,dot(norm(a),norm(b)))))*R2D;}
+
+/* ── 状態 ── */
+let SENSOR={alpha:0,beta:0,gamma:0}, baseQ=null, FRAME=null;
+let STATE='perm';
+let recording=false, samples=[], trail=[], lastS=null, restCount=0, started=false;
+const Yc={x:0,y:1,z:0};
+
+function show(id){ ['cardPerm','cardAim','cardLive','cardResult'].forEach(c=>$(c).classList.add('hide')); $(id).classList.remove('hide'); }
+
+/* 固定フレーム：重力up＋アドレスのシャフト向きから前後軸f。画面横=f, 縦=up */
+function buildFrame(){
+  const up={x:0,y:0,z:1};
+  const s0=baseQ?rotVec(baseQ,Yc):{x:0,y:1,z:0};
+  let f=cross(up,s0); if(Math.hypot(f.x,f.y,f.z)<0.2) f={x:1,y:0,z:0}; f=norm(f);
+  FRAME={up,f,s0};
+}
+function proj(s){ return { x:dot(s,FRAME.f), y:dot(s,FRAME.up) }; } // x=前後, y=上下(+上)
+
+/* deviceorientation */
+function onOrient(e){
+  if(e.alpha==null&&e.beta==null&&e.gamma==null) return;
+  SENSOR.alpha=e.alpha||0; SENSOR.beta=e.beta||0; SENSOR.gamma=e.gamma||0;
+  if(STATE==='aim') aimTick();
+  else if(STATE==='live') liveTick();
+}
+
+/* 1. 許可 */
+$('btnPerm').addEventListener('click', async ()=>{
+  try{
+    if(typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){
+      const r=await DeviceOrientationEvent.requestPermission();
+      if(r!=='granted'){ $('permErr').classList.remove('hide'); $('permErr').textContent='センサーが許可されませんでした。設定から許可してください。'; return; }
+    }
+    window.addEventListener('deviceorientation', onOrient, true);
+    STATE='aim'; show('cardAim');
+  }catch(err){ $('permErr').classList.remove('hide'); $('permErr').textContent='エラー: '+(err.message||err); }
+});
+
+/* 2. アドレス記録（2秒静止平均） */
+let aimColl=null;
+$('btnAim').addEventListener('click', ()=>{ aimColl={list:[],remain:2.0}; aimColl.timer=setInterval(()=>{
+  aimColl.remain-=0.1; $('aimCount').textContent=Math.max(0,aimColl.remain).toFixed(1);
+  if(aimColl.remain<=0){ clearInterval(aimColl.timer); baseQ=avgQ(aimColl.list); aimColl=null; buildFrame(); enterLive(); }
+},100); });
+function aimTick(){ if(aimColl) aimColl.list.push(qFromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma)); }
+function avgQ(list){ if(!list.length) return {w:1,x:0,y:0,z:0}; const r=list[0]; let w=0,x=0,y=0,z=0;
+  list.forEach(q=>{const s=(q.w*r.w+q.x*r.x+q.y*r.y+q.z*r.z)<0?-1:1; w+=s*q.w;x+=s*q.x;y+=s*q.y;z+=s*q.z;});
+  const l=Math.hypot(w,x,y,z)||1; return {w:w/l,x:x/l,y:y/l,z:z/l}; }
+
+/* 3. ライブ（鏡） */
+function enterLive(){ STATE='live'; show('cardLive'); recording=false; started=false; samples=[]; trail=[]; lastS=null; restCount=0; $('liveState').textContent='そのまま、ゆっくり振ってください'; renderLive($('cv')); }
+$('btnReset').addEventListener('click', enterLive);
+function liveTick(){
+  const t=performance.now();
+  const q=qFromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma);
+  const s=rotVec(q,Yc);
+  // 角速度（向きの変化）
+  let omega=0; if(lastS){ omega=angBetween(s,lastS); } // deg/frame
+  // 動き検出で記録開始／静止で終了
+  if(!recording){ if(omega>1.2){ recording=true; started=true; samples=[]; trail=[]; $('liveState').textContent='記録中…'; } }
+  if(recording){
+    samples.push({t,s,om:omega});
+    trail.push({t,p:proj(s)});
+    if(omega<0.4) restCount++; else restCount=0;
+    if(restCount>8 && samples.length>15){ recording=false; finish(); return; }
+    if(samples.length>800){ recording=false; finish(); return; }
+  } else {
+    // 記録前も鏡として現在の向きを表示（連動の手応え）
+    trail.push({t,p:proj(s)}); while(trail.length>12) trail.shift();
+  }
+  lastS=s;
+  renderLive($('cv'), proj(s));
+}
+
+/* 鏡の描画：支点から伸びるクラブ＋先端の金の弧（残光） */
+function renderLive(cv, cur){
+  cv.width=cv.clientWidth||340; cv.height=cv.clientHeight||340;
+  const ctx=cv.getContext('2d'), W=cv.width, H=cv.height; ctx.clearRect(0,0,W,H);
+  const px=W*0.5, py=H*0.34, L=0.52*Math.min(W,H);   // 支点（肩）とクラブ長
+  // 地面・支点
+  ctx.strokeStyle='rgba(169,143,88,.14)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(20,py+L*0.96); ctx.lineTo(W-20,py+L*0.96); ctx.stroke();
+  ctx.fillStyle='rgba(36,50,41,.5)'; ctx.beginPath(); ctx.arc(px,py,4,0,7); ctx.fill();
+  // 残光トレイル（古い→薄い）
+  const now=trail.length?trail[trail.length-1].t:0;
+  for(let i=1;i<trail.length;i++){
+    const age=(now-trail[i].t)/900; if(age>1) continue;
+    const a=Math.max(0,1-age);
+    const x0=px+trail[i-1].p.x*L, y0=py-trail[i-1].p.y*L, x1=px+trail[i].p.x*L, y1=py-trail[i].p.y*L;
+    ctx.strokeStyle='rgba(184,128,76,'+(0.5*a).toFixed(3)+')'; ctx.lineWidth=3*a+1; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+  }
+  // 現在のクラブ
+  if(cur){ const hx=px+cur.x*L, hy=py-cur.y*L;
+    ctx.strokeStyle='rgba(135,111,64,.9)'; ctx.lineWidth=3; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(hx,hy); ctx.stroke();
+    ctx.fillStyle='#A98F58'; ctx.beginPath(); ctx.arc(hx,hy,5,0,7); ctx.fill();
+  }
+}
+
+/* 4. 終了→指標 */
+function finish(){
+  if(samples.length<10){ $('liveState').textContent='短すぎます。取り直してください'; recording=false; setTimeout(enterLive,900); return; }
+  // 角速度ピーク（deg/秒）。隣接サンプルの角度差/時間
+  let peak=0, rot=0;
+  for(let i=1;i<samples.length;i++){ const dt=(samples[i].t-samples[i-1].t)/1000||0.016;
+    const sp=samples[i].om/dt; if(sp>peak)peak=sp; rot+=samples[i].om; }
+  // アドレスから最も離れた点＝トップ（バックスイング）/ 最速点＝インパクト相当
+  const a0=samples[0].s; let topIdx=0,maxAng=-1;
+  // 最速点（インパクト）
+  let impIdx=1,maxSp=-1;
+  for(let i=1;i<samples.length;i++){ const dt=(samples[i].t-samples[i-1].t)/1000||0.016; const sp=samples[i].om/dt; if(sp>maxSp){maxSp=sp;impIdx=i;} }
+  for(let i=0;i<=impIdx;i++){ const ang=angBetween(samples[i].s,a0); if(ang>maxAng){maxAng=ang;topIdx=i;} }
+  const backT=(samples[topIdx].t-samples[0].t)/1000;
+  const downT=Math.max(0.05,(samples[impIdx].t-samples[topIdx].t)/1000);
+  const tempo=backT/downT;
+  // 表示
+  $('mSpeed').innerHTML=Math.round(peak)+'<span class="u"> °/秒</span>';
+  $('mTempo').textContent=(tempo>0?tempo.toFixed(1):'—')+' : 1';
+  // 前回比
+  let prev=null; try{ prev=JSON.parse(localStorage.getItem('golflev:mirror:last')||'null'); }catch(e){}
+  if(prev){
+    const ds=Math.round(peak-prev.peak);
+    $('dSpeed').textContent=(ds>0?'前回より +'+ds:ds<0?'前回より '+ds:'前回と同じ')+' °/秒';
+    $('dSpeed').className='d '+(ds>0?'up':'flat');
+    const dtp=tempo-prev.tempo;
+    $('dTempo').textContent=(Math.abs(dtp)<0.15?'前回と同じくらい':(dtp>0?'前回より上げ長め':'前回より下ろし速め'));
+    $('dTempo').className='d flat';
+  } else {
+    $('dSpeed').textContent='初回（次回から前回比）'; $('dSpeed').className='d flat';
+    $('dTempo').textContent='初回'; $('dTempo').className='d flat';
+  }
+  try{ localStorage.setItem('golflev:mirror:last', JSON.stringify({peak:Math.round(peak),tempo:+tempo.toFixed(2),rot:Math.round(rot)})); }catch(e){}
+  // 結果canvasに弧を固定描画
+  drawResult($('cv2'), samples, topIdx, impIdx);
+  STATE='result'; show('cardResult');
+}
+function drawResult(cv, sm, topIdx, impIdx){
+  cv.width=cv.clientWidth||340; cv.height=cv.clientHeight||300;
+  const ctx=cv.getContext('2d'), W=cv.width,H=cv.height; ctx.clearRect(0,0,W,H);
+  const px=W*0.5, py=H*0.34, L=0.52*Math.min(W,H);
+  ctx.strokeStyle='rgba(169,143,88,.14)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(20,py+L*0.96); ctx.lineTo(W-20,py+L*0.96); ctx.stroke();
+  ctx.fillStyle='rgba(36,50,41,.5)'; ctx.beginPath(); ctx.arc(px,py,4,0,7); ctx.fill();
+  for(let i=1;i<sm.length;i++){ const back=i<=topIdx;
+    const p0=proj(sm[i-1].s), p1=proj(sm[i].s);
+    ctx.strokeStyle= back?'rgba(203,176,121,.6)':'rgba(135,111,64,.95)'; ctx.lineWidth= back?2.5:3.5; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(px+p0.x*L,py-p0.y*L); ctx.lineTo(px+p1.x*L,py-p1.y*L); ctx.stroke();
+  }
+  const mk=(i,fill,label)=>{ const p=proj(sm[i].s), x=px+p.x*L,y=py-p.y*L;
+    if(fill){ctx.fillStyle=fill;ctx.beginPath();ctx.arc(x,y,5,0,7);ctx.fill();}else{ctx.strokeStyle='#876F40';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,5,0,7);ctx.stroke();}
+    ctx.fillStyle='#3A453C';ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText(label,x,y-9); };
+  mk(0,'#3B6D11','構え'); mk(topIdx,null,'トップ'); mk(sm.length-1,'#A98F58','フォロー');
+}
+$('btnAgain').addEventListener('click', enterLive);
+$('btnRecal').addEventListener('click', ()=>{ baseQ=null; FRAME=null; STATE='aim'; show('cardAim'); $('aimCount').textContent='—'; });
+
+/* テスト用 */
+window.__m={qFromEuler,rotVec,angBetween,buildFrame:()=>{baseQ=qFromEuler(0,55,0);buildFrame();},proj:()=>proj(rotVec(qFromEuler(0,0,0),Yc))};
+</script>
+</body>
+</html>
