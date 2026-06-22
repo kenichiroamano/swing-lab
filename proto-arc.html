@@ -77,10 +77,10 @@ canvas{ display:block; width:100%; height:300px; background:#F4EEE2; border-radi
   <!-- 4. 結果 -->
   <div class="card hide" id="cardResult">
     <h2>あなたのスイングの形（推定）</h2>
-    <canvas id="cv" width="400" height="300"></canvas>
-    <div class="stat"><span>記録点数</span><b id="rN">—</b></div>
-    <div class="stat"><span>面の傾き（推定・鉛直から）</span><b id="rTilt">—</b></div>
-    <div class="stat"><span>面へのフィット残差（小さいほど1枚の面）</span><b id="rRes">—</b></div>
+    <p class="muted">緑=構え（始点）／中空の丸=トップ／金=フォロー（終点）。矢印＝振った向き。</p>
+    <canvas id="cv" width="360" height="320"></canvas>
+    <button class="btn" id="btnReplay">もう一度 再生 ▶</button>
+    <div class="stat"><span>1枚の面で振れているか</span><b id="rPlane">—</b></div>
     <button class="btn" id="btnAgain">もう一度振る</button>
     <button class="btn" id="btnRecal">構えからやり直す</button>
     <p class="note"><b>これは推定です。</b>スマホの向きから計算した「あなたの動きの形」であり、実測でも、目標に対して正しいかの判定でもありません。クラブの軌道・フェースの向き・ボールの行方は測っていません。比べる相手は「自分の動画」と「過去の自分」だけです。</p>
@@ -234,12 +234,12 @@ function tickSwing(q,s){
 }
 
 /* 4. 復元＆描画 */
+let ARC=null, MAP=null, raf=null;
 function finishSwing(){
   if(samples.length<10){ $('swingState').textContent='短すぎます。取り直してください'; return; }
   const S=samples.map(o=>o.s);
-  // 平均方向
+  // PCA → 面法線（最小固有ベクトル）
   let m={x:0,y:0,z:0}; S.forEach(v=>{m.x+=v.x;m.y+=v.y;m.z+=v.z;}); m={x:m.x/S.length,y:m.y/S.length,z:m.z/S.length};
-  // 共分散（平均中心）
   let C=[[0,0,0],[0,0,0],[0,0,0]];
   S.forEach(v=>{ const d={x:v.x-m.x,y:v.y-m.y,z:v.z-m.z};
     C[0][0]+=d.x*d.x; C[0][1]+=d.x*d.y; C[0][2]+=d.x*d.z;
@@ -247,51 +247,93 @@ function finishSwing(){
   C[1][0]=C[0][1]; C[2][0]=C[0][2]; C[2][1]=C[1][2];
   for(let i=0;i<3;i++)for(let j=0;j<3;j++)C[i][j]/=S.length;
   const eig=jacobiEig3(C);
-  const n=norm(eig[0].vec);              // 面法線=最小固有ベクトル
-  const fitResid=Math.sqrt(Math.max(0,eig[0].val)); // 面外ばらつき(rad目安)
-  // 面内基底 u,w
-  let u=norm({x:m.x-dot(m,n)*n.x, y:m.y-dot(m,n)*n.y, z:m.z-dot(m,n)*n.z});
-  if(!isFinite(u.x)) u=norm(cross(n,{x:1,y:0,z:0}));
-  const wv=norm(cross(n,u));
-  // 鉛直(重力Up=世界Z)に対する面の傾き：法線と水平のなす角の補角
+  let n=norm(eig[0].vec);
+  const fitResid=Math.sqrt(Math.max(0,eig[0].val));
+  // ── 固定フレーム：重力(up)＋アドレス基準(baseQ)で向きを固定（任意PCA基底をやめる＝似て見えない主因の解消）──
   const up={x:0,y:0,z:1};
-  const tilt=Math.abs(90 - Math.acos(Math.max(-1,Math.min(1,Math.abs(dot(n,up)))))*R2D);
-  // 各点を面に投影 → 2D
-  const pts=S.map(v=>({a:dot(v,u), b:dot(v,wv)}));
-  drawArc(pts);
-  $('rN').textContent=S.length;
-  $('rTilt').textContent='約 '+Math.round(tilt)+'°';
-  $('rRes').textContent=fitResid.toFixed(3);
+  const s0=baseQ?rotVec(baseQ,{x:0,y:1,z:0}):{x:0,y:1,z:0}; // アドレスのシャフト向き
+  let f=cross(up,s0);
+  if(Math.hypot(f.x,f.y,f.z)<0.2) f={x:1,y:0,z:0};          // シャフト鉛直すぎ→暫定軸
+  f=norm(f);
+  if(dot(n,f)<0) n={x:-n.x,y:-n.y,z:-n.z};                  // 法線符号を固定
+  let upP={x:up.x-dot(up,n)*n.x,y:up.y-dot(up,n)*n.y,z:up.z-dot(up,n)*n.z};
+  if(Math.hypot(upP.x,upP.y,upP.z)<0.2) upP={x:up.x,y:up.y,z:up.z}; // 面が寝すぎ→暫定
+  upP=norm(upP);
+  let sideP=norm(cross(n,upP));
+  if(dot(sideP,f)<0) sideP={x:-sideP.x,y:-sideP.y,z:-sideP.z}; // 右=目標側に固定
+  // ヘッド方向の弧を固定フレームへ投影（横=sideP, 縦=upP）。半径Rは自動スケールで相殺
+  const pts=S.map(v=>({a:dot(v,sideP), b:dot(v,upP)}));
+  // トップ＝アドレスのシャフト向きから最も離れた点
+  let topIdx=0,maxAng=-1;
+  for(let i=0;i<S.length;i++){ const a=Math.acos(Math.max(-1,Math.min(1,dot(norm(S[i]),norm(S[0]))))); if(a>maxAng){maxAng=a;topIdx=i;} }
+  const cv=$('cv'); cv.width=cv.clientWidth||340; cv.height=cv.clientHeight||320;
+  ARC={pts,topIdx}; MAP=null;
+  drawArc();
+  $('rPlane').textContent = fitResid<0.06?'きれい（1枚の面）': fitResid<0.12?'まずまず':'ばらつき大';
   STATE='result'; show2('cardResult');
+  setTimeout(playArc,250);
 }
 
-function drawArc(pts){
-  const cv=$('cv'), ctx=cv.getContext('2d');
-  const W=cv.width, H=cv.height; ctx.clearRect(0,0,W,H);
-  // 自動スケール
+function computeMap(pts){
+  const cv=$('cv'), W=cv.width,H=cv.height;
   let mnA=1e9,mxA=-1e9,mnB=1e9,mxB=-1e9;
-  pts.forEach(p=>{ mnA=Math.min(mnA,p.a);mxA=Math.max(mxA,p.a);mnB=Math.min(mnB,p.b);mxB=Math.max(mxB,p.b); });
-  const pad=30, sw=(W-2*pad)/((mxA-mnA)||1), sh=(H-2*pad)/((mxB-mnB)||1);
-  const sc=Math.min(sw,sh);
+  pts.forEach(p=>{mnA=Math.min(mnA,p.a);mxA=Math.max(mxA,p.a);mnB=Math.min(mnB,p.b);mxB=Math.max(mxB,p.b);});
+  const pad=46, sc=Math.min((W-2*pad)/((mxA-mnA)||1),(H-2*pad)/((mxB-mnB)||1));
   const cx=W/2-((mnA+mxA)/2)*sc, cy=H/2+((mnB+mxB)/2)*sc;
-  const X=a=>cx+a*sc, Y=b=>cy-b*sc;
-  // ガイド
-  ctx.strokeStyle='rgba(169,143,88,.25)'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(pad,H/2); ctx.lineTo(W-pad,H/2); ctx.stroke();
-  // 弧（時間でグラデーション：薄→濃）
+  return {X:a=>cx+a*sc, Y:b=>cy-b*sc};
+}
+function chevron(ctx,X,Y,p0,p1){
+  const x1=X(p1.a),y1=Y(p1.b),dx=X(p1.a)-X(p0.a),dy=Y(p1.b)-Y(p0.b),len=Math.hypot(dx,dy)||1;
+  const ux=dx/len,uy=dy/len,s=7;
+  ctx.strokeStyle='rgba(27,38,32,.55)'; ctx.lineWidth=2; ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(x1-ux*s-uy*s, y1-uy*s+ux*s); ctx.lineTo(x1,y1); ctx.lineTo(x1-ux*s+uy*s, y1-uy*s-ux*s);
+  ctx.stroke();
+}
+function mark(ctx,x,y,fill,label){
+  ctx.lineWidth=2;
+  if(fill){ ctx.fillStyle=fill; ctx.beginPath(); ctx.arc(x,y,6,0,7); ctx.fill(); }
+  else { ctx.strokeStyle='#876F40'; ctx.beginPath(); ctx.arc(x,y,6,0,7); ctx.stroke(); }
+  ctx.fillStyle='#3A453C'; ctx.font='12px sans-serif'; ctx.textAlign='center';
+  ctx.fillText(label, x, y-11);
+}
+function drawArc(progress){
+  if(!ARC) return;
+  const pts=ARC.pts, topIdx=ARC.topIdx;
+  const cv=$('cv'), ctx=cv.getContext('2d'), W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  if(!MAP) MAP=computeMap(pts);
+  const X=MAP.X, Y=MAP.Y;
+  // ガイド：地面(横)＋鉛直(縦・構えの位置)
+  ctx.strokeStyle='rgba(169,143,88,.16)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(34,Y(pts[0].b)); ctx.lineTo(W-34,Y(pts[0].b)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(X(pts[0].a),18); ctx.lineTo(X(pts[0].a),H-18); ctx.stroke();
+  // 弧：往き(構え→トップ)=細く淡い／返り(トップ→フォロー)=太く濃い
   for(let i=1;i<pts.length;i++){
-    const f=i/pts.length;
-    ctx.strokeStyle='rgba('+Math.round(203-100*f)+','+Math.round(176-100*f)+','+Math.round(121-70*f)+',0.9)';
-    ctx.lineWidth=3; ctx.lineCap='round';
+    const back=i<=topIdx;
+    ctx.strokeStyle= back?'rgba(203,176,121,.55)':'rgba(135,111,64,.95)';
+    ctx.lineWidth= back?2.5:4; ctx.lineCap='round';
     ctx.beginPath(); ctx.moveTo(X(pts[i-1].a),Y(pts[i-1].b)); ctx.lineTo(X(pts[i].a),Y(pts[i].b)); ctx.stroke();
   }
-  // 始点/終点
-  ctx.fillStyle='#243229'; ctx.beginPath(); ctx.arc(X(pts[0].a),Y(pts[0].b),5,0,7); ctx.fill();
-  ctx.fillStyle='#A98F58'; ctx.beginPath(); ctx.arc(X(pts[pts.length-1].a),Y(pts[pts.length-1].b),5,0,7); ctx.fill();
+  // 進行方向シェブロン
+  [0.3,0.6,0.9].forEach(fr=>{ const i=Math.max(1,Math.floor(fr*(pts.length-1))); chevron(ctx,X,Y,pts[i-1],pts[i]); });
+  // マーカー
+  mark(ctx,X(pts[0].a),Y(pts[0].b),'#3B6D11','構え');
+  mark(ctx,X(pts[topIdx].a),Y(pts[topIdx].b),null,'トップ');
+  mark(ctx,X(pts[pts.length-1].a),Y(pts[pts.length-1].b),'#A98F58','フォロー');
+  // 再生ドット
+  if(progress!=null){ const idx=Math.min(pts.length-1,Math.floor(progress*(pts.length-1)));
+    ctx.fillStyle='#1B2620'; ctx.beginPath(); ctx.arc(X(pts[idx].a),Y(pts[idx].b),6,0,7); ctx.fill(); }
+}
+function playArc(){
+  if(!ARC) return; if(raf) cancelAnimationFrame(raf);
+  const t0=performance.now(), dur=1500;
+  (function step(t){ const p=Math.min(1,(t-t0)/dur); drawArc(p); if(p<1) raf=requestAnimationFrame(step); else drawArc(); })(performance.now());
 }
 
-$('btnAgain').addEventListener('click', ()=>{ STATE='swing'; show2('cardSwing'); resetSwing(); });
-$('btnRecal').addEventListener('click', ()=>{ baseQ=null; STATE='aim'; show2('cardAim'); $('aimCount').textContent='—'; $('aimHint').textContent='ボタンを押したら動かないで。'; });
+$('btnReplay').addEventListener('click', playArc);
+$('btnAgain').addEventListener('click', ()=>{ ARC=null; MAP=null; STATE='swing'; show2('cardSwing'); resetSwing(); });
+$('btnRecal').addEventListener('click', ()=>{ ARC=null; MAP=null; baseQ=null; STATE='aim'; show2('cardAim'); $('aimCount').textContent='—'; $('aimHint').textContent='ボタンを押したら動かないで。'; });
 
 /* テスト用に主要関数を公開 */
 window.__proto={qFromEuler,rotVec,jacobiEig3,dot,cross,norm};
