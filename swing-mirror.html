@@ -205,16 +205,18 @@ function renderLive(cv, cur){
   // 残光（ブラス統一・テーパー）
   const now=trail.length?trail[trail.length-1].t:0;
   ctx.lineCap='round'; ctx.lineJoin='round';
-  for(let i=1;i<trail.length;i++){ const age=(now-trail[i].t)/1000; if(age>1) continue; const a=Math.max(0,1-age);
-    const x0=g.px+fx(trail[i-1].p.x)*g.L, y0=g.py-trail[i-1].p.y*g.L, x1=g.px+fx(trail[i].p.x)*g.L, y1=g.py-trail[i].p.y*g.L;
-    ctx.strokeStyle='rgba(169,143,88,'+(0.45*a).toFixed(3)+')'; ctx.lineWidth=(3.4*a+0.6);
-    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke(); }
+  const TP=i=>({x:g.px+fx(trail[i].p.x)*g.L, y:g.py-trail[i].p.y*g.L});
+  for(let i=1;i<trail.length-1;i++){ const age=(now-trail[i].t)/1000; if(age>1) continue; const a=Math.max(0,1-age);
+    const A=TP(i-1),B=TP(i),C=TP(i+1);
+    const m1={x:(A.x+B.x)/2,y:(A.y+B.y)/2}, m2={x:(B.x+C.x)/2,y:(B.y+C.y)/2};
+    ctx.strokeStyle='rgba(169,143,88,'+(0.5*a).toFixed(3)+')'; ctx.lineWidth=(3.6*a+0.7);
+    ctx.beginPath(); ctx.moveTo(m1.x,m1.y); ctx.quadraticCurveTo(B.x,B.y,m2.x,m2.y); ctx.stroke(); }
   // 支点（中空リング）
   ring(ctx,g.px,g.py,4.5,'rgba(135,111,64,.7)',1.2);
   // 現在のクラブ（細い金グラデ＋中空先端）
   if(cur){ const hx=g.px+fx(cur.x)*g.L, hy=g.py-cur.y*g.L;
     const sg=ctx.createLinearGradient(g.px,g.py,hx,hy); sg.addColorStop(0,'rgba(135,111,64,.95)'); sg.addColorStop(1,'rgba(169,143,88,.85)');
-    ctx.strokeStyle=sg; ctx.lineWidth=2.2; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(g.px,g.py); ctx.lineTo(hx,hy); ctx.stroke();
+    ctx.strokeStyle=sg; ctx.lineWidth=2.6; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(g.px,g.py); ctx.lineTo(hx,hy); ctx.stroke();
     ring(ctx,hx,hy,4.5,'#A98F58',1.6); }
 }
 
@@ -250,9 +252,13 @@ function redrawResult(){
   drawGround(ctx,g); ring(ctx,g.px,g.py,4.5,'rgba(135,111,64,.7)',1.2);
   const sm=RES.sm, topIdx=RES.topIdx;
   ctx.lineCap='round'; ctx.lineJoin='round';
-  for(let i=1;i<sm.length;i++){ const back=i<=topIdx; const p0=proj(sm[i-1].s), p1=proj(sm[i].s);
-    ctx.strokeStyle= back?'rgba(203,176,121,.55)':'rgba(135,111,64,.92)'; ctx.lineWidth= back?2.2:3.0;
-    ctx.beginPath(); ctx.moveTo(g.px+fx(p0.x)*g.L,g.py-p0.y*g.L); ctx.lineTo(g.px+fx(p1.x)*g.L,g.py-p1.y*g.L); ctx.stroke(); }
+  const SP=i=>{ const p=proj(sm[i].s); return {x:g.px+fx(p.x)*g.L, y:g.py-p.y*g.L}; };
+  ctx.shadowColor='rgba(203,176,121,.45)'; ctx.shadowBlur=6;   // 淡い金の発光で上質に
+  for(let i=1;i<sm.length-1;i++){ const back=i<=topIdx; const A=SP(i-1),B=SP(i),C=SP(i+1);
+    const m1={x:(A.x+B.x)/2,y:(A.y+B.y)/2}, m2={x:(B.x+C.x)/2,y:(B.y+C.y)/2};
+    ctx.strokeStyle= back?'rgba(203,176,121,.6)':'rgba(135,111,64,.95)'; ctx.lineWidth= back?2.4:3.2;
+    ctx.beginPath(); ctx.moveTo(m1.x,m1.y); ctx.quadraticCurveTo(B.x,B.y,m2.x,m2.y); ctx.stroke(); }
+  ctx.shadowBlur=0;
   const mk=(i,kind,label)=>{ const p=proj(sm[i].s), x=g.px+fx(p.x)*g.L, y=g.py-p.y*g.L;
     if(kind==='start') ring(ctx,x,y,4.5,'rgba(36,50,41,.8)',1.6);
     else if(kind==='top') ring(ctx,x,y,4.5,'#876F40',1.4);
