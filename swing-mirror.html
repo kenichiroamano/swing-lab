@@ -193,14 +193,17 @@ function liveTick(){
 }
 
 /* 鏡の描画（上質トーン） */
-function clubGeo(cv){ const W=cv.width,H=cv.height; return {W,H, px:W*0.5, py:H*0.34, L:0.52*Math.min(W,H)}; }
+function clubGeo(cv){ const W=cv.clientWidth||340,H=cv.clientHeight||340; return {W,H, px:W*0.5, py:H*0.34, L:0.52*Math.min(W,H)}; }
+// Retina対応：実解像度(DPR)でバッファを確保しCSSピクセルで描く（線・文字をくっきりに）
+function setupHiDPI(cv,g){ const dpr=Math.max(1,Math.min(3,window.devicePixelRatio||1));
+  cv.width=Math.round(g.W*dpr); cv.height=Math.round(g.H*dpr);
+  const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); return ctx; }
 function drawGround(ctx,g){ const gy=g.py+g.L*1.02;
-  const gg=ctx.createLinearGradient(0,0,g.W,0); gg.addColorStop(0,'rgba(169,143,88,0)'); gg.addColorStop(.5,'rgba(169,143,88,.22)'); gg.addColorStop(1,'rgba(169,143,88,0)');
+  const gg=ctx.createLinearGradient(0,0,g.W,0); gg.addColorStop(0,'rgba(169,143,88,0)'); gg.addColorStop(.5,'rgba(169,143,88,.3)'); gg.addColorStop(1,'rgba(169,143,88,0)');
   ctx.strokeStyle=gg; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(g.W,gy); ctx.stroke(); }
 function ring(ctx,x,y,r,stroke,sw){ ctx.fillStyle='#F1EBDD'; ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill(); ctx.strokeStyle=stroke; ctx.lineWidth=sw; ctx.stroke(); }
 function renderLive(cv, cur){
-  cv.width=cv.clientWidth||340; cv.height=cv.clientHeight||340;
-  const ctx=cv.getContext('2d'), g=clubGeo(cv); ctx.clearRect(0,0,g.W,g.H);
+  const g=clubGeo(cv); const ctx=setupHiDPI(cv,g); ctx.clearRect(0,0,g.W,g.H);
   drawGround(ctx,g);
   // 残光（ブラス統一・テーパー）
   const now=trail.length?trail[trail.length-1].t:0;
@@ -209,7 +212,7 @@ function renderLive(cv, cur){
   for(let i=1;i<trail.length-1;i++){ const age=(now-trail[i].t)/1000; if(age>1) continue; const a=Math.max(0,1-age);
     const A=TP(i-1),B=TP(i),C=TP(i+1);
     const m1={x:(A.x+B.x)/2,y:(A.y+B.y)/2}, m2={x:(B.x+C.x)/2,y:(B.y+C.y)/2};
-    ctx.strokeStyle='rgba(169,143,88,'+(0.5*a).toFixed(3)+')'; ctx.lineWidth=(3.6*a+0.7);
+    ctx.strokeStyle='rgba(169,143,88,'+(0.62*a).toFixed(3)+')'; ctx.lineWidth=(4.0*a+0.9);
     ctx.beginPath(); ctx.moveTo(m1.x,m1.y); ctx.quadraticCurveTo(B.x,B.y,m2.x,m2.y); ctx.stroke(); }
   // 支点（中空リング）
   ring(ctx,g.px,g.py,4.5,'rgba(135,111,64,.7)',1.2);
@@ -247,8 +250,7 @@ function finish(){
   STATE='result'; show('cardResult');
 }
 function redrawResult(){
-  if(!RES) return; const cv=$('cv2'); cv.width=cv.clientWidth||340; cv.height=cv.clientHeight||300;
-  const ctx=cv.getContext('2d'), g=clubGeo(cv); ctx.clearRect(0,0,g.W,g.H);
+  if(!RES) return; const cv=$('cv2'); const g=clubGeo(cv); const ctx=setupHiDPI(cv,g); ctx.clearRect(0,0,g.W,g.H);
   drawGround(ctx,g); ring(ctx,g.px,g.py,4.5,'rgba(135,111,64,.7)',1.2);
   const sm=RES.sm, topIdx=RES.topIdx;
   ctx.lineCap='round'; ctx.lineJoin='round';
@@ -256,7 +258,7 @@ function redrawResult(){
   ctx.shadowColor='rgba(203,176,121,.45)'; ctx.shadowBlur=6;   // 淡い金の発光で上質に
   for(let i=1;i<sm.length-1;i++){ const back=i<=topIdx; const A=SP(i-1),B=SP(i),C=SP(i+1);
     const m1={x:(A.x+B.x)/2,y:(A.y+B.y)/2}, m2={x:(B.x+C.x)/2,y:(B.y+C.y)/2};
-    ctx.strokeStyle= back?'rgba(203,176,121,.6)':'rgba(135,111,64,.95)'; ctx.lineWidth= back?2.4:3.2;
+    ctx.strokeStyle= back?'rgba(168,143,88,.75)':'rgba(135,111,64,1)'; ctx.lineWidth= back?2.8:3.6;
     ctx.beginPath(); ctx.moveTo(m1.x,m1.y); ctx.quadraticCurveTo(B.x,B.y,m2.x,m2.y); ctx.stroke(); }
   ctx.shadowBlur=0;
   const mk=(i,kind,label)=>{ const p=proj(sm[i].s), x=g.px+fx(p.x)*g.L, y=g.py-p.y*g.L;
