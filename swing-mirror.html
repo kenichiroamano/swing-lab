@@ -4,38 +4,57 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>Golflev · スイングの鏡</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600&family=Noto+Serif+JP:wght@300;400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Playfair+Display:ital,wght@0,500;0,600&family=Noto+Serif+JP:wght@300;400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{ --bone:#E8E2D4; --ink:#1B2620; --ink-soft:#3A453C; --brass:#A98F58; --brass-lo:#876F40;
-  --hair:rgba(169,143,88,.4); --sub:#8C8676; --green:#243229;
-  --serif:'Cormorant Garamond',serif; --jp:'Noto Serif JP',serif; --ui:'Inter',sans-serif; }
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{ background:#EDE7DA; color:var(--ink); font-family:var(--ui); line-height:1.6; min-height:100vh; padding:24px 20px calc(36px + env(safe-area-inset-bottom)) }
-.wrap{ max-width:440px; margin:0 auto }
-.brand{ text-align:center; font-family:var(--serif); font-weight:600; font-size:13px; letter-spacing:.4em; color:var(--ink) }
-.brand b{ color:var(--brass) }
-.tag{ text-align:center; font-family:var(--jp); font-size:11px; color:var(--sub); margin-top:6px }
-.card{ background:#E8E2D4; border:1px solid var(--hair); border-radius:18px; padding:22px 20px; margin-top:18px }
-h2{ font-family:var(--serif); font-style:italic; font-weight:600; font-size:22px; color:var(--ink) }
-p.lead{ font-family:var(--jp); font-size:13px; color:var(--ink-soft); margin-top:10px; line-height:1.8 }
-.btn{ display:block; width:100%; margin-top:16px; padding:15px; cursor:pointer; background:transparent; border:1px solid var(--brass); border-radius:10px; font-family:var(--ui); font-size:13px; font-weight:500; letter-spacing:.18em; color:var(--brass-lo) }
-.btn.solid{ background:linear-gradient(155deg,var(--green),#18211B); color:#E4D6BA; border-color:transparent }
-.btn:active{ opacity:.85 }
-.row{ display:flex; align-items:center; gap:10px; margin-top:14px }
-.row label{ font-family:var(--jp); font-size:13px; color:var(--ink-soft); white-space:nowrap }
-.row input{ flex:1; padding:10px 12px; border:1px solid var(--hair); border-radius:8px; background:#F4EEE2; font-family:var(--ui); font-size:16px; color:var(--ink); outline:none }
-.live{ text-align:center; font-family:var(--serif); font-style:italic; font-size:30px; color:var(--brass); margin-top:8px }
+:root{
+  --bone:#E8E2D4; --bone-2:#E0D8C6; --paper:#F4EEE2;
+  --ink:#1B2620; --ink-soft:#3A453C;
+  --green-1:#243229; --green-2:#18211B;
+  --brass:#A98F58; --brass-hi:#CBB079; --brass-lo:#876F40; --champagne:#E4D6BA;
+  --sub:#8C8676; --hair:rgba(27,38,32,.12); --hair-gold:rgba(169,143,88,.4);
+  --serif:'Cormorant Garamond','Playfair Display',Georgia,serif;
+  --jp:'Noto Serif JP',serif; --ui:'Inter',-apple-system,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+body{ background:radial-gradient(130% 80% at 50% 0%, #F0EADC 0%, var(--bone) 52%, var(--bone-2) 100%);
+  color:var(--ink); font-family:var(--ui); line-height:1.6; min-height:100vh; position:relative; overflow-x:hidden;
+  padding:40px 24px calc(56px + env(safe-area-inset-bottom)) }
+body::before{ content:''; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.3;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); }
+.wrap{ position:relative; z-index:1; max-width:430px; margin:0 auto }
+.brand{ text-align:center; font-family:var(--serif); font-weight:600; font-size:14px; letter-spacing:.46em; text-indent:.46em; color:var(--ink) }
+.brand b{ color:var(--brass); font-weight:600 }
+.tag{ text-align:center; font-family:var(--jp); font-size:11px; color:var(--sub); margin-top:8px; letter-spacing:.08em }
+.card{ background:var(--paper); border:1px solid var(--hair-gold); border-radius:18px; padding:26px 22px; margin-top:20px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5) }
+h2{ font-family:var(--serif); font-style:italic; font-weight:600; font-size:28px; color:var(--ink); line-height:1.1 }
+p.lead{ font-family:var(--jp); font-size:13px; color:var(--ink-soft); margin-top:12px; line-height:1.85 }
+p.lead b{ color:var(--brass-lo); font-weight:500 }
+.btn{ display:block; width:100%; margin-top:16px; padding:15px; cursor:pointer; background:transparent; border:1px solid var(--brass);
+  border-radius:10px; font-family:var(--ui); font-size:12px; font-weight:500; letter-spacing:.28em; color:var(--brass-lo); transition:background .2s }
+.btn.solid{ background:linear-gradient(155deg,var(--green-1),var(--green-2)); color:var(--champagne); border-color:transparent;
+  box-shadow:0 18px 36px -18px rgba(18,26,21,.5), inset 0 1px 0 rgba(228,214,186,.07) }
+.btn.small{ width:auto; display:inline-block; padding:9px 16px; font-size:10px; letter-spacing:.2em; margin-top:12px }
+.btn:active{ background:rgba(169,143,88,.14) }
+.live{ text-align:center; font-family:var(--serif); font-style:italic; font-size:30px; color:var(--brass); margin-top:8px; font-variant-numeric:tabular-nums }
+.statetx{ text-align:center; font-family:var(--jp); font-size:13px; color:var(--ink-soft); margin-top:10px; letter-spacing:.04em }
 .muted{ font-family:var(--jp); font-size:11.5px; color:var(--sub); margin-top:8px; line-height:1.7 }
-canvas{ display:block; width:100%; height:340px; background:#F4EEE2; border-radius:14px; border:1px solid var(--hair); margin-top:8px }
-.metrics{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px }
-.metric{ background:#F4EEE2; border:1px solid var(--hair); border-radius:12px; padding:12px 14px; text-align:center }
-.metric .v{ font-family:var(--serif); font-style:italic; font-weight:600; font-size:30px; color:var(--ink) }
-.metric .v .u{ font-size:13px; color:var(--sub); font-style:normal }
-.metric .l{ font-family:var(--jp); font-size:11.5px; color:var(--sub); margin-top:4px }
-.metric .d{ font-family:var(--jp); font-size:11px; margin-top:5px }
+canvas{ display:block; width:100%; height:340px; border-radius:14px; border:1px solid var(--hair-gold); margin-top:8px;
+  background:radial-gradient(120% 90% at 50% 38%, #F6F1E6 0%, #F1EBDD 60%, #ECE5D5 100%) }
+.metrics{ display:grid; grid-template-columns:1fr 1fr; margin-top:20px }
+.metric{ position:relative; text-align:center; padding:6px 8px }
+.metric + .metric::before{ content:''; position:absolute; left:0; top:14%; bottom:14%; width:1px;
+  background:linear-gradient(180deg,transparent,var(--hair-gold),transparent) }
+.metric .v{ font-family:var(--serif); font-style:italic; font-weight:600; font-size:42px; line-height:1; color:var(--ink);
+  font-variant-numeric:tabular-nums; text-shadow:0 1px 0 rgba(255,255,255,.55) }
+.metric .v .u{ font-family:var(--ui); font-style:normal; font-size:12px; color:var(--sub); letter-spacing:.02em }
+.metric .l{ font-family:var(--ui); font-size:8.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--sub); margin-top:9px }
+.metric .l em{ font-family:var(--jp); font-style:normal; font-size:10px; letter-spacing:.04em; display:block; margin-top:2px }
+.metric .d{ font-family:var(--jp); font-size:11px; margin-top:6px }
 .metric .d.up{ color:var(--brass-lo) } .metric .d.flat{ color:var(--sub) }
-.note{ font-family:var(--jp); font-size:11px; color:var(--sub); margin-top:14px; line-height:1.7; border-top:1px solid var(--hair); padding-top:12px }
+.note{ font-family:var(--jp); font-size:11px; color:var(--sub); margin-top:16px; line-height:1.7; border-top:1px solid var(--hair-gold); padding-top:12px }
 .note b{ color:var(--brass-lo); font-weight:500 }
+.center{ text-align:center }
 .hide{ display:none }
 .err{ color:#C45B4A; font-size:11px; font-family:var(--jp); margin-top:8px }
 </style>
@@ -43,13 +62,12 @@ canvas{ display:block; width:100%; height:340px; background:#F4EEE2; border-radi
 <body>
 <div class="wrap">
   <div class="brand">GOLF<b>LEV</b></div>
-  <div class="tag">スイングの鏡（お試し・あなたの動きを映します）</div>
+  <div class="tag">スイングの鏡 — あなたの動きを、映します</div>
 
   <!-- 1. 許可 -->
   <div class="card" id="cardPerm">
     <h2>はじめに</h2>
-    <p class="lead">スマホをクラブのように両手で握り、ゆっくり素振りをします。<br>振ると、画面のクラブが<b>あなたの動きに連動</b>して弧を描きます。<br>振り終わると、<b>振りの速さ・テンポ</b>が出ます。</p>
-    <div class="row"><label>身長(cm)</label><input id="height" type="number" inputmode="numeric" placeholder="170" value="170"></div>
+    <p class="lead">スマホをクラブのように両手で握り、ゆっくり素振りをします。<br>振ると、画面のクラブが<b>あなたの動きに連動</b>して弧を描きます。<br>振り終わると、<b>振りの速さとテンポ</b>が出ます。</p>
     <button class="btn solid" id="btnPerm">センサーを有効にする</button>
     <div class="err hide" id="permErr"></div>
   </div>
@@ -57,7 +75,7 @@ canvas{ display:block; width:100%; height:340px; background:#F4EEE2; border-radi
   <!-- 2. アドレス -->
   <div class="card hide" id="cardAim">
     <h2>構える</h2>
-    <p class="lead">いつものアドレスで構え、<b>2秒間そのまま静止</b>してください。ここを基準にします。</p>
+    <p class="lead">いつものアドレスで構え、<b>2秒間そのまま静止</b>してください。<br>ここを、あなたの<b>“原点”</b>にします。ここからの動きを映します。</p>
     <div class="live" id="aimCount">—</div>
     <button class="btn" id="btnAim">アドレスを記録する</button>
   </div>
@@ -66,7 +84,8 @@ canvas{ display:block; width:100%; height:340px; background:#F4EEE2; border-radi
   <div class="card hide" id="cardLive">
     <h2>振る</h2>
     <canvas id="cv" width="360" height="340"></canvas>
-    <div class="live" id="liveState" style="font-size:18px">そのまま、ゆっくり振ってください</div>
+    <div class="statetx" id="liveState">そのまま、ゆっくり振ってください</div>
+    <div class="center"><button class="btn small" id="btnFlipL">左右を反転</button></div>
     <button class="btn" id="btnReset">取り直す</button>
   </div>
 
@@ -75,12 +94,13 @@ canvas{ display:block; width:100%; height:340px; background:#F4EEE2; border-radi
     <h2>振り終わり</h2>
     <canvas id="cv2" width="360" height="300"></canvas>
     <div class="metrics">
-      <div class="metric"><div class="v" id="mSpeed">—</div><div class="l">振りの速さ</div><div class="d" id="dSpeed"></div></div>
-      <div class="metric"><div class="v" id="mTempo">—</div><div class="l">テンポ（上げ：下ろし）</div><div class="d" id="dTempo"></div></div>
+      <div class="metric"><div class="v" id="mSpeed">—</div><div class="l">Swing Speed<em>振りの速さ</em></div><div class="d" id="dSpeed"></div></div>
+      <div class="metric"><div class="v" id="mTempo">—</div><div class="l">Tempo<em>上げ：下ろし</em></div><div class="d" id="dTempo"></div></div>
     </div>
+    <div class="center"><button class="btn small" id="btnFlipR">左右を反転</button></div>
     <button class="btn" id="btnAgain">もう一度振る</button>
     <button class="btn" id="btnRecal">構えからやり直す</button>
-    <p class="note"><b>この弧はあなたの動きを映した“鏡”です。</b>振り幅の長さは目安で、距離や正しさの測定ではありません。実際に測れているのは「振りの速さ」と「テンポ（リズム）」で、これは前回のあなたと比べられます。</p>
+    <p class="note"><b>この弧はあなたの動きを映した“鏡”です。</b>振り幅の長さは目安で、距離や正しさの測定ではありません。実際に測れているのは「振りの速さ」と「テンポ」で、これは前回のあなたと比べられます。</p>
   </div>
 
   <div class="err" id="globalErr"></div>
@@ -90,6 +110,7 @@ canvas{ display:block; width:100%; height:340px; background:#F4EEE2; border-radi
 window.__err=[]; window.onerror=m=>{ window.__err.push(String(m)); var e=document.getElementById('globalErr'); if(e) e.textContent=String(m); };
 const $=id=>document.getElementById(id);
 const D2R=Math.PI/180, R2D=180/Math.PI;
+try{ document.fonts && document.fonts.load("italic 600 16px 'Cormorant Garamond'"); }catch(e){}
 
 /* ── クォータニオン／ベクトル ── */
 function qFromEuler(a,b,g){a=(a||0)*D2R;b=(b||0)*D2R;g=(g||0)*D2R;
@@ -106,21 +127,22 @@ function angBetween(a,b){return Math.acos(Math.max(-1,Math.min(1,dot(norm(a),nor
 /* ── 状態 ── */
 let SENSOR={alpha:0,beta:0,gamma:0}, baseQ=null, FRAME=null;
 let STATE='perm';
-let recording=false, samples=[], trail=[], lastS=null, restCount=0, started=false;
+let recording=false, samples=[], trail=[], lastS=null, restCount=0;
+let RES=null;
+let flipX=false; try{ flipX=localStorage.getItem('golflev:mirror:flip')==='1'; }catch(e){}
 const Yc={x:0,y:1,z:0};
 
 function show(id){ ['cardPerm','cardAim','cardLive','cardResult'].forEach(c=>$(c).classList.add('hide')); $(id).classList.remove('hide'); }
+function fx(x){ return flipX? -x : x; }
 
-/* 固定フレーム：重力up＋アドレスのシャフト向きから前後軸f。画面横=f, 縦=up */
 function buildFrame(){
   const up={x:0,y:0,z:1};
   const s0=baseQ?rotVec(baseQ,Yc):{x:0,y:1,z:0};
   let f=cross(up,s0); if(Math.hypot(f.x,f.y,f.z)<0.2) f={x:1,y:0,z:0}; f=norm(f);
   FRAME={up,f,s0};
 }
-function proj(s){ return { x:dot(s,FRAME.f), y:dot(s,FRAME.up) }; } // x=前後, y=上下(+上)
+function proj(s){ return { x:dot(s,FRAME.f), y:dot(s,FRAME.up) }; }
 
-/* deviceorientation */
 function onOrient(e){
   if(e.alpha==null&&e.beta==null&&e.gamma==null) return;
   SENSOR.alpha=e.alpha||0; SENSOR.beta=e.beta||0; SENSOR.gamma=e.gamma||0;
@@ -140,7 +162,7 @@ $('btnPerm').addEventListener('click', async ()=>{
   }catch(err){ $('permErr').classList.remove('hide'); $('permErr').textContent='エラー: '+(err.message||err); }
 });
 
-/* 2. アドレス記録（2秒静止平均） */
+/* 2. アドレス記録 */
 let aimColl=null;
 $('btnAim').addEventListener('click', ()=>{ aimColl={list:[],remain:2.0}; aimColl.timer=setInterval(()=>{
   aimColl.remain-=0.1; $('aimCount').textContent=Math.max(0,aimColl.remain).toFixed(1);
@@ -151,116 +173,103 @@ function avgQ(list){ if(!list.length) return {w:1,x:0,y:0,z:0}; const r=list[0];
   list.forEach(q=>{const s=(q.w*r.w+q.x*r.x+q.y*r.y+q.z*r.z)<0?-1:1; w+=s*q.w;x+=s*q.x;y+=s*q.y;z+=s*q.z;});
   const l=Math.hypot(w,x,y,z)||1; return {w:w/l,x:x/l,y:y/l,z:z/l}; }
 
-/* 3. ライブ（鏡） */
-function enterLive(){ STATE='live'; show('cardLive'); recording=false; started=false; samples=[]; trail=[]; lastS=null; restCount=0; $('liveState').textContent='そのまま、ゆっくり振ってください'; renderLive($('cv')); }
+/* 3. ライブ */
+function enterLive(){ STATE='live'; show('cardLive'); recording=false; samples=[]; trail=[]; lastS=null; restCount=0; $('liveState').textContent='そのまま、ゆっくり振ってください'; renderLive($('cv')); }
 $('btnReset').addEventListener('click', enterLive);
 function liveTick(){
   const t=performance.now();
   const q=qFromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma);
   const s=rotVec(q,Yc);
-  // 角速度（向きの変化）
-  let omega=0; if(lastS){ omega=angBetween(s,lastS); } // deg/frame
-  // 動き検出で記録開始／静止で終了
-  if(!recording){ if(omega>1.2){ recording=true; started=true; samples=[]; trail=[]; $('liveState').textContent='記録中…'; } }
+  let omega=0; if(lastS){ omega=angBetween(s,lastS); }
+  if(!recording){ if(omega>1.2){ recording=true; samples=[]; trail=[]; $('liveState').textContent='記録中…'; } }
   if(recording){
-    samples.push({t,s,om:omega});
-    trail.push({t,p:proj(s)});
+    samples.push({t,s,om:omega}); trail.push({t,p:proj(s)});
     if(omega<0.4) restCount++; else restCount=0;
     if(restCount>8 && samples.length>15){ recording=false; finish(); return; }
     if(samples.length>800){ recording=false; finish(); return; }
-  } else {
-    // 記録前も鏡として現在の向きを表示（連動の手応え）
-    trail.push({t,p:proj(s)}); while(trail.length>12) trail.shift();
-  }
+  } else { trail.push({t,p:proj(s)}); while(trail.length>12) trail.shift(); }
   lastS=s;
   renderLive($('cv'), proj(s));
 }
 
-/* 鏡の描画：支点から伸びるクラブ＋先端の金の弧（残光） */
+/* 鏡の描画（上質トーン） */
+function clubGeo(cv){ const W=cv.width,H=cv.height; return {W,H, px:W*0.5, py:H*0.34, L:0.52*Math.min(W,H)}; }
+function drawGround(ctx,g){ const gy=g.py+g.L*1.02;
+  const gg=ctx.createLinearGradient(0,0,g.W,0); gg.addColorStop(0,'rgba(169,143,88,0)'); gg.addColorStop(.5,'rgba(169,143,88,.22)'); gg.addColorStop(1,'rgba(169,143,88,0)');
+  ctx.strokeStyle=gg; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(g.W,gy); ctx.stroke(); }
+function ring(ctx,x,y,r,stroke,sw){ ctx.fillStyle='#F1EBDD'; ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill(); ctx.strokeStyle=stroke; ctx.lineWidth=sw; ctx.stroke(); }
 function renderLive(cv, cur){
   cv.width=cv.clientWidth||340; cv.height=cv.clientHeight||340;
-  const ctx=cv.getContext('2d'), W=cv.width, H=cv.height; ctx.clearRect(0,0,W,H);
-  const px=W*0.5, py=H*0.34, L=0.52*Math.min(W,H);   // 支点（肩）とクラブ長
-  // 地面・支点
-  ctx.strokeStyle='rgba(169,143,88,.14)'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(20,py+L*0.96); ctx.lineTo(W-20,py+L*0.96); ctx.stroke();
-  ctx.fillStyle='rgba(36,50,41,.5)'; ctx.beginPath(); ctx.arc(px,py,4,0,7); ctx.fill();
-  // 残光トレイル（古い→薄い）
+  const ctx=cv.getContext('2d'), g=clubGeo(cv); ctx.clearRect(0,0,g.W,g.H);
+  drawGround(ctx,g);
+  // 残光（ブラス統一・テーパー）
   const now=trail.length?trail[trail.length-1].t:0;
-  for(let i=1;i<trail.length;i++){
-    const age=(now-trail[i].t)/900; if(age>1) continue;
-    const a=Math.max(0,1-age);
-    const x0=px+trail[i-1].p.x*L, y0=py-trail[i-1].p.y*L, x1=px+trail[i].p.x*L, y1=py-trail[i].p.y*L;
-    ctx.strokeStyle='rgba(184,128,76,'+(0.5*a).toFixed(3)+')'; ctx.lineWidth=3*a+1; ctx.lineCap='round';
-    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
-  }
-  // 現在のクラブ
-  if(cur){ const hx=px+cur.x*L, hy=py-cur.y*L;
-    ctx.strokeStyle='rgba(135,111,64,.9)'; ctx.lineWidth=3; ctx.lineCap='round';
-    ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(hx,hy); ctx.stroke();
-    ctx.fillStyle='#A98F58'; ctx.beginPath(); ctx.arc(hx,hy,5,0,7); ctx.fill();
-  }
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  for(let i=1;i<trail.length;i++){ const age=(now-trail[i].t)/1000; if(age>1) continue; const a=Math.max(0,1-age);
+    const x0=g.px+fx(trail[i-1].p.x)*g.L, y0=g.py-trail[i-1].p.y*g.L, x1=g.px+fx(trail[i].p.x)*g.L, y1=g.py-trail[i].p.y*g.L;
+    ctx.strokeStyle='rgba(169,143,88,'+(0.45*a).toFixed(3)+')'; ctx.lineWidth=(3.4*a+0.6);
+    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke(); }
+  // 支点（中空リング）
+  ring(ctx,g.px,g.py,4.5,'rgba(135,111,64,.7)',1.2);
+  // 現在のクラブ（細い金グラデ＋中空先端）
+  if(cur){ const hx=g.px+fx(cur.x)*g.L, hy=g.py-cur.y*g.L;
+    const sg=ctx.createLinearGradient(g.px,g.py,hx,hy); sg.addColorStop(0,'rgba(135,111,64,.95)'); sg.addColorStop(1,'rgba(169,143,88,.85)');
+    ctx.strokeStyle=sg; ctx.lineWidth=2.2; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(g.px,g.py); ctx.lineTo(hx,hy); ctx.stroke();
+    ring(ctx,hx,hy,4.5,'#A98F58',1.6); }
 }
 
 /* 4. 終了→指標 */
 function finish(){
   if(samples.length<10){ $('liveState').textContent='短すぎます。取り直してください'; recording=false; setTimeout(enterLive,900); return; }
-  // 角速度ピーク（deg/秒）。隣接サンプルの角度差/時間
   let peak=0, rot=0;
-  for(let i=1;i<samples.length;i++){ const dt=(samples[i].t-samples[i-1].t)/1000||0.016;
-    const sp=samples[i].om/dt; if(sp>peak)peak=sp; rot+=samples[i].om; }
-  // アドレスから最も離れた点＝トップ（バックスイング）/ 最速点＝インパクト相当
-  const a0=samples[0].s; let topIdx=0,maxAng=-1;
-  // 最速点（インパクト）
-  let impIdx=1,maxSp=-1;
+  for(let i=1;i<samples.length;i++){ const dt=(samples[i].t-samples[i-1].t)/1000||0.016; const sp=samples[i].om/dt; if(sp>peak)peak=sp; rot+=samples[i].om; }
+  const a0=samples[0].s; let impIdx=1,maxSp=-1;
   for(let i=1;i<samples.length;i++){ const dt=(samples[i].t-samples[i-1].t)/1000||0.016; const sp=samples[i].om/dt; if(sp>maxSp){maxSp=sp;impIdx=i;} }
-  for(let i=0;i<=impIdx;i++){ const ang=angBetween(samples[i].s,a0); if(ang>maxAng){maxAng=ang;topIdx=i;} }
+  let topIdx=0,maxAng=-1; for(let i=0;i<=impIdx;i++){ const ang=angBetween(samples[i].s,a0); if(ang>maxAng){maxAng=ang;topIdx=i;} }
   const backT=(samples[topIdx].t-samples[0].t)/1000;
   const downT=Math.max(0.05,(samples[impIdx].t-samples[topIdx].t)/1000);
   const tempo=backT/downT;
-  // 表示
-  $('mSpeed').innerHTML=Math.round(peak)+'<span class="u"> °/秒</span>';
+  $('mSpeed').innerHTML=Math.round(peak)+'<span class="u"> °/s</span>';
   $('mTempo').textContent=(tempo>0?tempo.toFixed(1):'—')+' : 1';
-  // 前回比
   let prev=null; try{ prev=JSON.parse(localStorage.getItem('golflev:mirror:last')||'null'); }catch(e){}
   if(prev){
     const ds=Math.round(peak-prev.peak);
-    $('dSpeed').textContent=(ds>0?'前回より +'+ds:ds<0?'前回より '+ds:'前回と同じ')+' °/秒';
-    $('dSpeed').className='d '+(ds>0?'up':'flat');
+    $('dSpeed').textContent=(ds>0?'前回より +'+ds:ds<0?'前回より '+ds:'前回と同じ'); $('dSpeed').className='d '+(ds>0?'up':'flat');
     const dtp=tempo-prev.tempo;
-    $('dTempo').textContent=(Math.abs(dtp)<0.15?'前回と同じくらい':(dtp>0?'前回より上げ長め':'前回より下ろし速め'));
-    $('dTempo').className='d flat';
-  } else {
-    $('dSpeed').textContent='初回（次回から前回比）'; $('dSpeed').className='d flat';
-    $('dTempo').textContent='初回'; $('dTempo').className='d flat';
-  }
+    $('dTempo').textContent=(Math.abs(dtp)<0.15?'前回と同じリズム':(dtp>0?'前回より上げ長め':'前回より下ろし速め')); $('dTempo').className='d flat';
+  } else { $('dSpeed').textContent='初回（次回から前回比）'; $('dSpeed').className='d flat'; $('dTempo').textContent='初回'; $('dTempo').className='d flat'; }
   try{ localStorage.setItem('golflev:mirror:last', JSON.stringify({peak:Math.round(peak),tempo:+tempo.toFixed(2),rot:Math.round(rot)})); }catch(e){}
-  // 結果canvasに弧を固定描画
-  drawResult($('cv2'), samples, topIdx, impIdx);
+  RES={sm:samples.slice(),topIdx,impIdx};
+  redrawResult();
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ if(STATE==='result') redrawResult(); });
   STATE='result'; show('cardResult');
 }
-function drawResult(cv, sm, topIdx, impIdx){
-  cv.width=cv.clientWidth||340; cv.height=cv.clientHeight||300;
-  const ctx=cv.getContext('2d'), W=cv.width,H=cv.height; ctx.clearRect(0,0,W,H);
-  const px=W*0.5, py=H*0.34, L=0.52*Math.min(W,H);
-  ctx.strokeStyle='rgba(169,143,88,.14)'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(20,py+L*0.96); ctx.lineTo(W-20,py+L*0.96); ctx.stroke();
-  ctx.fillStyle='rgba(36,50,41,.5)'; ctx.beginPath(); ctx.arc(px,py,4,0,7); ctx.fill();
-  for(let i=1;i<sm.length;i++){ const back=i<=topIdx;
-    const p0=proj(sm[i-1].s), p1=proj(sm[i].s);
-    ctx.strokeStyle= back?'rgba(203,176,121,.6)':'rgba(135,111,64,.95)'; ctx.lineWidth= back?2.5:3.5; ctx.lineCap='round';
-    ctx.beginPath(); ctx.moveTo(px+p0.x*L,py-p0.y*L); ctx.lineTo(px+p1.x*L,py-p1.y*L); ctx.stroke();
-  }
-  const mk=(i,fill,label)=>{ const p=proj(sm[i].s), x=px+p.x*L,y=py-p.y*L;
-    if(fill){ctx.fillStyle=fill;ctx.beginPath();ctx.arc(x,y,5,0,7);ctx.fill();}else{ctx.strokeStyle='#876F40';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,5,0,7);ctx.stroke();}
-    ctx.fillStyle='#3A453C';ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText(label,x,y-9); };
-  mk(0,'#3B6D11','構え'); mk(topIdx,null,'トップ'); mk(sm.length-1,'#A98F58','フォロー');
+function redrawResult(){
+  if(!RES) return; const cv=$('cv2'); cv.width=cv.clientWidth||340; cv.height=cv.clientHeight||300;
+  const ctx=cv.getContext('2d'), g=clubGeo(cv); ctx.clearRect(0,0,g.W,g.H);
+  drawGround(ctx,g); ring(ctx,g.px,g.py,4.5,'rgba(135,111,64,.7)',1.2);
+  const sm=RES.sm, topIdx=RES.topIdx;
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  for(let i=1;i<sm.length;i++){ const back=i<=topIdx; const p0=proj(sm[i-1].s), p1=proj(sm[i].s);
+    ctx.strokeStyle= back?'rgba(203,176,121,.55)':'rgba(135,111,64,.92)'; ctx.lineWidth= back?2.2:3.0;
+    ctx.beginPath(); ctx.moveTo(g.px+fx(p0.x)*g.L,g.py-p0.y*g.L); ctx.lineTo(g.px+fx(p1.x)*g.L,g.py-p1.y*g.L); ctx.stroke(); }
+  const mk=(i,kind,label)=>{ const p=proj(sm[i].s), x=g.px+fx(p.x)*g.L, y=g.py-p.y*g.L;
+    if(kind==='start') ring(ctx,x,y,4.5,'rgba(36,50,41,.8)',1.6);
+    else if(kind==='top') ring(ctx,x,y,4.5,'#876F40',1.4);
+    else { ctx.fillStyle='#A98F58'; ctx.beginPath(); ctx.arc(x,y,4.5,0,7); ctx.fill(); }
+    ctx.strokeStyle='rgba(135,111,64,.35)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x,y-7); ctx.lineTo(x,y-15); ctx.stroke();
+    ctx.fillStyle='#3A453C'; ctx.font='italic 600 14px "Cormorant Garamond", serif'; ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+    ctx.fillText(label,x,y-19); };
+  mk(0,'start','Address'); mk(topIdx,'top','Top'); mk(sm.length-1,'follow','Follow');
 }
 $('btnAgain').addEventListener('click', enterLive);
 $('btnRecal').addEventListener('click', ()=>{ baseQ=null; FRAME=null; STATE='aim'; show('cardAim'); $('aimCount').textContent='—'; });
+function toggleFlip(){ flipX=!flipX; try{ localStorage.setItem('golflev:mirror:flip', flipX?'1':'0'); }catch(e){}
+  if(STATE==='result') redrawResult(); }
+$('btnFlipL').addEventListener('click', toggleFlip);
+$('btnFlipR').addEventListener('click', toggleFlip);
 
-/* テスト用 */
-window.__m={qFromEuler,rotVec,angBetween,buildFrame:()=>{baseQ=qFromEuler(0,55,0);buildFrame();},proj:()=>proj(rotVec(qFromEuler(0,0,0),Yc))};
+window.__m={qFromEuler,rotVec,angBetween,buildFrame:()=>{baseQ=qFromEuler(0,55,0);buildFrame();}};
 </script>
 </body>
 </html>
