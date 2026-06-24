@@ -52,6 +52,11 @@ canvas{ display:block; width:100%; height:340px; border-radius:14px; border:1px 
 .metric .l em{ font-family:var(--jp); font-style:normal; font-size:10px; letter-spacing:.04em; display:block; margin-top:2px }
 .metric .d{ font-family:var(--jp); font-size:11px; margin-top:6px }
 .metric .d.up{ color:var(--brass-lo) } .metric .d.flat{ color:var(--sub) }
+/* 振った直後の正直な判定（主役） */
+.verdict{ font-family:var(--serif); font-style:italic; font-weight:600; font-size:25px; line-height:1.35; color:var(--ink); text-align:center; margin-top:18px }
+.verdict.warn{ color:#9C5A3C } .verdict.good{ color:var(--green-1) }
+.vtip{ font-family:var(--jp); font-size:13px; color:var(--ink-soft); text-align:center; margin-top:10px; line-height:1.7 }
+.vsub{ font-family:var(--jp); font-size:11.5px; color:var(--sub); text-align:center; margin-top:14px; padding-top:12px; border-top:1px solid var(--hair-gold) }
 .note{ font-family:var(--jp); font-size:11px; color:var(--sub); margin-top:16px; line-height:1.7; border-top:1px solid var(--hair-gold); padding-top:12px }
 .note b{ color:var(--brass-lo); font-weight:500 }
 .center{ text-align:center }
@@ -93,10 +98,9 @@ canvas{ display:block; width:100%; height:340px; border-radius:14px; border:1px 
   <div class="card hide" id="cardResult">
     <h2>振り終わり</h2>
     <canvas id="cv2" width="360" height="300"></canvas>
-    <div class="metrics">
-      <div class="metric"><div class="v" id="mSpeed">—</div><div class="l">Swing Speed<em>振りの速さ</em></div><div class="d" id="dSpeed"></div></div>
-      <div class="metric"><div class="v" id="mTempo">—</div><div class="l">Tempo<em>上げ：下ろし</em></div><div class="d" id="dTempo"></div></div>
-    </div>
+    <div class="verdict" id="verdict">—</div>
+    <div class="vtip" id="vtip"></div>
+    <div class="vsub" id="vsub"></div>
     <div class="center"><button class="btn small" id="btnFlipR">左右を反転</button></div>
     <button class="btn" id="btnAgain">もう一度振る</button>
     <button class="btn" id="btnRecal">構えからやり直す</button>
@@ -234,15 +238,23 @@ function finish(){
   const backT=(samples[topIdx].t-samples[0].t)/1000;
   const downT=Math.max(0.05,(samples[impIdx].t-samples[topIdx].t)/1000);
   const tempo=backT/downT;
-  $('mSpeed').innerHTML=Math.round(peak)+'<span class="u"> °/s</span>';
-  $('mTempo').textContent=(tempo>0?tempo.toFixed(1):'—')+' : 1';
+  // ── 振った直後の正直な判定（測れる範囲：振り抜け/緩み・リズム。球の行方は言わない）──
+  const a0b=samples[0].s; const ang2=samples.map(o=>angBetween(o.s,a0b));
+  const spd=i=>{ const dt=(samples[i].t-samples[i-1].t)/1000||0.016; return samples[i].om/dt; };
+  let bottomIdx=impIdx, minA2=1e9;               // 最下点＝アドレス向きへ戻る点
+  for(let i=topIdx;i<samples.length;i++){ if(ang2[i]<minA2){ minA2=ang2[i]; bottomIdx=i; } }
+  const impSp = bottomIdx>0? spd(bottomIdx):0;
+  const decel = (impIdx < bottomIdx-1) && (impSp < 0.72*peak); // 最下点の手前で失速＝緩み
+  let verdict, tip, vk;
+  if(decel){ verdict='インパクト前で、少し緩みました'; tip='最後まで、振り抜くイメージで。'; vk='warn'; }
+  else if(tempo<1.4){ verdict='しっかり振れています'; tip='上げをもう少しゆっくりにすると、さらに安定します。'; vk='ok'; }
+  else { verdict='なめらかに、振り抜けました'; tip='いいリズムです。この感覚を覚えておきましょう。'; vk='good'; }
+  $('verdict').textContent=verdict; $('verdict').className='verdict '+vk; $('vtip').textContent=tip;
+  // 前回比（速さは自分比の言葉だけ・絶対値は出さない）
   let prev=null; try{ prev=JSON.parse(localStorage.getItem('golflev:mirror:last')||'null'); }catch(e){}
-  if(prev){
-    const ds=Math.round(peak-prev.peak);
-    $('dSpeed').textContent=(ds>0?'前回より +'+ds:ds<0?'前回より '+ds:'前回と同じ'); $('dSpeed').className='d '+(ds>0?'up':'flat');
-    const dtp=tempo-prev.tempo;
-    $('dTempo').textContent=(Math.abs(dtp)<0.15?'前回と同じリズム':(dtp>0?'前回より上げ長め':'前回より下ろし速め')); $('dTempo').className='d flat';
-  } else { $('dSpeed').textContent='初回（次回から前回比）'; $('dSpeed').className='d flat'; $('dTempo').textContent='初回'; $('dTempo').className='d flat'; }
+  if(prev && prev.peak){ const r=peak/prev.peak;
+    $('vsub').textContent = r>1.12?'前回より、素早く振れました': r<0.88?'前回より、ゆっくりでした':'前回と同じくらいの速さ';
+  } else { $('vsub').textContent='これがあなたの基準。次回から、前回と比べられます。'; }
   try{ localStorage.setItem('golflev:mirror:last', JSON.stringify({peak:Math.round(peak),tempo:+tempo.toFixed(2),rot:Math.round(rot)})); }catch(e){}
   RES={sm:samples.slice(),topIdx,impIdx};
   redrawResult();
