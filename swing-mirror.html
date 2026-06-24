@@ -199,7 +199,7 @@ function setupHiDPI(cv,g){ const dpr=Math.max(1,Math.min(3,window.devicePixelRat
   cv.width=Math.round(g.W*dpr); cv.height=Math.round(g.H*dpr);
   const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); return ctx; }
 function drawGround(ctx,g){ const gy=g.py+g.L*1.02;
-  const gg=ctx.createLinearGradient(0,0,g.W,0); gg.addColorStop(0,'rgba(169,143,88,0)'); gg.addColorStop(.5,'rgba(169,143,88,.3)'); gg.addColorStop(1,'rgba(169,143,88,0)');
+  const gg=ctx.createLinearGradient(0,0,g.W,0); gg.addColorStop(0,'rgba(135,111,64,0)'); gg.addColorStop(.5,'rgba(135,111,64,.45)'); gg.addColorStop(1,'rgba(135,111,64,0)');
   ctx.strokeStyle=gg; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(g.W,gy); ctx.stroke(); }
 function ring(ctx,x,y,r,stroke,sw){ ctx.fillStyle='#F1EBDD'; ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill(); ctx.strokeStyle=stroke; ctx.lineWidth=sw; ctx.stroke(); }
 function renderLive(cv, cur){
@@ -212,15 +212,15 @@ function renderLive(cv, cur){
   for(let i=1;i<trail.length-1;i++){ const age=(now-trail[i].t)/1000; if(age>1) continue; const a=Math.max(0,1-age);
     const A=TP(i-1),B=TP(i),C=TP(i+1);
     const m1={x:(A.x+B.x)/2,y:(A.y+B.y)/2}, m2={x:(B.x+C.x)/2,y:(B.y+C.y)/2};
-    ctx.strokeStyle='rgba(169,143,88,'+(0.62*a).toFixed(3)+')'; ctx.lineWidth=(4.0*a+0.9);
+    ctx.strokeStyle='rgba(135,111,64,'+(0.82*a).toFixed(3)+')'; ctx.lineWidth=(5.2*a+1.3);
     ctx.beginPath(); ctx.moveTo(m1.x,m1.y); ctx.quadraticCurveTo(B.x,B.y,m2.x,m2.y); ctx.stroke(); }
   // 支点（中空リング）
   ring(ctx,g.px,g.py,4.5,'rgba(135,111,64,.7)',1.2);
   // 現在のクラブ（細い金グラデ＋中空先端）
   if(cur){ const hx=g.px+fx(cur.x)*g.L, hy=g.py-cur.y*g.L;
-    const sg=ctx.createLinearGradient(g.px,g.py,hx,hy); sg.addColorStop(0,'rgba(135,111,64,.95)'); sg.addColorStop(1,'rgba(169,143,88,.85)');
-    ctx.strokeStyle=sg; ctx.lineWidth=2.6; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(g.px,g.py); ctx.lineTo(hx,hy); ctx.stroke();
-    ring(ctx,hx,hy,4.5,'#A98F58',1.6); }
+    const sg=ctx.createLinearGradient(g.px,g.py,hx,hy); sg.addColorStop(0,'rgba(27,38,32,.96)'); sg.addColorStop(1,'rgba(58,69,60,.92)');
+    ctx.strokeStyle=sg; ctx.lineWidth=3.4; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(g.px,g.py); ctx.lineTo(hx,hy); ctx.stroke();
+    ring(ctx,hx,hy,5,'#A98F58',2.2); }
 }
 
 /* 4. 終了→指標 */
@@ -258,7 +258,7 @@ function redrawResult(){
   ctx.shadowColor='rgba(203,176,121,.45)'; ctx.shadowBlur=6;   // 淡い金の発光で上質に
   for(let i=1;i<sm.length-1;i++){ const back=i<=topIdx; const A=SP(i-1),B=SP(i),C=SP(i+1);
     const m1={x:(A.x+B.x)/2,y:(A.y+B.y)/2}, m2={x:(B.x+C.x)/2,y:(B.y+C.y)/2};
-    ctx.strokeStyle= back?'rgba(168,143,88,.75)':'rgba(135,111,64,1)'; ctx.lineWidth= back?2.8:3.6;
+    ctx.strokeStyle= back?'rgba(135,111,64,.92)':'rgba(94,74,33,1)'; ctx.lineWidth= back?3.4:4.6;
     ctx.beginPath(); ctx.moveTo(m1.x,m1.y); ctx.quadraticCurveTo(B.x,B.y,m2.x,m2.y); ctx.stroke(); }
   ctx.shadowBlur=0;
   const mk=(i,kind,label)=>{ const p=proj(sm[i].s), x=g.px+fx(p.x)*g.L, y=g.py-p.y*g.L;
