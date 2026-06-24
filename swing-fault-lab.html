@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Golflev · かぶり検証ラボ</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Playfair+Display:ital,wght@0,500;0,600&family=Noto+Serif+JP:wght@300;400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bone:#E8E2D4; --bone-2:#E0D8C6; --paper:#F4EEE2;
+  --ink:#1B2620; --ink-soft:#3A453C;
+  --green-1:#243229; --green-2:#18211B;
+  --brass:#A98F58; --brass-hi:#CBB079; --brass-lo:#876F40; --champagne:#E4D6BA;
+  --sub:#8C8676; --hair:rgba(27,38,32,.12); --hair-gold:rgba(169,143,88,.4);
+  --kaburi:#C45B4A; --normal:#4A6B4A;
+  --serif:'Cormorant Garamond','Playfair Display',Georgia,serif;
+  --jp:'Noto Serif JP',serif; --ui:'Inter',-apple-system,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+body{ background:radial-gradient(130% 80% at 50% 0%, #F0EADC 0%, var(--bone) 52%, var(--bone-2) 100%);
+  color:var(--ink); font-family:var(--ui); line-height:1.6; min-height:100vh; position:relative; overflow-x:hidden;
+  padding:34px 20px calc(56px + env(safe-area-inset-bottom)) }
+.wrap{ position:relative; z-index:1; max-width:430px; margin:0 auto }
+.brand{ text-align:center; font-family:var(--serif); font-weight:600; font-size:13px; letter-spacing:.46em; text-indent:.46em; color:var(--ink) }
+.brand b{ color:var(--brass); font-weight:600 }
+.tag{ text-align:center; font-family:var(--jp); font-size:11px; color:var(--sub); margin-top:7px; letter-spacing:.06em }
+.card{ background:var(--paper); border:1px solid var(--hair-gold); border-radius:18px; padding:22px 18px; margin-top:18px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5) }
+h2{ font-family:var(--serif); font-style:italic; font-weight:600; font-size:26px; color:var(--ink); line-height:1.1 }
+p.lead{ font-family:var(--jp); font-size:13px; color:var(--ink-soft); margin-top:11px; line-height:1.85 }
+p.lead b{ color:var(--brass-lo); font-weight:500 }
+.btn{ display:block; width:100%; margin-top:14px; padding:15px; cursor:pointer; background:transparent; border:1px solid var(--brass);
+  border-radius:10px; font-family:var(--ui); font-size:12px; font-weight:500; letter-spacing:.22em; color:var(--brass-lo); transition:background .2s }
+.btn.solid{ background:linear-gradient(155deg,var(--green-1),var(--green-2)); color:var(--champagne); border-color:transparent;
+  box-shadow:0 18px 36px -18px rgba(18,26,21,.5), inset 0 1px 0 rgba(228,214,186,.07) }
+.btn.small{ width:auto; display:inline-block; padding:9px 14px; font-size:10px; letter-spacing:.16em; margin-top:10px }
+.btn:active{ background:rgba(169,143,88,.14) }
+.btn.kaburi{ border-color:var(--kaburi); color:var(--kaburi) } .btn.kaburi:active{ background:rgba(196,91,74,.12) }
+.btn.normal{ border-color:var(--normal); color:var(--normal) } .btn.normal:active{ background:rgba(74,107,74,.12) }
+.btnrow{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px }
+.btnrow .btn{ margin-top:0 }
+.live{ text-align:center; font-family:var(--serif); font-style:italic; font-size:28px; color:var(--brass); margin-top:8px; font-variant-numeric:tabular-nums }
+.statetx{ text-align:center; font-family:var(--jp); font-size:13px; color:var(--ink-soft); margin-top:10px; letter-spacing:.04em; min-height:20px }
+canvas{ display:block; width:100%; height:300px; border-radius:14px; border:1px solid var(--hair-gold); margin-top:10px;
+  background:radial-gradient(120% 90% at 50% 42%, #F6F1E6 0%, #F1EBDD 60%, #ECE5D5 100%) }
+.cvcap{ font-family:var(--jp); font-size:10.5px; color:var(--sub); text-align:center; margin-top:5px; line-height:1.6 }
+.cvcap .dotb{ color:var(--brass-lo); font-weight:600 } .cvcap .dotd{ color:var(--ink); font-weight:600 }
+.res{ text-align:center; margin-top:14px }
+.res .loop{ font-family:var(--serif); font-style:italic; font-weight:600; font-size:34px; color:var(--ink); line-height:1; font-variant-numeric:tabular-nums }
+.res .loop .u{ font-family:var(--ui); font-style:normal; font-size:12px; color:var(--sub) }
+.res .ll{ font-family:var(--ui); font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--sub); margin-top:7px }
+.res .ll em{ font-family:var(--jp); font-style:normal; font-size:11px; display:block; margin-top:2px }
+table{ width:100%; border-collapse:collapse; margin-top:8px; font-variant-numeric:tabular-nums }
+th,td{ padding:7px 4px; text-align:center; font-size:12px; border-bottom:1px solid var(--hair) }
+th{ font-family:var(--ui); font-size:8.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--sub); font-weight:600 }
+td{ font-family:var(--ui); color:var(--ink-soft) }
+td.k{ color:var(--kaburi); font-weight:600 } td.n{ color:var(--normal); font-weight:600 }
+.sum{ font-family:var(--jp); font-size:12.5px; color:var(--ink-soft); margin-top:14px; line-height:1.8; border-top:1px solid var(--hair-gold); padding-top:12px }
+.sum b.k{ color:var(--kaburi) } .sum b.n{ color:var(--normal) }
+.sum .ok{ color:var(--normal); font-weight:600 } .sum .ng{ color:var(--kaburi); font-weight:600 }
+.note{ font-family:var(--jp); font-size:11px; color:var(--sub); margin-top:14px; line-height:1.7; border-top:1px solid var(--hair-gold); padding-top:11px }
+.note b{ color:var(--brass-lo); font-weight:500 }
+.center{ text-align:center }
+.hide{ display:none }
+.err{ color:#C45B4A; font-size:11px; font-family:var(--jp); margin-top:8px }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">GOLF<b>LEV</b></div>
+  <div class="tag">かぶり検証ラボ — 撃ち分けられるか試す道具</div>
+
+  <!-- 1. 許可 -->
+  <div class="card" id="cardPerm">
+    <h2>はじめに</h2>
+    <p class="lead">これは<b>検証用の道具</b>です。スマホをクラブのように両手で握り、ゆっくり素振りをします。<br>「<b>わざとかぶった振り</b>」と「<b>普通の振り</b>」を交互に何回か行い、数値が割れるかを見ます。</p>
+    <button class="btn solid" id="btnPerm">センサーを有効にする</button>
+    <div class="err hide" id="permErr"></div>
+  </div>
+
+  <!-- 2. アドレス -->
+  <div class="card hide" id="cardAim">
+    <h2>構える</h2>
+    <p class="lead">いつものアドレスで構え、<b>2秒間そのまま静止</b>してください。ここを原点にします。</p>
+    <div class="live" id="aimCount">—</div>
+    <button class="btn" id="btnAim">アドレスを記録する</button>
+  </div>
+
+  <!-- 3. 振る -->
+  <div class="card hide" id="cardSwing">
+    <h2>振る</h2>
+    <p class="lead">次に行う振りを選んでタップ → そのまま<b>ゆっくり振り抜く</b>。</p>
+    <div class="btnrow">
+      <button class="btn kaburi" id="btnArmK">① わざとかぶり</button>
+      <button class="btn normal" id="btnArmN">② 普通に振る</button>
+    </div>
+    <div class="statetx" id="swingState">どちらかを選んでください</div>
+    <button class="btn small" id="btnRecal" style="display:block;margin-left:auto;margin-right:auto">構えからやり直す</button>
+  </div>
+
+  <!-- 4. 結果＋ログ -->
+  <div class="card hide" id="cardResult">
+    <h2 id="resTitle">振り終わり</h2>
+    <canvas id="cv" width="360" height="300"></canvas>
+    <div class="cvcap">真上から見た軌道。<span class="dotb">● 上げ</span>と<span class="dotd">● 下ろし</span>が描く輪っかの<b>向き</b>を見ます。</div>
+    <div class="res">
+      <div class="loop"><span id="loopVal">—</span></div>
+      <div class="ll">LOOP<em id="loopLbl">輪っかの向き・大きさ</em></div>
+    </div>
+    <table id="logTable">
+      <thead><tr><th>#</th><th>種類</th><th>ループ</th><th>外通り</th><th>速さ</th></tr></thead>
+      <tbody id="logBody"></tbody>
+    </table>
+    <div class="sum" id="summary"></div>
+    <div class="btnrow">
+      <button class="btn kaburi" id="btnArmK2">① わざとかぶり</button>
+      <button class="btn normal" id="btnArmN2">② 普通に振る</button>
+    </div>
+    <button class="btn small" id="btnFlip" style="display:block;margin:12px auto 0">左右を反転</button>
+    <button class="btn small" id="btnCopy" style="display:block;margin:8px auto 0">結果データをコピー</button>
+    <p class="note"><b>判定はまだ出しません。</b>この道具の目的は、かぶり（赤）と普通（緑）で「ループ」の値が<b>はっきり割れるか</b>を確かめること。割れれば、検出ロジックは本物です。</p>
+  </div>
+
+  <div class="err" id="globalErr"></div>
+</div>
+
+<script>
+window.__err=[]; window.onerror=m=>{ window.__err.push(String(m)); var e=document.getElementById('globalErr'); if(e) e.textContent=String(m); };
+const $=id=>document.getElementById(id);
+const D2R=Math.PI/180, R2D=180/Math.PI;
+try{ document.fonts && document.fonts.load("italic 600 16px 'Cormorant Garamond'"); }catch(e){}
+
+/* ── クォータニオン／ベクトル（swing-mirror から流用・実証済み）── */
+function qFromEuler(a,b,g){a=(a||0)*D2R;b=(b||0)*D2R;g=(g||0)*D2R;
+  const cX=Math.cos(b/2),cY=Math.cos(g/2),cZ=Math.cos(a/2),sX=Math.sin(b/2),sY=Math.sin(g/2),sZ=Math.sin(a/2);
+  return {w:cX*cY*cZ-sX*sY*sZ, x:sX*cY*cZ-cX*sY*sZ, y:cX*sY*cZ+sX*cY*sZ, z:cX*cY*sZ+sX*sY*cZ};}
+function rotVec(q,v){const{w,x,y,z}=q,{x:vx,y:vy,z:vz}=v;
+  const tx=2*(y*vz-z*vy),ty=2*(z*vx-x*vz),tz=2*(x*vy-y*vx);
+  return {x:vx+w*tx+(y*tz-z*ty), y:vy+w*ty+(z*tx-x*tz), z:vz+w*tz+(x*ty-y*tx)};}
+const dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
+const cross=(a,b)=>({x:a.y*b.z-a.z*b.y,y:a.z*b.x-a.x*b.z,z:a.x*b.y-a.y*b.x});
+function norm(v){const l=Math.hypot(v.x,v.y,v.z)||1;return{x:v.x/l,y:v.y/l,z:v.z/l};}
+function angBetween(a,b){return Math.acos(Math.max(-1,Math.min(1,dot(norm(a),norm(b)))))*R2D;}
+
+/* ── 状態 ── */
+let SENSOR={alpha:0,beta:0,gamma:0}, baseQ=null, FRAME=null;
+let STATE='perm';
+let recording=false, samples=[], lastS=null, restCount=0;
+let armType=null;            // 'k' | 'n'
+let LOG=[];                  // {n,type,loop,cross,peak}
+let lastResult=null;
+let flipX=false; try{ flipX=localStorage.getItem('golflev:lab:flip')==='1'; }catch(e){}
+const Yc={x:0,y:1,z:0};
+
+function show(id){ ['cardPerm','cardAim','cardSwing','cardResult'].forEach(c=>$(c).classList.add('hide')); $(id).classList.remove('hide'); }
+function fx(x){ return flipX? -x : x; }
+
+/* アドレスから基準フレームを作る：up=真上, f=ターゲットライン水平軸, d=奥行き(ボール方向)＝かぶりが出る軸 */
+function buildFrame(){
+  const up={x:0,y:0,z:1};
+  const s0=baseQ?norm(rotVec(baseQ,Yc)):{x:0,y:-1,z:0};
+  let f=cross(up,s0); if(Math.hypot(f.x,f.y,f.z)<0.2) f={x:1,y:0,z:0}; f=norm(f);
+  let d=norm(cross(f,up));    // 水平・fに直交＝奥行き（手前/奥）
+  FRAME={up,f,d,s0};
+}
+// 真上から見た平面（奥行き d × 高さ up）→ かぶりの輪っかが見える
+const projDL=s=>({ x:dot(s,FRAME.d), y:dot(s,FRAME.up) });
+// 正面から見た平面（左右 f × 高さ up）
+const projFO=s=>({ x:dot(s,FRAME.f), y:dot(s,FRAME.up) });
+
+function onOrient(e){
+  if(e.alpha==null&&e.beta==null&&e.gamma==null) return;
+  SENSOR.alpha=e.alpha||0; SENSOR.beta=e.beta||0; SENSOR.gamma=e.gamma||0;
+  if(STATE==='aim') aimTick();
+  else if(STATE==='swing') swingTick();
+}
+
+/* 1. 許可 */
+$('btnPerm').addEventListener('click', async ()=>{
+  try{
+    if(typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){
+      const r=await DeviceOrientationEvent.requestPermission();
+      if(r!=='granted'){ $('permErr').classList.remove('hide'); $('permErr').textContent='センサーが許可されませんでした。設定から許可してください。'; return; }
+    }
+    window.addEventListener('deviceorientation', onOrient, true);
+    STATE='aim'; show('cardAim');
+  }catch(err){ $('permErr').classList.remove('hide'); $('permErr').textContent='エラー: '+(err.message||err); }
+});
+
+/* 2. アドレス記録 */
+let aimColl=null;
+$('btnAim').addEventListener('click', ()=>{ aimColl={list:[],remain:2.0}; aimColl.timer=setInterval(()=>{
+  aimColl.remain-=0.1; $('aimCount').textContent=Math.max(0,aimColl.remain).toFixed(1);
+  if(aimColl.remain<=0){ clearInterval(aimColl.timer); baseQ=avgQ(aimColl.list); aimColl=null; buildFrame(); enterSwing(); }
+},100); });
+function aimTick(){ if(aimColl) aimColl.list.push(qFromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma)); }
+function avgQ(list){ if(!list.length) return {w:1,x:0,y:0,z:0}; const r=list[0]; let w=0,x=0,y=0,z=0;
+  list.forEach(q=>{const s=(q.w*r.w+q.x*r.x+q.y*r.y+q.z*r.z)<0?-1:1; w+=s*q.w;x+=s*q.x;y+=s*q.y;z+=s*q.z;});
+  const l=Math.hypot(w,x,y,z)||1; return {w:w/l,x:x/l,y:y/l,z:z/l}; }
+
+/* 3. 振る */
+function enterSwing(){ STATE='swing'; show('cardSwing'); recording=false; samples=[]; lastS=null; restCount=0; armType=null; $('swingState').textContent='どちらかを選んでください'; }
+function arm(type){ armType=type; recording=false; samples=[]; lastS=null; restCount=0;
+  $('swingState').textContent=(type==='k'?'① かぶり：':'② 普通：')+'ゆっくり振り抜いてください'; }
+$('btnArmK').addEventListener('click',()=>arm('k'));
+$('btnArmN').addEventListener('click',()=>arm('n'));
+$('btnArmK2').addEventListener('click',()=>{ enterSwing(); arm('k'); });
+$('btnArmN2').addEventListener('click',()=>{ enterSwing(); arm('n'); });
+$('btnRecal').addEventListener('click', ()=>{ baseQ=null; FRAME=null; STATE='aim'; show('cardAim'); $('aimCount').textContent='—'; });
+
+function swingTick(){
+  if(!armType) return;
+  const t=performance.now();
+  const q=qFromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma);
+  const s=norm(rotVec(q,Yc));
+  let omega=0; if(lastS){ omega=angBetween(s,lastS); }
+  if(!recording){ if(omega>1.2){ recording=true; samples=[]; $('swingState').textContent='記録中…'; } }
+  if(recording){
+    samples.push({t,s,om:omega});
+    if(omega<0.4) restCount++; else restCount=0;
+    if(restCount>8 && samples.length>15){ recording=false; finish(); return; }
+    if(samples.length>800){ recording=false; finish(); return; }
+  }
+  lastS=s;
+}
+
+/* 4. 終了→指標計算 */
+function finish(){
+  if(samples.length<10){ $('swingState').textContent='短すぎます。もう一度選んで振ってください'; recording=false; return; }
+  const sm=samples;
+  // セグメント分割：peak速度=インパクト, top=アドレスから最も離れた点(インパクトまで)
+  let peak=0, impIdx=1, maxSp=-1;
+  for(let i=1;i<sm.length;i++){ const dt=(sm[i].t-sm[i-1].t)/1000||0.016; const sp=sm[i].om/dt; if(sp>peak)peak=sp; if(sp>maxSp){maxSp=sp;impIdx=i;} }
+  const a0=sm[0].s; let topIdx=0,maxAng=-1;
+  for(let i=0;i<=impIdx;i++){ const ang=angBetween(sm[i].s,a0); if(ang>maxAng){maxAng=ang;topIdx=i;} }
+
+  // ① ループ＝真上から見た(奥行き×高さ)平面での符号付き面積（向き＝かぶり/内、大きさ＝深さ）
+  const P=sm.map(o=>projDL(o.s));
+  let area=0; const N=impIdx+1;
+  for(let i=0;i<N;i++){ const a=P[i], b=P[(i+1)%N]; area+=a.x*b.y-b.x*a.y; }
+  area*=0.5;
+  // 高さ→奥行きの代表スケールで正規化し、解釈しやすい角度(度)に写す
+  let hMin=1e9,hMax=-1e9; for(let i=0;i<N;i++){ if(P[i].y<hMin)hMin=P[i].y; if(P[i].y>hMax)hMax=P[i].y; }
+  const span=Math.max(0.15,hMax-hMin);
+  const loop = area/(span*span) * 90;   // おおよその度スケール（割れ幅を見る相対指標）
+
+  // ② 外通り量＝同じ高さでの「下ろしの奥行き − 上げの奥行き」平均（+＝下ろしが外/ボール側を通った）
+  const back=[], down=[];
+  for(let i=0;i<=topIdx;i++) back.push(P[i]);
+  for(let i=topIdx;i<=impIdx;i++) down.push(P[i]);
+  const depthAt=(arr,h)=>{ // 高さhでの奥行きを線形補間
+    let best=null;
+    for(let i=1;i<arr.length;i++){ const y0=arr[i-1].y,y1=arr[i].y; if((h>=Math.min(y0,y1))&&(h<=Math.max(y0,y1))){ const t=(y1===y0)?0:(h-y0)/(y1-y0); const x=arr[i-1].x+(arr[i].x-arr[i-1].x)*t; if(best===null) best=x; } }
+    return best;
+  };
+  const lo=Math.max(Math.min(...back.map(p=>p.y)),Math.min(...down.map(p=>p.y)));
+  const hi=Math.min(Math.max(...back.map(p=>p.y)),Math.max(...down.map(p=>p.y)));
+  let cs=0,cn=0;
+  if(hi>lo){ for(let k=1;k<8;k++){ const h=lo+(hi-lo)*k/8; const db=depthAt(back,h), dd=depthAt(down,h); if(db!=null&&dd!=null){ cs+=(dd-db); cn++; } } }
+  const crossOver = cn? (cs/cn)/span*100 : 0;   // 相対指標
+
+  // ログに追加
+  const n=LOG.length+1;
+  LOG.push({n, type:armType, loop:+loop.toFixed(0), cross:+crossOver.toFixed(0), peak:Math.round(peak)});
+  lastResult={sm, topIdx, impIdx, loop, crossOver, peak, type:armType};
+
+  // 表示
+  $('resTitle').textContent = (armType==='k'?'① かぶり':'② 普通')+' — 記録しました';
+  $('loopVal').innerHTML = (loop>=0?'+':'')+loop.toFixed(0)+'<span class="u">°相当</span>';
+  $('loopLbl').textContent = '輪っかの向き・大きさ（符号で向き）';
+  renderLog(); renderSummary(); drawResult();
+  STATE='result'; show('cardResult');
+}
+
+function renderLog(){
+  const tb=$('logBody'); tb.innerHTML='';
+  LOG.slice().reverse().forEach(r=>{ const tr=document.createElement('tr');
+    tr.innerHTML='<td>'+r.n+'</td><td class="'+r.type+'">'+(r.type==='k'?'かぶり':'普通')+'</td>'+
+      '<td>'+(r.loop>=0?'+':'')+r.loop+'</td><td>'+(r.cross>=0?'+':'')+r.cross+'</td><td>'+r.peak+'</td>';
+    tb.appendChild(tr); });
+}
+function renderSummary(){
+  const ks=LOG.filter(r=>r.type==='k').map(r=>r.loop), ns=LOG.filter(r=>r.type==='n').map(r=>r.loop);
+  const avg=a=>a.length? a.reduce((x,y)=>x+y,0)/a.length : null;
+  const ka=avg(ks), na=avg(ns);
+  let html='';
+  if(ka!=null) html+='かぶり平均 <b class="k">'+(ka>=0?'+':'')+ka.toFixed(0)+'</b>（'+ks.length+'回）　';
+  if(na!=null) html+='普通平均 <b class="n">'+(na>=0?'+':'')+na.toFixed(0)+'</b>（'+ns.length+'回）';
+  if(ka!=null&&na!=null){ const gap=Math.abs(ka-na);
+    html+='<br>差＝<b>'+gap.toFixed(0)+'</b>。';
+    html+= gap>=25 ? '<span class="ok">はっきり割れています。検出は有望。</span>' :
+           gap>=12 ? '少し割れています。回数を増やして確認を。' :
+                     '<span class="ng">まだ割れていません。振りを誇張するか、軸の取り直しが必要。</span>';
+  } else { html+='<br>両方を数回ずつ記録すると、ここに割れ具合が出ます。'; }
+  $('summary').innerHTML=html;
+}
+
+/* 描画：真上から見た輪っか（上げ＝ブラス／下ろし＝濃グリーン） */
+function clubGeo(cv){ const W=cv.clientWidth||340,H=cv.clientHeight||300; return {W,H}; }
+function setupHiDPI(cv,g){ const dpr=Math.max(1,Math.min(3,window.devicePixelRatio||1));
+  cv.width=Math.round(g.W*dpr); cv.height=Math.round(g.H*dpr);
+  const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); return ctx; }
+function drawResult(){
+  if(!lastResult) return; const cv=$('cv'); const g=clubGeo(cv); const ctx=setupHiDPI(cv,g); ctx.clearRect(0,0,g.W,g.H);
+  const sm=lastResult.sm, topIdx=lastResult.topIdx, impIdx=lastResult.impIdx;
+  const pts=[]; for(let i=0;i<=impIdx;i++) pts.push(projDL(sm[i].s));
+  // 自動スケール（中央寄せ）
+  let xMin=1e9,xMax=-1e9,yMin=1e9,yMax=-1e9;
+  pts.forEach(p=>{ if(p.x<xMin)xMin=p.x; if(p.x>xMax)xMax=p.x; if(p.y<yMin)yMin=p.y; if(p.y>yMax)yMax=p.y; });
+  const pad=44, sx=(g.W-pad*2)/Math.max(0.25,xMax-xMin), sy=(g.H-pad*2)/Math.max(0.25,yMax-yMin);
+  const sc=Math.min(sx,sy)*0.9; const cx=(xMin+xMax)/2, cy=(yMin+yMax)/2;
+  const TP=p=>({ x:g.W/2+fx(p.x-cx)*sc, y:g.H/2-(p.y-cy)*sc });
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  const seg=(i0,i1,color,w)=>{ for(let i=i0+1;i<=i1;i++){ const A=TP(pts[i-1]),B=TP(pts[i]);
+      ctx.strokeStyle=color; ctx.lineWidth=w; ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke(); } };
+  ctx.shadowColor='rgba(203,176,121,.4)'; ctx.shadowBlur=5;
+  seg(0,topIdx,'rgba(135,111,64,.92)',3.4);            // 上げ＝ブラス
+  seg(topIdx,impIdx,'rgba(36,50,41,.96)',4.4);          // 下ろし＝濃グリーン
+  ctx.shadowBlur=0;
+  const mk=(p,fill,label)=>{ const q=TP(p); ctx.fillStyle='#F1EBDD'; ctx.beginPath(); ctx.arc(q.x,q.y,5,0,7); ctx.fill();
+    ctx.strokeStyle=fill; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle='#3A453C'; ctx.font='italic 600 13px "Cormorant Garamond", serif'; ctx.textAlign='center'; ctx.fillText(label,q.x,q.y-10); };
+  mk(pts[0],'#243229','Address'); mk(pts[topIdx],'#876F40','Top'); mk(pts[impIdx],'#C45B4A','Impact');
+}
+
+$('btnFlip').addEventListener('click', ()=>{ flipX=!flipX; try{ localStorage.setItem('golflev:lab:flip', flipX?'1':'0'); }catch(e){} drawResult(); });
+$('btnCopy').addEventListener('click', ()=>{ const txt=JSON.stringify(LOG);
+  try{ navigator.clipboard.writeText(txt); $('btnCopy').textContent='コピーしました'; setTimeout(()=>$('btnCopy').textContent='結果データをコピー',1500); }
+  catch(e){ prompt('コピーしてください', txt); } });
+
+window.__lab={qFromEuler,rotVec,projDL,buildFrame,getLog:()=>LOG};
+</script>
+</body>
+</html>
