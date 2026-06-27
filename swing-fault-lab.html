@@ -95,6 +95,7 @@ td.k{ color:var(--kaburi); font-weight:600 } td.n{ color:var(--normal); font-wei
       <button class="btn normal" id="btnArmN">② 普通に振る</button>
     </div>
     <div class="statetx" id="swingState">どちらかを選んでください</div>
+    <button class="btn hide" id="btnStop">いま振り終えた（ストップ）</button>
     <button class="btn small" id="btnRecal" style="display:block;margin-left:auto;margin-right:auto">構えからやり直す</button>
   </div>
 
@@ -145,8 +146,10 @@ function angBetween(a,b){return Math.acos(Math.max(-1,Math.min(1,dot(norm(a),nor
 /* ── 状態 ── */
 let SENSOR={alpha:0,beta:0,gamma:0}, baseQ=null, FRAME=null;
 let STATE='perm';
-let recording=false, samples=[], lastS=null, restCount=0;
+let buf=[], capturing=false, lastS=null, maxW=0, stillStart=0, capStart=0;
 let armType=null;            // 'k' | 'n'
+// 全録り→後切り出しの閾値（°/秒・端末のフレームレート非依存）
+const START_TH=45, END_TH=22, STILL_MS=600, MAXCAP_MS=9000;
 let LOG=[];                  // {n,type,loop,cross,peak}
 let lastResult=null;
 let flipX=false; try{ flipX=localStorage.getItem('golflev:lab:flip')==='1'; }catch(e){}
@@ -198,36 +201,67 @@ function avgQ(list){ if(!list.length) return {w:1,x:0,y:0,z:0}; const r=list[0];
   list.forEach(q=>{const s=(q.w*r.w+q.x*r.x+q.y*r.y+q.z*r.z)<0?-1:1; w+=s*q.w;x+=s*q.x;y+=s*q.y;z+=s*q.z;});
   const l=Math.hypot(w,x,y,z)||1; return {w:w/l,x:x/l,y:y/l,z:z/l}; }
 
-/* 3. 振る */
-function enterSwing(){ STATE='swing'; show('cardSwing'); recording=false; samples=[]; lastS=null; restCount=0; armType=null; $('swingState').textContent='どちらかを選んでください'; }
-function arm(type){ armType=type; recording=false; samples=[]; lastS=null; restCount=0;
-  $('swingState').textContent=(type==='k'?'① かぶり：':'② 普通：')+'ゆっくり振り抜いてください'; }
+/* 3. 振る（全録り→後で実スイング区間を切り出す。トップの一瞬静止で切れない） */
+function enterSwing(){ STATE='swing'; show('cardSwing'); stopCapture(false); armType=null;
+  $('btnStop').classList.add('hide'); $('swingState').textContent='どちらかを選んでください'; }
+function arm(type){ armType=type; capturing=true; buf=[]; lastS=null; maxW=0; stillStart=0; capStart=performance.now();
+  $('btnStop').classList.remove('hide');
+  $('swingState').textContent=(type==='k'?'① かぶり：':'② 普通：')+'構えて、ゆっくり振り抜いてください（自動で止まります）'; }
+function stopCapture(run){ capturing=false; $('btnStop').classList.add('hide');
+  if(run){ const sm=segment(buf); if(sm) finish(sm); else { $('swingState').textContent='スイングが見つかりません。もう一度選んで、はっきり振ってください'; } } }
 $('btnArmK').addEventListener('click',()=>arm('k'));
 $('btnArmN').addEventListener('click',()=>arm('n'));
 $('btnArmK2').addEventListener('click',()=>{ enterSwing(); arm('k'); });
 $('btnArmN2').addEventListener('click',()=>{ enterSwing(); arm('n'); });
-$('btnRecal').addEventListener('click', ()=>{ baseQ=null; FRAME=null; STATE='aim'; show('cardAim'); $('aimCount').textContent='—'; });
+$('btnStop').addEventListener('click',()=>stopCapture(true));
+$('btnRecal').addEventListener('click', ()=>{ stopCapture(false); baseQ=null; FRAME=null; STATE='aim'; show('cardAim'); $('aimCount').textContent='—'; });
 
 function swingTick(){
-  if(!armType) return;
+  if(!capturing) return;
   const t=performance.now();
   const q=qFromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma);
   const s=norm(rotVec(q,Yc));
-  let omega=0; if(lastS){ omega=angBetween(s,lastS); }
-  if(!recording){ if(omega>1.2){ recording=true; samples=[]; $('swingState').textContent='記録中…'; } }
-  if(recording){
-    samples.push({t,s,om:omega});
-    if(omega<0.4) restCount++; else restCount=0;
-    if(restCount>8 && samples.length>15){ recording=false; finish(); return; }
-    if(samples.length>800){ recording=false; finish(); return; }
-  }
+  let w=0; if(lastS){ const dt=(buf.length?(t-buf[buf.length-1].t):16)/1000||0.016; w=angBetween(s,lastS)/dt; } // °/秒
+  buf.push({t,s});
   lastS=s;
+  if(w>maxW) maxW=w;
+  // 本物の振り(START_TH超)を見た後、静止がSTILL_MS続いたら自動終了
+  if(maxW>START_TH){
+    if(w<END_TH){ if(!stillStart) stillStart=t; else if(t-stillStart>STILL_MS){ stopCapture(true); return; } }
+    else stillStart=0;
+  }
+  if(t-capStart>MAXCAP_MS){ stopCapture(true); return; }
+}
+
+/* 全バッファから“実スイング区間”を切り出す（onset=動き出し / end=振り抜き後の静止） */
+function segment(rawbuf){
+  if(!rawbuf || rawbuf.length<8) return null;
+  // 各サンプルの瞬間角速度(°/秒)
+  const w=[0];
+  for(let i=1;i<rawbuf.length;i++){ const dt=(rawbuf[i].t-rawbuf[i-1].t)/1000||0.016; w.push(angBetween(rawbuf[i].s,rawbuf[i-1].s)/dt); }
+  // 3点移動平均で平滑化
+  const ws=w.map((_,i)=>{ let s=0,c=0; for(let k=-1;k<=1;k++){const j=i+k; if(j>=0&&j<w.length){s+=w[j];c++;}} return s/c; });
+  let peak=0,pk=0; ws.forEach((v,i)=>{ if(v>peak){peak=v;pk=i;} });
+  if(peak<START_TH) return null;              // 振っていない
+  const offTh=Math.max(END_TH, peak*0.10);
+  // 平均フレーム間隔→「長い静止(≈0.3秒)」だけを境界に。トップの一瞬静止は跨ぐ
+  const dtAvg=(rawbuf[rawbuf.length-1].t-rawbuf[0].t)/1000/Math.max(1,rawbuf.length-1);
+  const need=Math.max(4, Math.round(0.30/Math.max(0.008,dtAvg)));
+  // onset：ピークから遡り、静止がneed連続した“その静止ブロックの直後”を始点に（＝アドレス側）
+  let on=0, run=0;
+  for(let i=pk;i>=0;i--){ if(ws[i]<offTh){ run++; if(run>=need){ on=i+run; break; } } else run=0; }
+  // end：ピークから進み、静止がneed連続した“その静止ブロックの先頭”を終点に（＝フォロー後）
+  let off=ws.length-1; run=0;
+  for(let i=pk;i<ws.length;i++){ if(ws[i]<offTh){ run++; if(run>=need){ off=i-run+1; break; } } else run=0; }
+  const i0=Math.max(0,on-2), i1=Math.min(rawbuf.length-1, off+2);
+  if(i1-i0<6) return null;
+  const sm=rawbuf.slice(i0,i1+1).map((o,idx,arr)=>({t:o.t,s:o.s,om: idx? angBetween(o.s,arr[idx-1].s):0 }));
+  return sm;
 }
 
 /* 4. 終了→指標計算 */
-function finish(){
-  if(samples.length<10){ $('swingState').textContent='短すぎます。もう一度選んで振ってください'; recording=false; return; }
-  const sm=samples;
+function finish(sm){
+  if(!sm || sm.length<10){ $('swingState').textContent='短すぎます。もう一度選んで、はっきり振り抜いてください'; return; }
   // セグメント分割：peak速度=インパクト, top=アドレスから最も離れた点(インパクトまで)
   let peak=0, impIdx=1, maxSp=-1;
   for(let i=1;i<sm.length;i++){ const dt=(sm[i].t-sm[i-1].t)/1000||0.016; const sp=sm[i].om/dt; if(sp>peak)peak=sp; if(sp>maxSp){maxSp=sp;impIdx=i;} }
