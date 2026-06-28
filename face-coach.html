@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Golflev · フェースコーチ</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Playfair+Display:ital,wght@0,500;0,600&family=Noto+Serif+JP:wght@300;400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bone:#E8E2D4; --bone-2:#E0D8C6; --paper:#F4EEE2;
+  --ink:#1B2620; --ink-soft:#3A453C;
+  --green-1:#243229; --green-2:#18211B;
+  --brass:#A98F58; --brass-hi:#CBB079; --brass-lo:#876F40; --champagne:#E4D6BA;
+  --sub:#8C8676; --hair:rgba(27,38,32,.12); --hair-gold:rgba(169,143,88,.4);
+  --slice:#C45B4A; --hook:#D4A040; --ok:#4A6B4A;
+  --serif:'Cormorant Garamond','Playfair Display',Georgia,serif;
+  --jp:'Noto Serif JP',serif; --ui:'Inter',-apple-system,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+body{ background:radial-gradient(130% 80% at 50% 0%, #F0EADC 0%, var(--bone) 52%, var(--bone-2) 100%);
+  color:var(--ink); font-family:var(--ui); line-height:1.6; min-height:100vh; position:relative; overflow-x:hidden;
+  padding:38px 22px calc(56px + env(safe-area-inset-bottom)) }
+body::before{ content:''; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.3;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); }
+.wrap{ position:relative; z-index:1; max-width:430px; margin:0 auto }
+.brand{ text-align:center; font-family:var(--serif); font-weight:600; font-size:14px; letter-spacing:.46em; text-indent:.46em; color:var(--ink) }
+.brand b{ color:var(--brass); font-weight:600 }
+.tag{ text-align:center; font-family:var(--jp); font-size:11px; color:var(--sub); margin-top:8px; letter-spacing:.08em }
+.card{ background:var(--paper); border:1px solid var(--hair-gold); border-radius:18px; padding:26px 22px; margin-top:20px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5) }
+h2{ font-family:var(--serif); font-style:italic; font-weight:600; font-size:28px; color:var(--ink); line-height:1.1 }
+p.lead{ font-family:var(--jp); font-size:13px; color:var(--ink-soft); margin-top:12px; line-height:1.85 }
+p.lead b{ color:var(--brass-lo); font-weight:500 }
+.btn{ display:block; width:100%; margin-top:16px; padding:15px; cursor:pointer; background:transparent; border:1px solid var(--brass);
+  border-radius:10px; font-family:var(--ui); font-size:12px; font-weight:500; letter-spacing:.28em; color:var(--brass-lo); transition:background .2s }
+.btn.solid{ background:linear-gradient(155deg,var(--green-1),var(--green-2)); color:var(--champagne); border-color:transparent;
+  box-shadow:0 18px 36px -18px rgba(18,26,21,.5), inset 0 1px 0 rgba(228,214,186,.07) }
+.btn.small{ width:auto; display:inline-block; padding:9px 16px; font-size:10px; letter-spacing:.2em; margin-top:12px }
+.btn:active{ background:rgba(169,143,88,.14) }
+.live{ text-align:center; font-family:var(--serif); font-style:italic; font-size:30px; color:var(--brass); margin-top:8px; font-variant-numeric:tabular-nums }
+.statetx{ text-align:center; font-family:var(--jp); font-size:13px; color:var(--ink-soft); margin-top:12px; letter-spacing:.04em; min-height:20px }
+canvas{ display:block; width:100%; height:230px; margin-top:6px }
+.verdict{ font-family:var(--serif); font-style:italic; font-weight:600; font-size:27px; line-height:1.3; color:var(--ink); text-align:center; margin-top:14px }
+.verdict.slice{ color:var(--slice) } .verdict.hook{ color:var(--hook) } .verdict.ok{ color:var(--ok) }
+.vtip{ font-family:var(--jp); font-size:13.5px; color:var(--ink-soft); text-align:center; margin-top:10px; line-height:1.8 }
+.vsub{ font-family:var(--jp); font-size:12px; color:var(--sub); text-align:center; margin-top:14px; padding-top:12px; border-top:1px solid var(--hair-gold) }
+.vsub b{ color:var(--ok); font-weight:600 }
+.note{ font-family:var(--jp); font-size:11px; color:var(--sub); margin-top:16px; line-height:1.7; border-top:1px solid var(--hair-gold); padding-top:12px }
+.note b{ color:var(--brass-lo); font-weight:500 }
+.center{ text-align:center }
+.hide{ display:none }
+.err{ color:#C45B4A; font-size:11px; font-family:var(--jp); margin-top:8px }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">GOLF<b>LEV</b></div>
+  <div class="tag">フェースコーチ — 開き／閉じを、振った瞬間に</div>
+
+  <!-- 1. 許可 -->
+  <div class="card" id="cardPerm">
+    <h2>はじめに</h2>
+    <p class="lead">スマホをクラブのように両手で握り、ゆっくり素振りをします。<br>振るたびに、<b>フェースが開いて戻ったか（スライス）／閉じて戻ったか（フック）／ちょうどいいか</b>を、ひとつだけお伝えします。</p>
+    <button class="btn solid" id="btnPerm">センサーを有効にする</button>
+    <div class="err hide" id="permErr"></div>
+  </div>
+
+  <!-- 2. アドレス -->
+  <div class="card hide" id="cardAim">
+    <h2>構える</h2>
+    <p class="lead">いつものアドレスで構え、<b>2秒間そのまま静止</b>してください。ここを原点にします。</p>
+    <div class="live" id="aimCount">—</div>
+    <button class="btn" id="btnAim">アドレスを記録する</button>
+  </div>
+
+  <!-- 3. 基準づくり -->
+  <div class="card hide" id="cardBase">
+    <h2>基準をつくる</h2>
+    <p class="lead"><b>いつも通りに1球</b>、ゆっくり振り抜いてください。<br>あなたの“いつもの返し”を基準にします。ここからの開き／閉じを見ます。</p>
+    <div class="statetx" id="baseState">構えて、ゆっくり振ってください</div>
+  </div>
+
+  <!-- 4. 練習ループ -->
+  <div class="card hide" id="cardPractice">
+    <h2 id="pTitle">振ってください</h2>
+    <canvas id="cv" width="360" height="230"></canvas>
+    <div class="verdict" id="verdict">—</div>
+    <div class="vtip" id="vtip"></div>
+    <div class="vsub" id="vsub"></div>
+    <div class="statetx" id="pState">次の球、どうぞ</div>
+    <button class="btn small" id="btnRebase" style="display:block;margin:10px auto 0">基準を取り直す</button>
+  </div>
+
+  <div class="err" id="globalErr"></div>
+</div>
+
+<script>
+window.__err=[]; window.onerror=m=>{ window.__err.push(String(m)); var e=document.getElementById('globalErr'); if(e) e.textContent=String(m); };
+const $=id=>document.getElementById(id);
+const D2R=Math.PI/180, R2D=180/Math.PI;
+try{ document.fonts && document.fonts.load("italic 600 16px 'Cormorant Garamond'"); }catch(e){}
+
+/* ── クォータニオン／ベクトル（実証済み）── */
+function qFromEuler(a,b,g){a=(a||0)*D2R;b=(b||0)*D2R;g=(g||0)*D2R;
+  const cX=Math.cos(b/2),cY=Math.cos(g/2),cZ=Math.cos(a/2),sX=Math.sin(b/2),sY=Math.sin(g/2),sZ=Math.sin(a/2);
+  return {w:cX*cY*cZ-sX*sY*sZ, x:sX*cY*cZ-cX*sY*sZ, y:cX*sY*cZ+sX*cY*sZ, z:cX*cY*sZ+sX*sY*cZ};}
+function rotVec(q,v){const{w,x,y,z}=q,{x:vx,y:vy,z:vz}=v;
+  const tx=2*(y*vz-z*vy),ty=2*(z*vx-x*vz),tz=2*(x*vy-y*vx);
+  return {x:vx+w*tx+(y*tz-z*ty), y:vy+w*ty+(z*tx-x*tz), z:vz+w*tz+(x*ty-y*tx)};}
+const dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
+const cross=(a,b)=>({x:a.y*b.z-a.z*b.y,y:a.z*b.x-a.x*b.z,z:a.x*b.y-a.y*b.x});
+function norm(v){const l=Math.hypot(v.x,v.y,v.z)||1;return{x:v.x/l,y:v.y/l,z:v.z/l};}
+function angBetween(a,b){return Math.acos(Math.max(-1,Math.min(1,dot(norm(a),norm(b)))))*R2D;}
+const Yc={x:0,y:1,z:0}, Xc={x:1,y:0,z:0};
+
+/* フェース開閉＝アドレス→戻り点のシャフトまわりロール（＋＝開き／−＝閉じ・実機検証済み±1°） */
+function faceRoll(q0,qi){
+  if(!q0||!qi) return null;
+  const a0=norm(rotVec(q0,Yc));
+  const proj=(v,a)=>{ const d=dot(v,a); return norm({x:v.x-d*a.x,y:v.y-d*a.y,z:v.z-d*a.z}); };
+  const u0=proj(rotVec(q0,Xc),a0), u1=proj(rotVec(qi,Xc),a0);
+  return Math.atan2(dot(cross(u0,u1),a0), dot(u0,u1))*R2D;
+}
+
+/* ── 状態 ── */
+let SENSOR={alpha:0,beta:0,gamma:0}, baseQ=null;
+let STATE='perm', mode='base';
+let buf=[], capturing=false, lastS=null, maxW=0, stillStart=0, capStart=0;
+let baseline=0, lastAbsDev=null, streak=0, lastDev=0;
+const START_TH=45, END_TH=22, STILL_MS=600, MAXCAP_MS=9000;
+const MARGIN=15;   // ±15°：これを超えたら開き/閉じと判定（普通のばらつき±13°より外）
+
+function show(id){ ['cardPerm','cardAim','cardBase','cardPractice'].forEach(c=>$(c).classList.add('hide')); $(id).classList.remove('hide'); }
+
+function onOrient(e){
+  if(e.alpha==null&&e.beta==null&&e.gamma==null) return;
+  SENSOR.alpha=e.alpha||0; SENSOR.beta=e.beta||0; SENSOR.gamma=e.gamma||0;
+  if(STATE==='aim') aimTick();
+  else if(STATE==='cap') capTick();
+}
+
+/* 1. 許可 */
+$('btnPerm').addEventListener('click', async ()=>{
+  try{
+    if(typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){
+      const r=await DeviceOrientationEvent.requestPermission();
+      if(r!=='granted'){ $('permErr').classList.remove('hide'); $('permErr').textContent='センサーが許可されませんでした。設定から許可してください。'; return; }
+    }
+    window.addEventListener('deviceorientation', onOrient, true);
+    STATE='aim'; show('cardAim');
+  }catch(err){ $('permErr').classList.remove('hide'); $('permErr').textContent='エラー: '+(err.message||err); }
+});
+
+/* 2. アドレス記録 */
+let aimColl=null;
+$('btnAim').addEventListener('click', ()=>{ aimColl={list:[],remain:2.0}; aimColl.timer=setInterval(()=>{
+  aimColl.remain-=0.1; $('aimCount').textContent=Math.max(0,aimColl.remain).toFixed(1);
+  if(aimColl.remain<=0){ clearInterval(aimColl.timer); baseQ=avgQ(aimColl.list); aimColl=null; enterBaseline(); }
+},100); });
+function aimTick(){ if(aimColl) aimColl.list.push(qFromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma)); }
+function avgQ(list){ if(!list.length) return {w:1,x:0,y:0,z:0}; const r=list[0]; let w=0,x=0,y=0,z=0;
+  list.forEach(q=>{const s=(q.w*r.w+q.x*r.x+q.y*r.y+q.z*r.z)<0?-1:1; w+=s*q.w;x+=s*q.x;y+=s*q.y;z+=s*q.z;});
+  const l=Math.hypot(w,x,y,z)||1; return {w:w/l,x:x/l,y:y/l,z:z/l}; }
+
+/* 3. 基準づくり（いつもの返し1球） */
+function enterBaseline(){ mode='base'; show('cardBase'); startCapture(); $('baseState').textContent='構えて、ゆっくり振ってください'; }
+
+/* 4. 練習ループ */
+function enterPractice(){ mode='practice'; show('cardPractice'); lastAbsDev=null; streak=0; startCapture();
+  $('verdict').textContent='—'; $('verdict').className='verdict'; $('vtip').textContent=''; $('vsub').textContent='';
+  $('pTitle').textContent='振ってください'; $('pState').textContent='ゆっくり振り抜いてください'; }
+$('btnRebase').addEventListener('click', ()=>{ baseline=0; enterBaseline(); });
+
+function startCapture(){ STATE='cap'; capturing=true; buf=[]; lastS=null; maxW=0; stillStart=0; capStart=performance.now(); }
+function capTick(){
+  if(!capturing) return;
+  const t=performance.now();
+  const q=qFromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma);
+  const s=norm(rotVec(q,Yc));
+  let w=0; if(lastS){ const dt=(buf.length?(t-buf[buf.length-1].t):16)/1000||0.016; w=angBetween(s,lastS)/dt; }
+  buf.push({t,s,q}); lastS=s; if(w>maxW)maxW=w;
+  if(maxW>START_TH){ if(w<END_TH){ if(!stillStart) stillStart=t; else if(t-stillStart>STILL_MS){ capturing=false; process(); return; } } else stillStart=0; }
+  if(t-capStart>MAXCAP_MS){ capturing=false; process(); }
+}
+
+/* 全録りから実スイング区間を切り出す（トップの一瞬静止は跨ぐ） */
+function segment(rawbuf){
+  if(!rawbuf || rawbuf.length<8) return null;
+  const wv=[0]; for(let i=1;i<rawbuf.length;i++){ const dt=(rawbuf[i].t-rawbuf[i-1].t)/1000||0.016; wv.push(angBetween(rawbuf[i].s,rawbuf[i-1].s)/dt); }
+  const ws=wv.map((_,i)=>{ let s=0,c=0; for(let k=-1;k<=1;k++){const j=i+k; if(j>=0&&j<wv.length){s+=wv[j];c++;}} return s/c; });
+  let peak=0,pk=0; ws.forEach((v,i)=>{ if(v>peak){peak=v;pk=i;} });
+  if(peak<START_TH) return null;
+  const offTh=Math.max(END_TH, peak*0.10);
+  const dtAvg=(rawbuf[rawbuf.length-1].t-rawbuf[0].t)/1000/Math.max(1,rawbuf.length-1);
+  const need=Math.max(4, Math.round(0.30/Math.max(0.008,dtAvg)));
+  let on=0, run=0; for(let i=pk;i>=0;i--){ if(ws[i]<offTh){ run++; if(run>=need){ on=i+run; break; } } else run=0; }
+  let off=ws.length-1; run=0; for(let i=pk;i<ws.length;i++){ if(ws[i]<offTh){ run++; if(run>=need){ off=i-run+1; break; } } else run=0; }
+  const i0=Math.max(0,on-2), i1=Math.min(rawbuf.length-1, off+2);
+  if(i1-i0<6) return null;
+  return rawbuf.slice(i0,i1+1).map((o,idx,arr)=>({t:o.t,s:o.s,q:o.q,om: idx? angBetween(o.s,arr[idx-1].s):0 }));
+}
+
+/* スイング処理→フェースロール算出 */
+function computeRoll(){
+  const sm=segment(buf); if(!sm) return null;
+  let impIdx=1,maxSp=-1; for(let i=1;i<sm.length;i++){ const dt=(sm[i].t-sm[i-1].t)/1000||0.016; const sp=sm[i].om/dt; if(sp>maxSp){maxSp=sp;impIdx=i;} }
+  const a0=sm[0].s; let topIdx=0,maxAng=-1; for(let i=0;i<=impIdx;i++){ const ang=angBetween(sm[i].s,a0); if(ang>maxAng){maxAng=ang;topIdx=i;} }
+  const aAddr=norm(rotVec(baseQ,Yc)); let bottomIdx=impIdx,minA=1e9;
+  for(let i=topIdx;i<sm.length;i++){ const ang=angBetween(sm[i].s,aAddr); if(ang<minA){minA=ang;bottomIdx=i;} }
+  if(!sm[bottomIdx] || !sm[bottomIdx].q) return null;
+  return faceRoll(baseQ, sm[bottomIdx].q);
+}
+
+function process(){
+  const roll=computeRoll();
+  if(roll==null){
+    if(mode==='base'){ $('baseState').textContent='うまく取れませんでした。もう一度ゆっくり振ってください'; startCapture(); }
+    else { $('pState').textContent='うまく取れませんでした。もう一度どうぞ'; startCapture(); }
+    return;
+  }
+  if(mode==='base'){ baseline=roll; enterPractice(); return; }
+  // 練習：基準からの開き／閉じ
+  const d=roll-baseline;
+  let vk,verdict,tip;
+  if(d>=MARGIN){ vk='slice'; verdict='フェースが開いて戻りました'; tip='スライスの傾向。インパクトで、左手の甲を地面へ向けるイメージで閉じて。'; }
+  else if(d<=-MARGIN){ vk='hook'; verdict='フェースが閉じて戻りました'; tip='フックの傾向。手で返しすぎ。体の回転で振り抜いて。'; }
+  else { vk='ok'; verdict='ちょうどいい返りです'; tip='この返りを覚えておきましょう。'; }
+  $('verdict').textContent=verdict; $('verdict').className='verdict '+vk; $('vtip').textContent=tip;
+  $('pTitle').textContent='振り終わり';
+  // 進歩（前球よりちょうどいいに近づいたか）＋連続
+  const absd=Math.abs(d);
+  if(vk==='ok') streak++; else streak=0;
+  let sub='';
+  if(streak>=2) sub='<b>ちょうどいい返り '+streak+'回連続</b>';
+  else if(lastAbsDev!=null && absd<lastAbsDev-2) sub='前の球より、ちょうどいいに近づきました';
+  else if(lastAbsDev!=null && absd>lastAbsDev+2) sub='もう一度、さっきの感覚で';
+  else sub='基準（あなたのいつもの返し）からの開き／閉じを見ています';
+  $('vsub').innerHTML=sub;
+  lastAbsDev=absd; lastDev=d;
+  drawDial(d, vk);
+  $('pState').textContent='次の球、どうぞ';
+  startCapture();   // 次の球を自動で待つ
+}
+
+/* フェースダイヤル：基準＝縦線（スクエア）／戻り＝d度ぶん傾けた針 */
+function setupHiDPI(cv,W,H){ const dpr=Math.max(1,Math.min(3,window.devicePixelRatio||1));
+  cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); return ctx; }
+function drawDial(d, vk){
+  const cv=$('cv'), W=cv.clientWidth||340, H=cv.clientHeight||230; const ctx=setupHiDPI(cv,W,H); ctx.clearRect(0,0,W,H);
+  const ox=W/2, oy=H-30, L=H-66;
+  const col = vk==='ok'? '#4A6B4A' : vk==='slice'? '#C45B4A' : '#D4A040';
+  // 中央の“ちょうどいい”帯（±MARGINを薄く）
+  ctx.lineCap='round';
+  const mr=MARGIN*D2R;
+  ctx.beginPath(); ctx.moveTo(ox,oy); ctx.arc(ox,oy,L,-Math.PI/2-mr,-Math.PI/2+mr); ctx.closePath();
+  ctx.fillStyle='rgba(74,107,74,.12)'; ctx.fill();
+  // 基準（スクエア）＝縦線
+  ctx.strokeStyle='rgba(135,111,64,.85)'; ctx.lineWidth=2; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(ox,oy-L); ctx.stroke(); ctx.setLineDash([]);
+  // 針（戻りのフェース）＝d度（表示は見やすく1.4倍、ただし最大±70°に制限）
+  const shown=Math.max(-70,Math.min(70,d*1.4)); const rad=shown*D2R;
+  const hx=ox+Math.sin(rad)*L, hy=oy-Math.cos(rad)*L;
+  ctx.strokeStyle=col; ctx.lineWidth=5; ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(hx,hy); ctx.stroke();
+  // 中心＋先端
+  ctx.fillStyle='#F1EBDD'; ctx.beginPath(); ctx.arc(ox,oy,5,0,7); ctx.fill(); ctx.strokeStyle=col; ctx.lineWidth=2; ctx.stroke();
+  ctx.fillStyle='#F1EBDD'; ctx.beginPath(); ctx.arc(hx,hy,5,0,7); ctx.fill(); ctx.strokeStyle=col; ctx.lineWidth=2; ctx.stroke();
+  // ラベル
+  ctx.fillStyle='#8C8676'; ctx.font='400 10px "Inter", sans-serif'; ctx.textAlign='center';
+  ctx.fillText('スクエア', ox, oy-L-8);
+  ctx.fillText('閉じ（フック）', ox-L*0.62, oy-6); ctx.fillText('開き（スライス）', ox+L*0.62, oy-6);
+}
+
+window.__coach={faceRoll, computeRoll:()=>computeRoll(), getBaseline:()=>baseline};
+</script>
+</body>
+</html>
