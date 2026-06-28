@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-<title>Golflev · かぶり検証ラボ</title>
+<title>Golflev · フェース検証ラボ</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Playfair+Display:ital,wght@0,500;0,600&family=Noto+Serif+JP:wght@300;400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -69,12 +69,12 @@ td.k{ color:var(--kaburi); font-weight:600 } td.n{ color:var(--normal); font-wei
 <body>
 <div class="wrap">
   <div class="brand">GOLF<b>LEV</b></div>
-  <div class="tag">かぶり検証ラボ — 撃ち分けられるか試す道具</div>
+  <div class="tag">フェース検証ラボ — 開閉を撃ち分けられるか試す道具</div>
 
   <!-- 1. 許可 -->
   <div class="card" id="cardPerm">
     <h2>はじめに</h2>
-    <p class="lead">これは<b>検証用の道具</b>です。スマホをクラブのように両手で握り、ゆっくり素振りをします。<br>「<b>わざとかぶった振り</b>」と「<b>普通の振り</b>」を交互に何回か行い、数値が割れるかを見ます。</p>
+    <p class="lead">これは<b>検証用の道具</b>です。スマホをクラブのように両手で握り、ゆっくり素振りをします。<br>「<b>わざとフェースを開いて返す</b>」と「<b>普通に返す</b>」を交互に何回か行い、開き角が割れるかを見ます。</p>
     <button class="btn solid" id="btnPerm">センサーを有効にする</button>
     <div class="err hide" id="permErr"></div>
   </div>
@@ -92,8 +92,8 @@ td.k{ color:var(--kaburi); font-weight:600 } td.n{ color:var(--normal); font-wei
     <h2>振る</h2>
     <p class="lead">次に行う振りを選んでタップ → そのまま<b>ゆっくり振り抜く</b>。</p>
     <div class="btnrow">
-      <button class="btn kaburi" id="btnArmK">① わざとかぶり</button>
-      <button class="btn normal" id="btnArmN">② 普通に振る</button>
+      <button class="btn kaburi" id="btnArmK">① フェースを開く</button>
+      <button class="btn normal" id="btnArmN">② 普通に返す</button>
     </div>
     <div class="statetx" id="swingState">どちらかを選んでください</div>
     <button class="btn hide" id="btnStop">いま振り終えた（ストップ）</button>
@@ -107,21 +107,21 @@ td.k{ color:var(--kaburi); font-weight:600 } td.n{ color:var(--normal); font-wei
     <div class="cvcap">正面から見たクラブの弧。<span class="dotb">● 上げ</span>／<span class="dotd">● 下ろし</span>。</div>
     <div class="res">
       <div class="loop"><span id="loopVal">—</span></div>
-      <div class="ll">PLANE<em id="loopLbl">上げ面と下ろし面のズレ</em></div>
+      <div class="ll">FACE<em id="loopLbl">フェースの戻り（＋＝開き）</em></div>
     </div>
     <canvas id="cvWedge" width="360" height="130"></canvas>
-    <div class="cvcap">真上から見た面の向き。<span class="dotb">上げ</span>に対し<span class="dotd">下ろし</span>が何度ズレたか。</div>
+    <div class="cvcap">アドレスの<span class="dotb">スクエア</span>に対し、<span class="dotd">戻り</span>のフェースが何度開いたか。</div>
     <table id="logTable">
-      <thead><tr><th>#</th><th>種類</th><th>ズレ角</th><th>速さ</th></tr></thead>
+      <thead><tr><th>#</th><th>種類</th><th>フェース</th><th>速さ</th></tr></thead>
       <tbody id="logBody"></tbody>
     </table>
     <div class="sum" id="summary"></div>
     <div class="btnrow">
-      <button class="btn kaburi" id="btnArmK2">① わざとかぶり</button>
-      <button class="btn normal" id="btnArmN2">② 普通に振る</button>
+      <button class="btn kaburi" id="btnArmK2">① フェースを開く</button>
+      <button class="btn normal" id="btnArmN2">② 普通に返す</button>
     </div>
     <button class="btn small" id="btnCopy" style="display:block;margin:12px auto 0">結果データをコピー</button>
-    <p class="note"><b>判定はまだ出しません。</b>目的は、かぶり（赤）と普通（緑）で「ズレ角」が<b>はっきり割れるか</b>を確かめること。割れれば検出は本物です。</p>
+    <p class="note"><b>判定はまだ出しません。</b>目的は、フェースを開いて返した時（赤）と普通に返した時（緑）で「開き角」が<b>はっきり割れるか</b>を確かめること。割れれば検出は本物です。</p>
   </div>
 
   <div class="err" id="globalErr"></div>
@@ -177,6 +177,16 @@ function tiltDeg(back, down){
   const ang=Math.atan2(dot(cross(hb,hd),up), dot(hb,hd))*R2D;
   return {tilt:ang, ok:true, nb, nd};
 }
+/* フェース開閉＝アドレス→戻り点で、グリップがシャフトまわりに何度ロールしたか（符号付き）。
+   ＋＝開いて戻った（スライス傾向） ／ −＝閉じて戻った（フック傾向）。前腕回旋＝大きく頑健な信号。 */
+function faceRoll(q0,qi){
+  if(!q0||!qi) return null;
+  const a0=norm(rotVec(q0,Yc));                       // アドレスのシャフト軸
+  const proj=(v,a)=>{ const d=dot(v,a); return norm({x:v.x-d*a.x,y:v.y-d*a.y,z:v.z-d*a.z}); };
+  const u0=proj(rotVec(q0,Xc),a0);                    // シャフトに直交するフェース基準（アドレス）
+  const u1=proj(rotVec(qi,Xc),a0);                    // 同（戻り点）
+  return Math.atan2(dot(cross(u0,u1),a0), dot(u0,u1))*R2D;
+}
 
 /* ── 状態 ── */
 let SENSOR={alpha:0,beta:0,gamma:0}, baseQ=null, FRAME=null;
@@ -188,7 +198,7 @@ const START_TH=45, END_TH=22, STILL_MS=600, MAXCAP_MS=9000;
 let LOG=[];                  // {n,type,loop,cross,peak}
 let lastResult=null;
 let flipX=false; try{ flipX=localStorage.getItem('golflev:lab:flip')==='1'; }catch(e){}
-const Yc={x:0,y:1,z:0};
+const Yc={x:0,y:1,z:0}, Xc={x:1,y:0,z:0};
 
 function show(id){ ['cardPerm','cardAim','cardSwing','cardResult'].forEach(c=>$(c).classList.add('hide')); $(id).classList.remove('hide'); }
 function fx(x){ return flipX? -x : x; }
@@ -241,7 +251,7 @@ function enterSwing(){ STATE='swing'; show('cardSwing'); stopCapture(false); arm
   $('btnStop').classList.add('hide'); $('swingState').textContent='どちらかを選んでください'; }
 function arm(type){ armType=type; capturing=true; buf=[]; lastS=null; maxW=0; stillStart=0; capStart=performance.now();
   $('btnStop').classList.remove('hide');
-  $('swingState').textContent=(type==='k'?'① かぶり：':'② 普通：')+'構えて、ゆっくり振り抜いてください（自動で止まります）'; }
+  $('swingState').textContent=(type==='k'?'① フェースを開く：':'② 普通に返す：')+'構えて、ゆっくり振り抜いてください（自動で止まります）'; }
 function stopCapture(run){ capturing=false; $('btnStop').classList.add('hide');
   if(run){ const sm=segment(buf); if(sm) finish(sm); else { $('swingState').textContent='スイングが見つかりません。もう一度選んで、はっきり振ってください'; } } }
 $('btnArmK').addEventListener('click',()=>arm('k'));
@@ -257,7 +267,7 @@ function swingTick(){
   const q=qFromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma);
   const s=norm(rotVec(q,Yc));
   let w=0; if(lastS){ const dt=(buf.length?(t-buf[buf.length-1].t):16)/1000||0.016; w=angBetween(s,lastS)/dt; } // °/秒
-  buf.push({t,s});
+  buf.push({t,s,q});
   lastS=s;
   if(w>maxW) maxW=w;
   // 本物の振り(START_TH超)を見た後、静止がSTILL_MS続いたら自動終了
@@ -290,7 +300,7 @@ function segment(rawbuf){
   for(let i=pk;i<ws.length;i++){ if(ws[i]<offTh){ run++; if(run>=need){ off=i-run+1; break; } } else run=0; }
   const i0=Math.max(0,on-2), i1=Math.min(rawbuf.length-1, off+2);
   if(i1-i0<6) return null;
-  const sm=rawbuf.slice(i0,i1+1).map((o,idx,arr)=>({t:o.t,s:o.s,om: idx? angBetween(o.s,arr[idx-1].s):0 }));
+  const sm=rawbuf.slice(i0,i1+1).map((o,idx,arr)=>({t:o.t,s:o.s,q:o.q,om: idx? angBetween(o.s,arr[idx-1].s):0 }));
   return sm;
 }
 
@@ -303,34 +313,33 @@ function finish(sm){
   const a0=sm[0].s; let topIdx=0,maxAng=-1;
   for(let i=0;i<=impIdx;i++){ const ang=angBetween(sm[i].s,a0); if(ang>maxAng){maxAng=ang;topIdx=i;} }
 
-  // 上げ／下ろしの生シャフトベクトル
-  const backV=[], downV=[], allV=[];
-  for(let i=0;i<=topIdx;i++){ backV.push(sm[i].s); }
-  for(let i=topIdx;i<=impIdx;i++){ downV.push(sm[i].s); }
-  for(let i=0;i<=impIdx;i++){ allV.push(sm[i].s); }
+  // 戻り点＝トップ以降でアドレスのシャフト向きに最も近い点（≒インパクト/最下点）
+  const a0=norm(rotVec(baseQ,Yc));
+  let bottomIdx=impIdx, minA=1e9;
+  for(let i=topIdx;i<sm.length;i++){ const ang=angBetween(sm[i].s,a0); if(ang<minA){ minA=ang; bottomIdx=i; } }
 
-  // ★ かぶり角＝上げ面と下ろし面の垂直まわりの角度差（度・大小/速さ/垂直に不変）
-  const T = tiltDeg(backV, downV);
-  const tilt = T.tilt, ok = T.ok;
+  // ★ フェース開閉＝アドレス→戻り点のシャフトまわりロール（度・大きく頑健）
+  let roll=null, ok=false;
+  if(baseQ && sm[bottomIdx] && sm[bottomIdx].q){ roll=faceRoll(baseQ, sm[bottomIdx].q); ok = roll!=null; }
 
-  // 描画フレーム：振り全体のPCA面から構築（アドレスに頼らない＝垂直でも安定）
+  // 描画フレーム：振り全体のPCA面から（正面の弧の描画用・垂直でも安定）
   const up={x:0,y:0,z:1};
+  const allV=[]; for(let i=0;i<=impIdx;i++){ allV.push(sm[i].s); }
   let d=planeNormal(allV); if(dot(d,up)<0) d={x:-d.x,y:-d.y,z:-d.z};
   let f=norm(cross(up,d));
-  // f符号を一貫化：トップが画面で常に同じ側に来るように
   const topProjF=dot(sm[topIdx].s,f); if(topProjF<0) f={x:-f.x,y:-f.y,z:-f.z};
   FRAME={up,f,d};
 
   // ログに追加
   const n=LOG.length+1;
-  LOG.push({n, type:armType, tilt:ok?+tilt.toFixed(1):null, peak:Math.round(peak)});
-  lastResult={sm, topIdx, impIdx, tilt, ok, peak, type:armType};
+  LOG.push({n, type:armType, roll:ok?+roll.toFixed(1):null, peak:Math.round(peak)});
+  lastResult={sm, topIdx, impIdx, bottomIdx, roll, ok, peak, type:armType};
 
-  // 表示
-  $('resTitle').textContent = (armType==='k'?'① かぶり':'② 普通')+' — 記録しました';
-  if(ok){ $('loopVal').innerHTML = (tilt>=0?'+':'')+tilt.toFixed(0)+'<span class="u">°</span>';
-    $('loopLbl').textContent = '上げ面と下ろし面のズレ（＋＝外／−＝内）'; }
-  else { $('loopVal').innerHTML = '—'; $('loopLbl').textContent = '計測条件が不十分（もう一度はっきり振ってください）'; }
+  // 表示（測れるのは“アドレス比”のフェースの開閉。球の行方は言わない）
+  $('resTitle').textContent = (armType==='k'?'① フェースを開く':'② 普通に返す')+' — 記録しました';
+  if(ok){ $('loopVal').innerHTML = (roll>=0?'+':'')+roll.toFixed(0)+'<span class="u">°</span>';
+    $('loopLbl').textContent = roll>=8?'開いて戻った（スライス傾向）': roll<=-8?'閉じて戻った（フック傾向）':'スクエアに返せています'; }
+  else { $('loopVal').innerHTML = '—'; $('loopLbl').textContent = '計測条件が不十分（もう一度）'; }
   renderLog(); renderSummary(); drawResult();
   STATE='result'; show('cardResult');
 }
@@ -338,23 +347,23 @@ function finish(sm){
 function renderLog(){
   const tb=$('logBody'); tb.innerHTML='';
   LOG.slice().reverse().forEach(r=>{ const tr=document.createElement('tr');
-    const tv = r.tilt==null? '—' : (r.tilt>=0?'+':'')+r.tilt.toFixed(1)+'°';
-    tr.innerHTML='<td>'+r.n+'</td><td class="'+r.type+'">'+(r.type==='k'?'かぶり':'普通')+'</td>'+
+    const tv = r.roll==null? '—' : (r.roll>=0?'+':'')+r.roll.toFixed(1)+'°';
+    tr.innerHTML='<td>'+r.n+'</td><td class="'+r.type+'">'+(r.type==='k'?'開く':'普通')+'</td>'+
       '<td>'+tv+'</td><td>'+r.peak+'</td>';
     tb.appendChild(tr); });
 }
 function renderSummary(){
-  const ks=LOG.filter(r=>r.type==='k'&&r.tilt!=null).map(r=>r.tilt), ns=LOG.filter(r=>r.type==='n'&&r.tilt!=null).map(r=>r.tilt);
+  const ks=LOG.filter(r=>r.type==='k'&&r.roll!=null).map(r=>r.roll), ns=LOG.filter(r=>r.type==='n'&&r.roll!=null).map(r=>r.roll);
   const avg=a=>a.length? a.reduce((x,y)=>x+y,0)/a.length : null;
   const ka=avg(ks), na=avg(ns);
   let html='';
-  if(ka!=null) html+='かぶり平均 <b class="k">'+(ka>=0?'+':'')+ka.toFixed(1)+'°</b>（'+ks.length+'回）　';
+  if(ka!=null) html+='開く平均 <b class="k">'+(ka>=0?'+':'')+ka.toFixed(1)+'°</b>（'+ks.length+'回）　';
   if(na!=null) html+='普通平均 <b class="n">'+(na>=0?'+':'')+na.toFixed(1)+'°</b>（'+ns.length+'回）';
   if(ka!=null&&na!=null){ const gap=Math.abs(ka-na);
     html+='<br>差＝<b>'+gap.toFixed(1)+'°</b>。';
-    html+= gap>=6 ? '<span class="ok">はっきり割れています。検出は本物。</span>' :
-           gap>=3 ? '少し割れています。回数を増やして確認を。' :
-                    '<span class="ng">まだ割れていません。かぶりをもっと誇張して試してください。</span>';
+    html+= gap>=10 ? '<span class="ok">はっきり割れています。検出は本物。</span>' :
+           gap>=5 ? '少し割れています。回数を増やして確認を。' :
+                    '<span class="ng">まだ割れていません。フェースをもっと大きく開いて試してください。</span>';
   } else { html+='<br>両方を数回ずつ記録すると、ここに割れ具合が出ます。'; }
   $('summary').innerHTML=html;
 }
@@ -394,30 +403,28 @@ function drawResult(){
   mk(pts[0],'#243229','Address'); mk(pts[topIdx],'#876F40','Top'); mk(pts[impIdx],'#C45B4A','Impact');
   drawWedge();
 }
-/* ── パネルB：真上から見た面のズレ（上げ＝基準の縦線／下ろし＝tilt度ぶん傾けた線） ── */
+/* ── パネルB：フェースの戻り（基準＝スクエアの縦線／戻り＝roll度ぶん傾けた線） ── */
 function drawWedge(){
   const cv=$('cvWedge'); if(!cv) return; const g=clubGeo(cv); const ctx=setupHiDPI(cv,g); ctx.clearRect(0,0,g.W,g.H);
-  const ok=lastResult.ok, tilt=lastResult.tilt;
+  const ok=lastResult.ok, roll=lastResult.roll;
   const ox=g.W/2, oy=g.H-14, L=g.H-34;
   if(!ok){ ctx.fillStyle='#8C8676'; ctx.font='400 13px "Noto Serif JP", serif'; ctx.textAlign='center';
     ctx.fillText('計測条件が不十分（もう一度）', ox, g.H/2); return; }
-  const warn=Math.abs(tilt)>=4;
-  const col = !warn ? '#4A6B4A' : (tilt>0? '#C45B4A' : '#D4A040');
-  // 基準（上げ面）＝縦線
+  const warn=Math.abs(roll)>=8;
+  const col = !warn ? '#4A6B4A' : (roll>0? '#C45B4A' : '#D4A040');
+  // 基準（スクエア）＝縦線
   ctx.lineCap='round';
   ctx.strokeStyle='rgba(135,111,64,.9)'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(ox,oy-L); ctx.stroke();
-  // 下ろし面＝tilt度傾けた線（＋＝外側へ）
-  const rad=tilt*D2R; const dx=Math.sin(rad)*L, dy=Math.cos(rad)*L;
-  // ズレの扇形を薄く塗る
+  // 戻りのフェース＝roll度傾けた線（＋＝開き）
+  const rad=roll*D2R; const dx=Math.sin(rad)*L, dy=Math.cos(rad)*L;
   ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(ox,oy-L); ctx.arc(ox,oy,L,-Math.PI/2,-Math.PI/2+rad, rad<0); ctx.closePath();
-  ctx.fillStyle = warn ? (tilt>0?'rgba(196,91,74,.14)':'rgba(212,160,64,.14)') : 'rgba(74,107,74,.12)'; ctx.fill();
+  ctx.fillStyle = warn ? (roll>0?'rgba(196,91,74,.14)':'rgba(212,160,64,.14)') : 'rgba(74,107,74,.12)'; ctx.fill();
   ctx.strokeStyle=col; ctx.lineWidth=3.5; ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(ox+dx,oy-dy); ctx.stroke();
   ring(ctx,ox,oy,4,'rgba(135,111,64,.8)',1.2);
-  // ラベル
   ctx.fillStyle=col; ctx.font='italic 600 20px "Cormorant Garamond", serif'; ctx.textAlign='center';
-  ctx.fillText((tilt>=0?'+':'')+tilt.toFixed(0)+'°', ox+ (tilt>=0?52:-52), oy-L*0.55);
+  ctx.fillText((roll>=0?'+':'')+roll.toFixed(0)+'°', ox+ (roll>=0?52:-52), oy-L*0.55);
   ctx.fillStyle='#8C8676'; ctx.font='400 10px "Inter", sans-serif';
-  ctx.fillText('上げ', ox-14, oy-L-2); ctx.fillText('下ろし', ox+dx+ (tilt>=0?18:-18), oy-dy-2);
+  ctx.fillText('スクエア', ox-22, oy-L-2); ctx.fillText('戻り', ox+dx+ (roll>=0?16:-16), oy-dy-2);
 }
 
 $('btnCopy').addEventListener('click', ()=>{ const txt=JSON.stringify(LOG);
