@@ -314,9 +314,9 @@ function finish(sm){
   for(let i=0;i<=impIdx;i++){ const ang=angBetween(sm[i].s,a0); if(ang>maxAng){maxAng=ang;topIdx=i;} }
 
   // 戻り点＝トップ以降でアドレスのシャフト向きに最も近い点（≒インパクト/最下点）
-  const a0=norm(rotVec(baseQ,Yc));
+  const aAddr=norm(rotVec(baseQ,Yc));
   let bottomIdx=impIdx, minA=1e9;
-  for(let i=topIdx;i<sm.length;i++){ const ang=angBetween(sm[i].s,a0); if(ang<minA){ minA=ang; bottomIdx=i; } }
+  for(let i=topIdx;i<sm.length;i++){ const ang=angBetween(sm[i].s,aAddr); if(ang<minA){ minA=ang; bottomIdx=i; } }
 
   // ★ フェース開閉＝アドレス→戻り点のシャフトまわりロール（度・大きく頑健）
   let roll=null, ok=false;
