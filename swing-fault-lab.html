@@ -43,6 +43,7 @@ p.lead b{ color:var(--brass-lo); font-weight:500 }
 .statetx{ text-align:center; font-family:var(--jp); font-size:13px; color:var(--ink-soft); margin-top:10px; letter-spacing:.04em; min-height:20px }
 canvas{ display:block; width:100%; height:300px; border-radius:14px; border:1px solid var(--hair-gold); margin-top:10px;
   background:radial-gradient(120% 90% at 50% 42%, #F6F1E6 0%, #F1EBDD 60%, #ECE5D5 100%) }
+#cv{ height:270px } #cvWedge{ height:130px }
 .cvcap{ font-family:var(--jp); font-size:10.5px; color:var(--sub); text-align:center; margin-top:5px; line-height:1.6 }
 .cvcap .dotb{ color:var(--brass-lo); font-weight:600 } .cvcap .dotd{ color:var(--ink); font-weight:600 }
 .res{ text-align:center; margin-top:14px }
@@ -102,14 +103,16 @@ td.k{ color:var(--kaburi); font-weight:600 } td.n{ color:var(--normal); font-wei
   <!-- 4. 結果＋ログ -->
   <div class="card hide" id="cardResult">
     <h2 id="resTitle">振り終わり</h2>
-    <canvas id="cv" width="360" height="300"></canvas>
-    <div class="cvcap">真上から見た軌道。<span class="dotb">● 上げ</span>と<span class="dotd">● 下ろし</span>が描く輪っかの<b>向き</b>を見ます。</div>
+    <canvas id="cv" width="360" height="270"></canvas>
+    <div class="cvcap">正面から見たクラブの弧。<span class="dotb">● 上げ</span>／<span class="dotd">● 下ろし</span>。</div>
     <div class="res">
       <div class="loop"><span id="loopVal">—</span></div>
-      <div class="ll">LOOP<em id="loopLbl">輪っかの向き・大きさ</em></div>
+      <div class="ll">PLANE<em id="loopLbl">上げ面と下ろし面のズレ</em></div>
     </div>
+    <canvas id="cvWedge" width="360" height="130"></canvas>
+    <div class="cvcap">真上から見た面の向き。<span class="dotb">上げ</span>に対し<span class="dotd">下ろし</span>が何度ズレたか。</div>
     <table id="logTable">
-      <thead><tr><th>#</th><th>種類</th><th>ループ</th><th>外通り</th><th>速さ</th></tr></thead>
+      <thead><tr><th>#</th><th>種類</th><th>ズレ角</th><th>速さ</th></tr></thead>
       <tbody id="logBody"></tbody>
     </table>
     <div class="sum" id="summary"></div>
@@ -117,9 +120,8 @@ td.k{ color:var(--kaburi); font-weight:600 } td.n{ color:var(--normal); font-wei
       <button class="btn kaburi" id="btnArmK2">① わざとかぶり</button>
       <button class="btn normal" id="btnArmN2">② 普通に振る</button>
     </div>
-    <button class="btn small" id="btnFlip" style="display:block;margin:12px auto 0">左右を反転</button>
-    <button class="btn small" id="btnCopy" style="display:block;margin:8px auto 0">結果データをコピー</button>
-    <p class="note"><b>判定はまだ出しません。</b>この道具の目的は、かぶり（赤）と普通（緑）で「ループ」の値が<b>はっきり割れるか</b>を確かめること。割れれば、検出ロジックは本物です。</p>
+    <button class="btn small" id="btnCopy" style="display:block;margin:12px auto 0">結果データをコピー</button>
+    <p class="note"><b>判定はまだ出しません。</b>目的は、かぶり（赤）と普通（緑）で「ズレ角」が<b>はっきり割れるか</b>を確かめること。割れれば検出は本物です。</p>
   </div>
 
   <div class="err" id="globalErr"></div>
@@ -142,6 +144,39 @@ const dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
 const cross=(a,b)=>({x:a.y*b.z-a.z*b.y,y:a.z*b.x-a.x*b.z,z:a.x*b.y-a.y*b.x});
 function norm(v){const l=Math.hypot(v.x,v.y,v.z)||1;return{x:v.x/l,y:v.y/l,z:v.z/l};}
 function angBetween(a,b){return Math.acos(Math.max(-1,Math.min(1,dot(norm(a),norm(b)))))*R2D;}
+
+/* ── PCA：3x3対称行列の最小固有ベクトル（Jacobi）＝点群が最も薄い方向＝面法線 ── */
+function smallestEigVec(M){
+  let a=[[M.xx,M.xy,M.xz],[M.xy,M.yy,M.yz],[M.xz,M.yz,M.zz]],V=[[1,0,0],[0,1,0],[0,0,1]];
+  for(let it=0;it<60;it++){ let p=0,q=1,max=Math.abs(a[0][1]);
+    const cand=[[0,2],[1,2]]; for(const c of cand){ if(Math.abs(a[c[0]][c[1]])>max){ max=Math.abs(a[c[0]][c[1]]); p=c[0]; q=c[1]; } }
+    if(max<1e-12) break;
+    const app=a[p][p],aqq=a[q][q],apq=a[p][q]; const phi=0.5*Math.atan2(2*apq,aqq-app),c=Math.cos(phi),s=Math.sin(phi);
+    for(let k=0;k<3;k++){const akp=a[k][p],akq=a[k][q];a[k][p]=c*akp-s*akq;a[k][q]=s*akp+c*akq;}
+    for(let k=0;k<3;k++){const apk=a[p][k],aqk=a[q][k];a[p][k]=c*apk-s*aqk;a[q][k]=s*apk+c*aqk;}
+    for(let k=0;k<3;k++){const vkp=V[k][p],vkq=V[k][q];V[k][p]=c*vkp-s*vkq;V[k][q]=s*vkp+c*vkq;}
+  }
+  const ev=[a[0][0],a[1][1],a[2][2]]; let mi=0; if(ev[1]<ev[mi])mi=1; if(ev[2]<ev[mi])mi=2;
+  return norm({x:V[0][mi],y:V[1][mi],z:V[2][mi]});
+}
+function planeNormal(pts){
+  let mx=0,my=0,mz=0; pts.forEach(s=>{mx+=s.x;my+=s.y;mz+=s.z;}); const n=pts.length||1; mx/=n;my/=n;mz/=n;
+  let xx=0,xy=0,xz=0,yy=0,yz=0,zz=0; pts.forEach(s=>{const dx=s.x-mx,dy=s.y-my,dz=s.z-mz; xx+=dx*dx;xy+=dx*dy;xz+=dx*dz;yy+=dy*dy;yz+=dy*dz;zz+=dz*dz;});
+  return smallestEigVec({xx,xy,xz,yy,yz,zz});
+}
+/* かぶり角：上げ面法線と下ろし面法線の「垂直まわりの符号付き角度」(度)。
+   ＋＝下ろし面が外（かぶり寄り） ／ −＝内寄り。振りの大小・速さ・垂直アドレスに不変。 */
+function tiltDeg(back, down){
+  const up={x:0,y:0,z:1};
+  if(back.length<4 || down.length<4) return {tilt:0, ok:false};
+  let nb=planeNormal(back), nd=planeNormal(down);
+  if(dot(nb,up)<0) nb={x:-nb.x,y:-nb.y,z:-nb.z};   // 上げ面法線を上半球へ（基準を一貫化）
+  if(dot(nd,nb)<0) nd={x:-nd.x,y:-nd.y,z:-nd.z};   // 下ろし面法線を上げ側へ揃える
+  const hb=norm({x:nb.x,y:nb.y,z:0}), hd=norm({x:nd.x,y:nd.y,z:0});  // 水平成分
+  if(Math.hypot(nb.x,nb.y)<0.08 || Math.hypot(nd.x,nd.y)<0.08) return {tilt:0, ok:false}; // 面がほぼ水平＝方位不定
+  const ang=Math.atan2(dot(cross(hb,hd),up), dot(hb,hd))*R2D;
+  return {tilt:ang, ok:true, nb, nd};
+}
 
 /* ── 状態 ── */
 let SENSOR={alpha:0,beta:0,gamma:0}, baseQ=null, FRAME=null;
@@ -268,40 +303,34 @@ function finish(sm){
   const a0=sm[0].s; let topIdx=0,maxAng=-1;
   for(let i=0;i<=impIdx;i++){ const ang=angBetween(sm[i].s,a0); if(ang>maxAng){maxAng=ang;topIdx=i;} }
 
-  // ① ループ＝真上から見た(奥行き×高さ)平面での符号付き面積（向き＝かぶり/内、大きさ＝深さ）
-  const P=sm.map(o=>projDL(o.s));
-  let area=0; const N=impIdx+1;
-  for(let i=0;i<N;i++){ const a=P[i], b=P[(i+1)%N]; area+=a.x*b.y-b.x*a.y; }
-  area*=0.5;
-  // 高さ→奥行きの代表スケールで正規化し、解釈しやすい角度(度)に写す
-  let hMin=1e9,hMax=-1e9; for(let i=0;i<N;i++){ if(P[i].y<hMin)hMin=P[i].y; if(P[i].y>hMax)hMax=P[i].y; }
-  const span=Math.max(0.15,hMax-hMin);
-  const loop = area/(span*span) * 90;   // おおよその度スケール（割れ幅を見る相対指標）
+  // 上げ／下ろしの生シャフトベクトル
+  const backV=[], downV=[], allV=[];
+  for(let i=0;i<=topIdx;i++){ backV.push(sm[i].s); }
+  for(let i=topIdx;i<=impIdx;i++){ downV.push(sm[i].s); }
+  for(let i=0;i<=impIdx;i++){ allV.push(sm[i].s); }
 
-  // ② 外通り量＝同じ高さでの「下ろしの奥行き − 上げの奥行き」平均（+＝下ろしが外/ボール側を通った）
-  const back=[], down=[];
-  for(let i=0;i<=topIdx;i++) back.push(P[i]);
-  for(let i=topIdx;i<=impIdx;i++) down.push(P[i]);
-  const depthAt=(arr,h)=>{ // 高さhでの奥行きを線形補間
-    let best=null;
-    for(let i=1;i<arr.length;i++){ const y0=arr[i-1].y,y1=arr[i].y; if((h>=Math.min(y0,y1))&&(h<=Math.max(y0,y1))){ const t=(y1===y0)?0:(h-y0)/(y1-y0); const x=arr[i-1].x+(arr[i].x-arr[i-1].x)*t; if(best===null) best=x; } }
-    return best;
-  };
-  const lo=Math.max(Math.min(...back.map(p=>p.y)),Math.min(...down.map(p=>p.y)));
-  const hi=Math.min(Math.max(...back.map(p=>p.y)),Math.max(...down.map(p=>p.y)));
-  let cs=0,cn=0;
-  if(hi>lo){ for(let k=1;k<8;k++){ const h=lo+(hi-lo)*k/8; const db=depthAt(back,h), dd=depthAt(down,h); if(db!=null&&dd!=null){ cs+=(dd-db); cn++; } } }
-  const crossOver = cn? (cs/cn)/span*100 : 0;   // 相対指標
+  // ★ かぶり角＝上げ面と下ろし面の垂直まわりの角度差（度・大小/速さ/垂直に不変）
+  const T = tiltDeg(backV, downV);
+  const tilt = T.tilt, ok = T.ok;
+
+  // 描画フレーム：振り全体のPCA面から構築（アドレスに頼らない＝垂直でも安定）
+  const up={x:0,y:0,z:1};
+  let d=planeNormal(allV); if(dot(d,up)<0) d={x:-d.x,y:-d.y,z:-d.z};
+  let f=norm(cross(up,d));
+  // f符号を一貫化：トップが画面で常に同じ側に来るように
+  const topProjF=dot(sm[topIdx].s,f); if(topProjF<0) f={x:-f.x,y:-f.y,z:-f.z};
+  FRAME={up,f,d};
 
   // ログに追加
   const n=LOG.length+1;
-  LOG.push({n, type:armType, loop:+loop.toFixed(0), cross:+crossOver.toFixed(0), peak:Math.round(peak)});
-  lastResult={sm, topIdx, impIdx, loop, crossOver, peak, type:armType};
+  LOG.push({n, type:armType, tilt:ok?+tilt.toFixed(1):null, peak:Math.round(peak)});
+  lastResult={sm, topIdx, impIdx, tilt, ok, peak, type:armType};
 
   // 表示
   $('resTitle').textContent = (armType==='k'?'① かぶり':'② 普通')+' — 記録しました';
-  $('loopVal').innerHTML = (loop>=0?'+':'')+loop.toFixed(0)+'<span class="u">°相当</span>';
-  $('loopLbl').textContent = '輪っかの向き・大きさ（符号で向き）';
+  if(ok){ $('loopVal').innerHTML = (tilt>=0?'+':'')+tilt.toFixed(0)+'<span class="u">°</span>';
+    $('loopLbl').textContent = '上げ面と下ろし面のズレ（＋＝外／−＝内）'; }
+  else { $('loopVal').innerHTML = '—'; $('loopLbl').textContent = '計測条件が不十分（もう一度はっきり振ってください）'; }
   renderLog(); renderSummary(); drawResult();
   STATE='result'; show('cardResult');
 }
@@ -309,22 +338,23 @@ function finish(sm){
 function renderLog(){
   const tb=$('logBody'); tb.innerHTML='';
   LOG.slice().reverse().forEach(r=>{ const tr=document.createElement('tr');
+    const tv = r.tilt==null? '—' : (r.tilt>=0?'+':'')+r.tilt.toFixed(1)+'°';
     tr.innerHTML='<td>'+r.n+'</td><td class="'+r.type+'">'+(r.type==='k'?'かぶり':'普通')+'</td>'+
-      '<td>'+(r.loop>=0?'+':'')+r.loop+'</td><td>'+(r.cross>=0?'+':'')+r.cross+'</td><td>'+r.peak+'</td>';
+      '<td>'+tv+'</td><td>'+r.peak+'</td>';
     tb.appendChild(tr); });
 }
 function renderSummary(){
-  const ks=LOG.filter(r=>r.type==='k').map(r=>r.loop), ns=LOG.filter(r=>r.type==='n').map(r=>r.loop);
+  const ks=LOG.filter(r=>r.type==='k'&&r.tilt!=null).map(r=>r.tilt), ns=LOG.filter(r=>r.type==='n'&&r.tilt!=null).map(r=>r.tilt);
   const avg=a=>a.length? a.reduce((x,y)=>x+y,0)/a.length : null;
   const ka=avg(ks), na=avg(ns);
   let html='';
-  if(ka!=null) html+='かぶり平均 <b class="k">'+(ka>=0?'+':'')+ka.toFixed(0)+'</b>（'+ks.length+'回）　';
-  if(na!=null) html+='普通平均 <b class="n">'+(na>=0?'+':'')+na.toFixed(0)+'</b>（'+ns.length+'回）';
+  if(ka!=null) html+='かぶり平均 <b class="k">'+(ka>=0?'+':'')+ka.toFixed(1)+'°</b>（'+ks.length+'回）　';
+  if(na!=null) html+='普通平均 <b class="n">'+(na>=0?'+':'')+na.toFixed(1)+'°</b>（'+ns.length+'回）';
   if(ka!=null&&na!=null){ const gap=Math.abs(ka-na);
-    html+='<br>差＝<b>'+gap.toFixed(0)+'</b>。';
-    html+= gap>=25 ? '<span class="ok">はっきり割れています。検出は有望。</span>' :
-           gap>=12 ? '少し割れています。回数を増やして確認を。' :
-                     '<span class="ng">まだ割れていません。振りを誇張するか、軸の取り直しが必要。</span>';
+    html+='<br>差＝<b>'+gap.toFixed(1)+'°</b>。';
+    html+= gap>=6 ? '<span class="ok">はっきり割れています。検出は本物。</span>' :
+           gap>=3 ? '少し割れています。回数を増やして確認を。' :
+                    '<span class="ng">まだ割れていません。かぶりをもっと誇張して試してください。</span>';
   } else { html+='<br>両方を数回ずつ記録すると、ここに割れ具合が出ます。'; }
   $('summary').innerHTML=html;
 }
@@ -334,17 +364,24 @@ function clubGeo(cv){ const W=cv.clientWidth||340,H=cv.clientHeight||300; return
 function setupHiDPI(cv,g){ const dpr=Math.max(1,Math.min(3,window.devicePixelRatio||1));
   cv.width=Math.round(g.W*dpr); cv.height=Math.round(g.H*dpr);
   const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); return ctx; }
+function ring(ctx,x,y,r,stroke,sw){ ctx.fillStyle='#F1EBDD'; ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill(); ctx.strokeStyle=stroke; ctx.lineWidth=sw; ctx.stroke(); }
+function smooth2D(p){ return p.map((_,i)=>{ let sx=0,sy=0,c=0;
+  for(let k=-2;k<=2;k++){ const j=i+k; if(j>=0&&j<p.length){ sx+=p[j].x; sy+=p[j].y; c++; } } return {x:sx/c,y:sy/c}; }); }
 function drawResult(){
-  if(!lastResult) return; const cv=$('cv'); const g=clubGeo(cv); const ctx=setupHiDPI(cv,g); ctx.clearRect(0,0,g.W,g.H);
+  if(!lastResult) return;
+  // ── パネルA：正面から見た弧（安定軸＝左右×高さ・固定スケール・平滑化） ──
+  const cv=$('cv'); const g=clubGeo(cv); const ctx=setupHiDPI(cv,g); ctx.clearRect(0,0,g.W,g.H);
   const sm=lastResult.sm, topIdx=lastResult.topIdx, impIdx=lastResult.impIdx;
-  const pts=[]; for(let i=0;i<=impIdx;i++) pts.push(projDL(sm[i].s));
-  // 自動スケール（中央寄せ）
-  let xMin=1e9,xMax=-1e9,yMin=1e9,yMax=-1e9;
-  pts.forEach(p=>{ if(p.x<xMin)xMin=p.x; if(p.x>xMax)xMax=p.x; if(p.y<yMin)yMin=p.y; if(p.y>yMax)yMax=p.y; });
-  const pad=44, sx=(g.W-pad*2)/Math.max(0.25,xMax-xMin), sy=(g.H-pad*2)/Math.max(0.25,yMax-yMin);
-  const sc=Math.min(sx,sy)*0.9; const cx=(xMin+xMax)/2, cy=(yMin+yMax)/2;
-  const TP=p=>({ x:g.W/2+fx(p.x-cx)*sc, y:g.H/2-(p.y-cy)*sc });
+  const raw=[]; for(let i=0;i<=impIdx;i++) raw.push(projFO(sm[i].s));
+  const pts=smooth2D(raw);
+  const pad=40, S=(Math.min(g.W,g.H)-pad*2)/2.2;   // 固定スケール（[-1.1,1.1]→キャンバス。毎回同じ）
+  const px=g.W/2, py=g.H*0.52;                      // 支点（固定）
+  const TP=p=>({ x:px+p.x*S, y:py-p.y*S });
+  // 基準の薄い面ライン（アドレスの弧の角度・毎回静止）
   ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.strokeStyle='rgba(169,143,88,.28)'; ctx.setLineDash([3,4]); ctx.lineWidth=1;
+  const a0=TP(pts[0]); ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(a0.x,a0.y); ctx.stroke(); ctx.setLineDash([]);
+  ring(ctx,px,py,4.5,'rgba(135,111,64,.7)',1.2);
   const seg=(i0,i1,color,w)=>{ for(let i=i0+1;i<=i1;i++){ const A=TP(pts[i-1]),B=TP(pts[i]);
       ctx.strokeStyle=color; ctx.lineWidth=w; ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke(); } };
   ctx.shadowColor='rgba(203,176,121,.4)'; ctx.shadowBlur=5;
@@ -355,9 +392,34 @@ function drawResult(){
     ctx.strokeStyle=fill; ctx.lineWidth=2; ctx.stroke();
     ctx.fillStyle='#3A453C'; ctx.font='italic 600 13px "Cormorant Garamond", serif'; ctx.textAlign='center'; ctx.fillText(label,q.x,q.y-10); };
   mk(pts[0],'#243229','Address'); mk(pts[topIdx],'#876F40','Top'); mk(pts[impIdx],'#C45B4A','Impact');
+  drawWedge();
+}
+/* ── パネルB：真上から見た面のズレ（上げ＝基準の縦線／下ろし＝tilt度ぶん傾けた線） ── */
+function drawWedge(){
+  const cv=$('cvWedge'); if(!cv) return; const g=clubGeo(cv); const ctx=setupHiDPI(cv,g); ctx.clearRect(0,0,g.W,g.H);
+  const ok=lastResult.ok, tilt=lastResult.tilt;
+  const ox=g.W/2, oy=g.H-14, L=g.H-34;
+  if(!ok){ ctx.fillStyle='#8C8676'; ctx.font='400 13px "Noto Serif JP", serif'; ctx.textAlign='center';
+    ctx.fillText('計測条件が不十分（もう一度）', ox, g.H/2); return; }
+  const warn=Math.abs(tilt)>=4;
+  const col = !warn ? '#4A6B4A' : (tilt>0? '#C45B4A' : '#D4A040');
+  // 基準（上げ面）＝縦線
+  ctx.lineCap='round';
+  ctx.strokeStyle='rgba(135,111,64,.9)'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(ox,oy-L); ctx.stroke();
+  // 下ろし面＝tilt度傾けた線（＋＝外側へ）
+  const rad=tilt*D2R; const dx=Math.sin(rad)*L, dy=Math.cos(rad)*L;
+  // ズレの扇形を薄く塗る
+  ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(ox,oy-L); ctx.arc(ox,oy,L,-Math.PI/2,-Math.PI/2+rad, rad<0); ctx.closePath();
+  ctx.fillStyle = warn ? (tilt>0?'rgba(196,91,74,.14)':'rgba(212,160,64,.14)') : 'rgba(74,107,74,.12)'; ctx.fill();
+  ctx.strokeStyle=col; ctx.lineWidth=3.5; ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(ox+dx,oy-dy); ctx.stroke();
+  ring(ctx,ox,oy,4,'rgba(135,111,64,.8)',1.2);
+  // ラベル
+  ctx.fillStyle=col; ctx.font='italic 600 20px "Cormorant Garamond", serif'; ctx.textAlign='center';
+  ctx.fillText((tilt>=0?'+':'')+tilt.toFixed(0)+'°', ox+ (tilt>=0?52:-52), oy-L*0.55);
+  ctx.fillStyle='#8C8676'; ctx.font='400 10px "Inter", sans-serif';
+  ctx.fillText('上げ', ox-14, oy-L-2); ctx.fillText('下ろし', ox+dx+ (tilt>=0?18:-18), oy-dy-2);
 }
 
-$('btnFlip').addEventListener('click', ()=>{ flipX=!flipX; try{ localStorage.setItem('golflev:lab:flip', flipX?'1':'0'); }catch(e){} drawResult(); });
 $('btnCopy').addEventListener('click', ()=>{ const txt=JSON.stringify(LOG);
   try{ navigator.clipboard.writeText(txt); $('btnCopy').textContent='コピーしました'; setTimeout(()=>$('btnCopy').textContent='結果データをコピー',1500); }
   catch(e){ prompt('コピーしてください', txt); } });
