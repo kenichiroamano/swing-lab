@@ -76,18 +76,20 @@ canvas{ display:block; width:100%; height:230px; margin-top:6px }
   <!-- 3. 基準づくり -->
   <div class="card hide" id="cardBase">
     <h2>基準をつくる</h2>
-    <p class="lead"><b>いつも通りに1球</b>、ゆっくり振り抜いてください。<br>あなたの“いつもの返し”を基準にします。ここからの開き／閉じを見ます。</p>
-    <div class="statetx" id="baseState">構えて、ゆっくり振ってください</div>
+    <p class="lead"><b>いつも通りに1球</b>振って、あなたの“いつもの返し”を基準にします。<br>「基準を計測する」を押してから、ゆっくり振り抜いてください。</p>
+    <button class="btn solid" id="btnBaseGo">基準を計測する（1球）</button>
+    <div class="statetx" id="baseState"></div>
   </div>
 
   <!-- 4. 練習ループ -->
   <div class="card hide" id="cardPractice">
-    <h2 id="pTitle">振ってください</h2>
+    <h2 id="pTitle">フェースの返り</h2>
     <canvas id="cv" width="360" height="230"></canvas>
     <div class="verdict" id="verdict">—</div>
     <div class="vtip" id="vtip"></div>
     <div class="vsub" id="vsub"></div>
-    <div class="statetx" id="pState">次の球、どうぞ</div>
+    <button class="btn solid" id="btnGo">計測する</button>
+    <div class="statetx" id="pState"></div>
     <button class="btn small" id="btnRebase" style="display:block;margin:10px auto 0">基準を取り直す</button>
   </div>
 
@@ -162,13 +164,17 @@ function avgQ(list){ if(!list.length) return {w:1,x:0,y:0,z:0}; const r=list[0];
   list.forEach(q=>{const s=(q.w*r.w+q.x*r.x+q.y*r.y+q.z*r.z)<0?-1:1; w+=s*q.w;x+=s*q.x;y+=s*q.y;z+=s*q.z;});
   const l=Math.hypot(w,x,y,z)||1; return {w:w/l,x:x/l,y:y/l,z:z/l}; }
 
-/* 3. 基準づくり（いつもの返し1球） */
-function enterBaseline(){ mode='base'; show('cardBase'); startCapture(); $('baseState').textContent='構えて、ゆっくり振ってください'; }
+/* 3. 基準づくり（いつもの返し1球・ボタンで開始） */
+function enterBaseline(){ mode='base'; capturing=false; show('cardBase'); $('baseState').textContent=''; $('btnBaseGo').textContent='基準を計測する（1球）'; }
+$('btnBaseGo').addEventListener('click', ()=>{ startCapture(); $('baseState').textContent='計測中… いつも通り、ゆっくり振ってください'; });
 
-/* 4. 練習ループ */
-function enterPractice(){ mode='practice'; show('cardPractice'); lastAbsDev=null; streak=0; startCapture();
-  $('verdict').textContent='—'; $('verdict').className='verdict'; $('vtip').textContent=''; $('vsub').textContent='';
-  $('pTitle').textContent='振ってください'; $('pState').textContent='ゆっくり振り抜いてください'; }
+/* 4. 練習ループ（毎回ボタンで1球ずつ・自動では始めない） */
+function enterPractice(){ mode='practice'; capturing=false; show('cardPractice'); lastAbsDev=null; streak=0;
+  $('verdict').textContent='基準ができました'; $('verdict').className='verdict ok'; $('vtip').textContent='「計測する」を押して、1球振ってください。';
+  $('vsub').textContent=''; $('pState').textContent=''; $('btnGo').textContent='計測する';
+  drawDial(0,'ok',false); }   // 基準（スクエア）のダイヤルを先に表示
+$('btnGo').addEventListener('click', ()=>{ startCapture(); $('btnGo').textContent='計測中…';
+  $('pState').textContent='ゆっくり振り抜いてください'; });
 $('btnRebase').addEventListener('click', ()=>{ baseline=0; enterBaseline(); });
 
 function startCapture(){ STATE='cap'; capturing=true; buf=[]; lastS=null; maxW=0; stillStart=0; capStart=performance.now(); }
@@ -214,8 +220,8 @@ function computeRoll(){
 function process(){
   const roll=computeRoll();
   if(roll==null){
-    if(mode==='base'){ $('baseState').textContent='うまく取れませんでした。もう一度ゆっくり振ってください'; startCapture(); }
-    else { $('pState').textContent='うまく取れませんでした。もう一度どうぞ'; startCapture(); }
+    if(mode==='base'){ $('baseState').textContent='うまく取れませんでした。「基準を計測する」をもう一度押してください'; $('btnBaseGo').textContent='基準を計測する（1球）'; }
+    else { $('pState').textContent='うまく取れませんでした。'; $('btnGo').textContent='もう一度計測する'; }
     return;
   }
   if(mode==='base'){ baseline=roll; enterPractice(); return; }
@@ -237,38 +243,41 @@ function process(){
   else sub='基準（あなたのいつもの返し）からの開き／閉じを見ています';
   $('vsub').innerHTML=sub;
   lastAbsDev=absd; lastDev=d;
-  drawDial(d, vk);
-  $('pState').textContent='次の球、どうぞ';
-  startCapture();   // 次の球を自動で待つ
+  drawDial(d, vk, true);
+  $('pTitle').textContent='フェースの返り';
+  $('pState').textContent='';
+  $('btnGo').textContent='次の球を計測する';   // 自動では始めない。押したら次を計測
 }
 
 /* フェースダイヤル：基準＝縦線（スクエア）／戻り＝d度ぶん傾けた針 */
 function setupHiDPI(cv,W,H){ const dpr=Math.max(1,Math.min(3,window.devicePixelRatio||1));
   cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); return ctx; }
-function drawDial(d, vk){
+function drawDial(d, vk, hasResult){
   const cv=$('cv'), W=cv.clientWidth||340, H=cv.clientHeight||230; const ctx=setupHiDPI(cv,W,H); ctx.clearRect(0,0,W,H);
   const ox=W/2, oy=H-30, L=H-66;
   const col = vk==='ok'? '#4A6B4A' : vk==='slice'? '#C45B4A' : '#D4A040';
-  // 中央の“ちょうどいい”帯（±MARGINを薄く）
   ctx.lineCap='round';
+  // 中央の“ちょうどいい”帯（±MARGINを薄く）
   const mr=MARGIN*D2R;
   ctx.beginPath(); ctx.moveTo(ox,oy); ctx.arc(ox,oy,L,-Math.PI/2-mr,-Math.PI/2+mr); ctx.closePath();
   ctx.fillStyle='rgba(74,107,74,.12)'; ctx.fill();
   // 基準（スクエア）＝縦線
   ctx.strokeStyle='rgba(135,111,64,.85)'; ctx.lineWidth=2; ctx.setLineDash([4,4]);
   ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(ox,oy-L); ctx.stroke(); ctx.setLineDash([]);
-  // 針（戻りのフェース）＝d度（表示は見やすく1.4倍、ただし最大±70°に制限）
+  ring(ctx,ox,oy,4.5,'rgba(135,111,64,.8)',1.2);
+  // ラベル
+  ctx.fillStyle='#8C8676'; ctx.font='400 10px "Inter", sans-serif'; ctx.textAlign='center';
+  ctx.fillText('スクエア（基準）', ox, oy-L-8);
+  ctx.fillText('閉じ（フック）', ox-L*0.62, oy-6); ctx.fillText('開き（スライス）', ox+L*0.62, oy-6);
+  if(!hasResult) return;   // 結果がまだ無い時は針を描かない
+  // 針（戻りのフェース）＝d度（見やすく1.4倍・最大±70°に制限）
   const shown=Math.max(-70,Math.min(70,d*1.4)); const rad=shown*D2R;
   const hx=ox+Math.sin(rad)*L, hy=oy-Math.cos(rad)*L;
   ctx.strokeStyle=col; ctx.lineWidth=5; ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(hx,hy); ctx.stroke();
-  // 中心＋先端
   ctx.fillStyle='#F1EBDD'; ctx.beginPath(); ctx.arc(ox,oy,5,0,7); ctx.fill(); ctx.strokeStyle=col; ctx.lineWidth=2; ctx.stroke();
   ctx.fillStyle='#F1EBDD'; ctx.beginPath(); ctx.arc(hx,hy,5,0,7); ctx.fill(); ctx.strokeStyle=col; ctx.lineWidth=2; ctx.stroke();
-  // ラベル
-  ctx.fillStyle='#8C8676'; ctx.font='400 10px "Inter", sans-serif'; ctx.textAlign='center';
-  ctx.fillText('スクエア', ox, oy-L-8);
-  ctx.fillText('閉じ（フック）', ox-L*0.62, oy-6); ctx.fillText('開き（スライス）', ox+L*0.62, oy-6);
 }
+function ring(ctx,x,y,r,stroke,sw){ ctx.fillStyle='#F1EBDD'; ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill(); ctx.strokeStyle=stroke; ctx.lineWidth=sw; ctx.stroke(); }
 
 window.__coach={faceRoll, computeRoll:()=>computeRoll(), getBaseline:()=>baseline};
 </script>
