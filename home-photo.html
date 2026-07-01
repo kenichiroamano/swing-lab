@@ -17,14 +17,14 @@
 html,body{height:100%}
 body{background:var(--bg);font-family:var(--ui);color:var(--ink);overflow:hidden}
 .stage{position:relative;width:100%;max-width:480px;margin:0 auto;height:100vh;height:100dvh;overflow:hidden;background:#0d130f}
-.hero{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 60%;
-  animation:kb 26s ease-in-out infinite alternate;transform-origin:52% 62%}
-@keyframes kb{from{transform:scale(1.02)}to{transform:scale(1.11)}}
-/* 上＝陽光ウォッシュ（見出しの可読性）／下＝クリームへ溶ける */
-.wash-top{position:absolute;left:0;right:0;top:0;height:52%;pointer-events:none;
-  background:linear-gradient(to bottom, rgba(247,241,227,.72), rgba(247,241,227,.30) 45%, rgba(247,241,227,0))}
-.wash-bot{position:absolute;left:0;right:0;bottom:0;height:46%;pointer-events:none;
-  background:linear-gradient(to top, var(--bg) 4%, rgba(239,233,220,.85) 22%, rgba(239,233,220,0))}
+.hero{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 66%;
+  animation:kb 28s ease-in-out infinite alternate;transform-origin:52% 70%}
+@keyframes kb{from{transform:scale(1.06)}to{transform:scale(1.15)}}
+/* 上＝陽光ウォッシュ（見出しの可読性）／下＝クリームへ静かに（ボールはくすませない） */
+.wash-top{position:absolute;left:0;right:0;top:0;height:50%;pointer-events:none;
+  background:linear-gradient(to bottom, rgba(247,241,227,.70), rgba(247,241,227,.28) 46%, rgba(247,241,227,0))}
+.wash-bot{position:absolute;left:0;right:0;bottom:0;height:26%;pointer-events:none;
+  background:linear-gradient(to top, var(--bg) 3%, rgba(239,233,220,.62) 40%, rgba(239,233,220,0))}
 .content{position:absolute;inset:0;display:flex;flex-direction:column;
   padding:calc(24px + env(safe-area-inset-top)) 26px calc(30px + env(safe-area-inset-bottom))}
 .topbar{font-family:var(--ui);font-size:10px;letter-spacing:.42em;color:var(--brass);text-align:center;font-weight:500}
@@ -34,14 +34,13 @@ body{background:var(--bg);font-family:var(--ui);color:var(--ink);overflow:hidden
 .headline em{font-style:italic;color:var(--brass)}
 .sub{font-family:var(--jp);font-size:13px;color:var(--ink-soft);margin-top:14px;letter-spacing:.06em}
 .spacer{flex:1}
-.lastcard{background:rgba(247,241,227,.62);backdrop-filter:blur(14px) saturate(1.1);-webkit-backdrop-filter:blur(14px) saturate(1.1);
-  border:1px solid rgba(255,255,255,.5);border-radius:16px;padding:14px 18px;
-  box-shadow:0 18px 40px -22px rgba(31,42,33,.5)}
-.lc-label{font-family:var(--ui);font-size:10px;letter-spacing:.22em;color:var(--sub);text-transform:uppercase}
-.lc-row{display:flex;align-items:baseline;justify-content:space-between;margin-top:6px}
-.lc-verdict{font-family:var(--serif);font-style:italic;font-weight:600;font-size:22px;color:var(--ink)}
-.lc-tag{font-family:var(--serif);font-style:italic;font-size:14px;color:var(--ok)}
-.lc-tag b{color:var(--ok);font-weight:600}
+.last{display:flex;align-items:center;gap:11px;justify-content:center;width:fit-content;margin:0 auto;
+  background:rgba(247,241,227,.50);backdrop-filter:blur(12px) saturate(1.1);-webkit-backdrop-filter:blur(12px) saturate(1.1);
+  border:1px solid rgba(255,255,255,.45);border-radius:999px;padding:8px 18px;white-space:nowrap;
+  box-shadow:0 12px 30px -20px rgba(31,42,33,.45)}
+.last .lb{font-family:var(--ui);font-size:10px;letter-spacing:.16em;color:var(--sub)}
+.last .vd{font-family:var(--serif);font-style:italic;font-weight:600;font-size:15px;color:var(--ink)}
+.last .tg{font-family:var(--serif);font-style:italic;font-size:13px;color:var(--ok)}
 .cta{display:flex;align-items:center;justify-content:center;margin-top:14px;height:54px;border-radius:15px;
   background:linear-gradient(150deg,var(--brass-2),var(--brass));color:#FBF6EC;text-decoration:none;
   font-family:var(--ui);font-size:13px;font-weight:600;letter-spacing:.22em;
@@ -65,12 +64,10 @@ body.night .wash-top{background:linear-gradient(to bottom, rgba(244,238,226,.66)
       <p class="sub">今日の一振りを、はじめましょう。</p>
     </div>
     <div class="spacer"></div>
-    <div class="lastcard">
-      <div class="lc-label">前回のスイング</div>
-      <div class="lc-row">
-        <span class="lc-verdict">ちょうどいい返り</span>
-        <span class="lc-tag"><b>● On&nbsp;Line</b></span>
-      </div>
+    <div class="last">
+      <span class="lb">前回のスイング</span>
+      <span class="vd">ちょうどいい返り</span>
+      <span class="tg">● On&nbsp;Line</span>
     </div>
     <a class="cta" href="living-arc.html">素振りを始める</a>
     <div class="foot">球もカメラもいらない。スマホを、グリップのように。</div>
