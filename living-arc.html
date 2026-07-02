@@ -46,6 +46,7 @@ canvas{ display:block; width:100%; height:280px; margin-top:8px; border-radius:1
 .note{ font-family:var(--jp); font-size:11px; color:var(--sub); margin-top:16px; line-height:1.7; border-top:1px solid var(--hair-gold); padding-top:12px }
 .hide{ display:none }
 .err{ color:#C45B4A; font-size:11px; font-family:var(--jp); margin-top:8px }
+.hero{ display:block; width:100%; height:230px; object-fit:cover; object-position:center 20%; border-radius:14px; margin-top:14px; border:1px solid var(--hair-gold) }
 </style>
 </head>
 <body>
@@ -56,7 +57,8 @@ canvas{ display:block; width:100%; height:280px; margin-top:8px; border-radius:1
   <!-- 1. 許可 -->
   <div class="card" id="cardPerm">
     <h2>はじめに</h2>
-    <p class="lead">スマホをクラブのように両手で握り、ゆっくり素振りをします。<br>振り終わると、<b>あなたのスイングを金の弧がなぞって再生</b>し、インパクトで開き／閉じ／ちょうどいいを色で示します。</p>
+    <img class="hero" src="golflev-la-swing.jpg" alt="">
+    <p class="lead">スマホをクラブのように握り、ゆっくり素振り。</p>
     <button class="btn solid" id="btnPerm">センサーを有効にする</button>
     <div class="err hide" id="permErr"></div>
   </div>
@@ -64,7 +66,8 @@ canvas{ display:block; width:100%; height:280px; margin-top:8px; border-radius:1
   <!-- 2. アドレス -->
   <div class="card hide" id="cardAim">
     <h2>構える</h2>
-    <p class="lead">いつものアドレスで構え、<b>2秒間そのまま静止</b>してください。ここを原点にします。</p>
+    <img class="hero" src="golflev-la-address.jpg" alt="">
+    <p class="lead">いつものアドレスで、<b>2秒静止</b>。</p>
     <div class="live" id="aimCount">—</div>
     <button class="btn" id="btnAim">アドレスを記録する</button>
   </div>
@@ -72,7 +75,7 @@ canvas{ display:block; width:100%; height:280px; margin-top:8px; border-radius:1
   <!-- 3. 基準づくり -->
   <div class="card hide" id="cardBase">
     <h2>基準をつくる</h2>
-    <p class="lead"><b>いつも通りに1球</b>振って、あなたの“いつもの返し”を基準にします。<br>「基準を計測する」を押してから、ゆっくり振り抜いてください。</p>
+    <p class="lead"><b>いつも通りに1球</b>。あなたの“いつもの返し”を覚えます。</p>
     <button class="btn solid" id="btnBaseGo">基準を計測する（1球）</button>
     <div class="statetx" id="baseState"></div>
   </div>
@@ -140,7 +143,7 @@ function avgQ(list){ if(!list.length) return {w:1,x:0,y:0,z:0}; const r=list[0];
 let SENSOR={alpha:0,beta:0,gamma:0}, baseQ=null;
 let STATE='perm', mode='base';
 let buf=[], capturing=false, lastS=null, maxW=0, stillStart=0, capStart=0;
-let baseline=0, lastAbsDev=null, streak=0, lastDev=0;
+let baseline=0, lastAbsDev=null, streak=0, lastDev=0, introShown=false;
 const START_TH=45, END_TH=22, STILL_MS=600, MAXCAP_MS=9000;
 const MARGIN=15;
 
@@ -233,7 +236,7 @@ function process(){
   if(streak>=2) sub='<b>ちょうどいい返り '+streak+'回連続</b>';
   else if(lastAbsDev!=null && absd<lastAbsDev-2) sub='前の球より、ちょうどいいに近づきました';
   else if(lastAbsDev!=null && absd>lastAbsDev+2) sub='もう一度、さっきの感覚で';
-  else sub='基準（あなたのいつもの返し）からの開き／閉じを見ています';
+  else { sub= introShown ? '' : '基準（あなたのいつもの返し）からの開き／閉じを見ています'; introShown=true; }
   $('vsub').innerHTML=sub;
   lastAbsDev=absd; lastDev=d;
   $('pState').textContent=''; $('btnGo').textContent='次の球を計測する';
