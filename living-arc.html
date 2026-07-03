@@ -47,26 +47,39 @@ canvas{ display:block; width:100%; height:280px; margin-top:8px; border-radius:1
 .hide{ display:none }
 .err{ color:#C45B4A; font-size:11px; font-family:var(--jp); margin-top:8px }
 .hero{ display:block; width:100%; height:230px; object-fit:cover; object-position:center 20%; border-radius:14px; margin-top:14px; border:1px solid var(--hair-gold) }
+/* 案A：全画面ヒーロー（写真が舞台・枠なし・下端が紙に溶ける）— 表示のみ・計測不変 */
+.card.flat{ background:transparent; border:none; box-shadow:none; padding:0 4px; margin-top:0 }
+.heroA{ position:absolute; top:-38px; left:-22px; right:-22px; height:400px; overflow:hidden; pointer-events:none }
+.heroA img{ width:100%; height:100%; object-fit:cover; object-position:center 18%; display:block;
+  -webkit-mask-image:linear-gradient(to bottom,#000 60%,transparent 99%);
+  mask-image:linear-gradient(to bottom,#000 60%,transparent 99%) }
+body.photo .brand{ position:relative; z-index:2; color:#fff; text-shadow:0 1px 12px rgba(20,28,22,.55) }
+body.photo .brand b{ color:var(--brass-hi) }
+body.photo .tag{ display:none }
+.flat .fh2{ text-align:center; margin-top:272px }
+.flat p.lead{ text-align:center; margin-top:8px }
+.flat .btn{ margin-top:20px }
+.flat .err{ text-align:center }
 </style>
 </head>
-<body>
+<body class="photo">
 <div class="wrap">
   <div class="brand">GOLF<b>LEV</b></div>
   <div class="tag">Living Arc プロト — 振りを、金の弧でなぞる</div>
 
   <!-- 1. 許可 -->
-  <div class="card" id="cardPerm">
-    <h2>はじめに</h2>
-    <img class="hero" src="golflev-la-swing.jpg" alt="">
+  <div class="card flat" id="cardPerm">
+    <div class="heroA"><img src="golflev-la-swing.jpg" alt=""></div>
+    <h2 class="fh2">はじめに</h2>
     <p class="lead">スマホをクラブのように握り、ゆっくり素振り。</p>
     <button class="btn solid" id="btnPerm">センサーを有効にする</button>
     <div class="err hide" id="permErr"></div>
   </div>
 
   <!-- 2. アドレス -->
-  <div class="card hide" id="cardAim">
-    <h2>構える</h2>
-    <img class="hero" src="golflev-la-address.jpg" alt="">
+  <div class="card flat hide" id="cardAim">
+    <div class="heroA"><img src="golflev-la-address.jpg" alt=""></div>
+    <h2 class="fh2">構える</h2>
     <p class="lead">いつものアドレスで、<b>2秒静止</b>。</p>
     <div class="live" id="aimCount">—</div>
     <button class="btn" id="btnAim">アドレスを記録する</button>
@@ -147,7 +160,8 @@ let baseline=0, lastAbsDev=null, streak=0, lastDev=0, introShown=false;
 const START_TH=45, END_TH=22, STILL_MS=600, MAXCAP_MS=9000;
 const MARGIN=15;
 
-function show(id){ ['cardPerm','cardAim','cardBase','cardPractice'].forEach(c=>$(c).classList.add('hide')); $(id).classList.remove('hide'); }
+function show(id){ ['cardPerm','cardAim','cardBase','cardPractice'].forEach(c=>$(c).classList.add('hide')); $(id).classList.remove('hide');
+  document.body.classList.toggle('photo', id==='cardPerm'||id==='cardAim'); }
 function onOrient(e){
   if(e.alpha==null&&e.beta==null&&e.gamma==null) return;
   SENSOR.alpha=e.alpha||0; SENSOR.beta=e.beta||0; SENSOR.gamma=e.gamma||0;
