@@ -86,8 +86,9 @@ body.photo .tag{ display:none }
   </div>
 
   <!-- 3. 基準づくり -->
-  <div class="card hide" id="cardBase">
-    <h2>基準をつくる</h2>
+  <div class="card flat hide" id="cardBase">
+    <div class="heroA"><img src="golflev-la-swing.jpg" alt=""></div>
+    <h2 class="fh2">基準をつくる</h2>
     <p class="lead"><b>いつも通りに1球</b>。あなたの“いつもの返し”を覚えます。</p>
     <button class="btn solid" id="btnBaseGo">基準を計測する（1球）</button>
     <div class="statetx" id="baseState"></div>
@@ -161,7 +162,7 @@ const START_TH=45, END_TH=22, STILL_MS=600, MAXCAP_MS=9000;
 const MARGIN=15;
 
 function show(id){ ['cardPerm','cardAim','cardBase','cardPractice'].forEach(c=>$(c).classList.add('hide')); $(id).classList.remove('hide');
-  document.body.classList.toggle('photo', id==='cardPerm'||id==='cardAim'); }
+  document.body.classList.toggle('photo', id==='cardPerm'||id==='cardAim'||id==='cardBase'); }
 function onOrient(e){
   if(e.alpha==null&&e.beta==null&&e.gamma==null) return;
   SENSOR.alpha=e.alpha||0; SENSOR.beta=e.beta||0; SENSOR.gamma=e.gamma||0;
