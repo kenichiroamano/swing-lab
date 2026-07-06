@@ -75,6 +75,13 @@ h2.ph{font-family:"Noto Serif JP",serif;font-weight:700;font-size:28px;letter-sp
   padding:13px 34px;font-size:15px;font-family:"Noto Serif JP",serif;font-weight:700;letter-spacing:.08em;cursor:pointer}
 .debug{position:fixed;bottom:10px;left:0;right:0;text-align:center;font-size:11px;color:var(--sub);
   font-family:Inter;opacity:.75;z-index:6}
+/* 計測モード */
+.live{font-family:Inter,serif;font-weight:600;font-size:30px;color:var(--ink);min-height:38px;
+  letter-spacing:.02em;display:none}
+.live small{font-size:14px;color:var(--sub);font-weight:400;margin-left:10px}
+.caps{width:100%;max-width:340px;margin-top:10px;font-family:Inter;font-size:13.5px;display:none}
+.caps div{display:flex;justify-content:space-between;padding:7px 10px;border-bottom:1px solid rgba(31,42,33,.08)}
+.caps div span:last-child{color:var(--gold);font-weight:600}
 </style>
 </head>
 <body>
@@ -95,6 +102,11 @@ h2.ph{font-family:"Noto Serif JP",serif;font-weight:700;font-size:28px;letter-sp
     <h3>水準器（バブル）</h3>
     <p>泡を輪の中に入れるゲージ表示。合わせている感覚が見える。</p>
   </div>
+  <div class="card" onclick="enter('M')">
+    <span class="tag">計測</span>
+    <h3>計測モード</h3>
+    <p>判定なし。自然に構えて2秒止まるたびに、そのときの傾きと横を記録して一覧にします。</p>
+  </div>
 </section>
 
 <!-- ===== ステージ（A/B共用） ===== -->
@@ -103,7 +115,8 @@ h2.ph{font-family:"Noto Serif JP",serif;font-weight:700;font-size:28px;letter-sp
   <div class="hero"><img id="heroImg" src="golflev-la-address.jpg" alt="" onerror="this.style.display='none'"></div>
   <div class="stageBody">
     <h2 class="ph">構える</h2>
-    <div class="oneline">写真のように、両手で握って構えます</div>
+    <div class="oneline" id="onelineEl">写真のように、両手で握って構えます</div>
+    <div class="live" id="liveEl"></div>
     <div class="ringWrap" id="ringWrap">
       <svg viewBox="0 0 190 190">
         <circle class="ringTrack" cx="95" cy="95" r="80"></circle>
@@ -117,6 +130,7 @@ h2.ph{font-family:"Noto Serif JP",serif;font-weight:700;font-size:28px;letter-sp
     <button class="startBtn" id="startBtn" onclick="startSensors()">はじめる</button>
     <div class="status" id="statusEl"></div>
     <div class="rescue" id="rescueEl">写真と同じように、構えてみましょう</div>
+    <div class="caps" id="capsEl"></div>
   </div>
 </section>
 
@@ -158,21 +172,28 @@ var tiltDeg=null, sideDeg=null, screenUp=false;
 var rotMag=999, hasMotion=false;
 var prevTilt=null, prevSide=null, prevAngT=0, angVelFallback=999;
 var CIRC=502.65;
+/* 計測モード */
+var buf=[], caps=[], capN=0, needMove=false;
 
 var el=function(id){return document.getElementById(id);};
 
 function enter(mode){
-  MODE=mode; done=false; running=false; progress=0;
+  MODE=mode; done=false; running=false; progress=0; needMove=false;
   el('home').classList.remove('on');
   el('stage').classList.add('on');
   el('ringWrap').classList.remove('ringDone');
   el('ringFill').setAttribute('stroke-dashoffset', CIRC);
   el('bubble').style.display = (mode==='B')?'block':'none';
   el('bTarget').style.display = (mode==='B')?'block':'none';
+  el('liveEl').style.display = (mode==='M')?'block':'none';
+  el('capsEl').style.display = (mode==='M')?'block':'none';
+  el('onelineEl').textContent = (mode==='M')
+    ? '自然に構えて、2秒止めるたびに記録します'
+    : '写真のように、両手で握って構えます';
   el('rescueEl').classList.remove('show');
   el('statusEl').textContent='';
   el('startBtn').style.display='inline-block';
-  el('debugEl').textContent='案'+mode+' — 「はじめる」でセンサー開始';
+  el('debugEl').textContent=(mode==='M'?'計測モード':'案'+mode)+' — 「はじめる」でセンサー開始';
 }
 function leave(){
   running=false; MODE=null;
@@ -205,6 +226,27 @@ function onOrient(e){
     angVelFallback = d/((now-prevAngT)/1000);
   }
   prevTilt=tiltDeg; prevSide=sideDeg; prevAngT=now;
+  // 計測モード用バッファ（直近1.6秒）
+  buf.push({t:now, tilt:tiltDeg, side:sideDeg});
+  while(buf.length && buf[0].t < now-1600) buf.shift();
+}
+function avgRecent(ms){
+  var now=performance.now(), ts=0, n=0, ss=0, sn=0;
+  for(var i=0;i<buf.length;i++){
+    if(buf[i].t < now-ms) continue;
+    ts+=buf[i].tilt; n++;
+    if(buf[i].side!==null){ ss+=buf[i].side; sn++; }
+  }
+  if(!n) return null;
+  return { tilt:(ts/n).toFixed(1), side: sn>n*0.5 ? (ss/sn).toFixed(1) : null };
+}
+function renderCaps(){
+  var h='';
+  for(var i=0;i<caps.length;i++){
+    var c=caps[i];
+    h+='<div><span>記録 '+c.n+'</span><span>傾き '+c.tilt+'°　横 '+(c.side===null?'—':c.side+'°')+'</span></div>';
+  }
+  el('capsEl').innerHTML=h;
 }
 function onMotion(e){
   var r=e.rotationRate;
@@ -248,7 +290,25 @@ function loop(t){
   if(!running) return;
   var dt=Math.min(100, t-lastT); lastT=t;
   var band=inBandNow(), still=stillNow();
-  if(!done){
+  if(MODE==='M'){
+    // 判定なし・静止2秒ごとに記録（次の記録には一度動くことが必要）
+    if(needMove && !still) needMove=false;
+    if(!needMove && still && tiltDeg!==null) progress=clamp(progress+dt/FILL_MS,0,1);
+    else progress=clamp(progress-dt/DECAY_MS,0,1);
+    if(progress>=1){
+      var a=avgRecent(900);
+      if(a){ capN++; caps.unshift({n:capN, tilt:a.tilt, side:a.side});
+        if(caps.length>8) caps.pop();
+        renderCaps(); beep();
+        el('statusEl').textContent='記録しました — 構え直すと次を計測します';
+      }
+      progress=0; needMove=true;
+    }
+    if(tiltDeg!==null){
+      el('liveEl').innerHTML=tiltDeg.toFixed(1)+'°<small>横 '+(sideDeg===null?'—':sideDeg.toFixed(1)+'°')+'</small>';
+    }
+  }
+  else if(!done){
     if(band && still) progress=clamp(progress+dt/FILL_MS,0,1);
     else progress=clamp(progress-dt/DECAY_MS,0,1);
     if(progress>=1){ done=true; beep(); el('ringWrap').classList.add('ringDone');
