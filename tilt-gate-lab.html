@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Golflev — Tilt Gate Lab</title>
+<!--
+  傾きゲート比較ラボ（2026-07-06・研究ノート§6-5に基づく）
+  案A: 見えないゲート（写真＋金の輪のみ・無反応6秒で救済1行）
+  案B: バブルレベル表示（泡＋ターゲット輪）
+  合格帯: 長軸の傾き=水平から52〜72°（中心62°=ライ角基準）／横倒れ±15°／画面上向き
+  自己完結ページ（core.js/strings.js/theme.css 非参照・本流不変）。計測ロジックには一切関与しない。
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@800&family=Noto+Serif+JP:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EFE9DC; --paper:#F7F1E3; --ink:#1F2A21; --gold:#B8804C; --gold2:#C8956C;
+  --ok:#4A6B4A; --warn:#D4A040; --err:#C45B4A; --sub:#8A8A82;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:Inter,"Noto Serif JP",serif;overflow-x:hidden}
+.screen{display:none;min-height:100vh;flex-direction:column;align-items:center}
+.screen.on{display:flex}
+
+/* ---- entry ---- */
+#home{padding:56px 24px 40px;gap:14px}
+.brand{font-family:"Playfair Display",serif;font-weight:800;letter-spacing:.04em;font-size:15px;color:var(--gold)}
+h1{font-family:"Noto Serif JP",serif;font-weight:700;font-size:24px;margin:6px 0 2px;text-align:center}
+.note{color:var(--sub);font-size:13px;text-align:center;line-height:1.7;margin-bottom:14px}
+.card{width:100%;max-width:420px;background:var(--paper);border:1px solid rgba(31,42,33,.08);
+  border-radius:16px;padding:20px 18px;text-align:left;cursor:pointer}
+.card .tag{display:inline-block;font-family:"Playfair Display",serif;font-weight:800;font-size:13px;
+  letter-spacing:.08em;color:var(--paper);background:var(--gold);border-radius:8px;padding:3px 10px;margin-bottom:8px}
+.card h3{font-family:"Noto Serif JP",serif;font-size:17px;font-weight:700;margin-bottom:4px}
+.card p{font-size:13px;color:var(--sub);line-height:1.7}
+
+/* ---- stage (共通) ---- */
+#stage{position:relative;background:var(--bg)}
+.hero{position:relative;width:100%;height:42vh;min-height:230px;overflow:hidden}
+.hero img{width:100%;height:100%;object-fit:cover;display:block;
+  -webkit-mask-image:linear-gradient(to bottom,#000 62%,transparent 100%);
+  mask-image:linear-gradient(to bottom,#000 62%,transparent 100%)}
+.back{position:absolute;top:14px;left:14px;z-index:5;font-size:13px;color:var(--ink);
+  background:rgba(247,241,227,.85);border:1px solid rgba(31,42,33,.12);border-radius:999px;
+  padding:6px 14px;cursor:pointer;font-family:Inter}
+.stageBody{flex:1;width:100%;max-width:420px;display:flex;flex-direction:column;align-items:center;
+  padding:6px 24px 28px;margin-top:-26px;position:relative;z-index:2}
+h2.ph{font-family:"Noto Serif JP",serif;font-weight:700;font-size:28px;letter-spacing:.06em;margin:4px 0 2px}
+.oneline{font-size:14.5px;color:var(--sub);font-family:"Noto Serif JP",serif;margin-bottom:10px}
+
+/* ring */
+.ringWrap{position:relative;width:190px;height:190px;margin:8px 0 4px}
+.ringWrap svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ringTrack{fill:none;stroke:rgba(31,42,33,.10);stroke-width:5}
+.ringFill{fill:none;stroke:var(--gold);stroke-width:5;stroke-linecap:round;
+  transition:stroke .3s}
+.ringDone .ringFill{stroke:var(--ok);filter:drop-shadow(0 0 6px rgba(74,107,74,.5))}
+/* B: bubble */
+.bTarget{fill:none;stroke:rgba(184,128,76,.4);stroke-width:1.5;stroke-dasharray:3 4}
+.bubble{position:absolute;left:50%;top:50%;width:16px;height:16px;border-radius:50%;
+  background:var(--sub);margin:-8px 0 0 -8px;transition:background .2s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.bubble.in{background:var(--gold2)}
+.centerMsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:"Noto Serif JP",serif;font-size:15px;font-weight:700;color:var(--ok);opacity:0;transition:opacity .5s}
+.ringDone .centerMsg{opacity:1}
+
+.status{font-size:14px;color:var(--sub);min-height:22px;font-family:"Noto Serif JP",serif;text-align:center}
+.rescue{font-size:14px;color:var(--warn);font-family:"Noto Serif JP",serif;min-height:22px;
+  opacity:0;transition:opacity .8s;text-align:center}
+.rescue.show{opacity:1}
+.startBtn{margin:14px 0 4px;background:var(--ink);color:var(--paper);border:none;border-radius:999px;
+  padding:13px 34px;font-size:15px;font-family:"Noto Serif JP",serif;font-weight:700;letter-spacing:.08em;cursor:pointer}
+.debug{position:fixed;bottom:10px;left:0;right:0;text-align:center;font-size:11px;color:var(--sub);
+  font-family:Inter;opacity:.75;z-index:6}
+</style>
+</head>
+<body>
+<script>window.__err=[];window.addEventListener('error',function(e){window.__err.push(String(e.message||e))});</script>
+
+<!-- ===== 入口 ===== -->
+<section id="home" class="screen on">
+  <div class="brand">GOLFLEV LAB</div>
+  <h1>構えチェックの比較</h1>
+  <p class="note">スマホをクラブのように握って構えたとき、<br>「正しく構えられた」をどう伝えるかの2案です。<br>iPhoneで開き、両方試してください。</p>
+  <div class="card" onclick="enter('A')">
+    <span class="tag">案 A</span>
+    <h3>見えないゲート</h3>
+    <p>写真と金の輪だけ。正しく構えると輪が満ちてピッ。迷ったときだけ一行の助け舟。</p>
+  </div>
+  <div class="card" onclick="enter('B')">
+    <span class="tag">案 B</span>
+    <h3>水準器（バブル）</h3>
+    <p>泡を輪の中に入れるゲージ表示。合わせている感覚が見える。</p>
+  </div>
+</section>
+
+<!-- ===== ステージ（A/B共用） ===== -->
+<section id="stage" class="screen">
+  <button class="back" onclick="leave()">← ラボ</button>
+  <div class="hero"><img id="heroImg" src="golflev-la-address.jpg" alt="" onerror="this.style.display='none'"></div>
+  <div class="stageBody">
+    <h2 class="ph">構える</h2>
+    <div class="oneline">写真のように、両手で握って構えます</div>
+    <div class="ringWrap" id="ringWrap">
+      <svg viewBox="0 0 190 190">
+        <circle class="ringTrack" cx="95" cy="95" r="80"></circle>
+        <circle class="bTarget" id="bTarget" cx="95" cy="95" r="34" style="display:none"></circle>
+        <circle class="ringFill" id="ringFill" cx="95" cy="95" r="80"
+          stroke-dasharray="502.65" stroke-dashoffset="502.65"></circle>
+      </svg>
+      <div class="bubble" id="bubble" style="display:none"></div>
+      <div class="centerMsg">基準OK</div>
+    </div>
+    <button class="startBtn" id="startBtn" onclick="startSensors()">はじめる</button>
+    <div class="status" id="statusEl"></div>
+    <div class="rescue" id="rescueEl">写真と同じように、構えてみましょう</div>
+  </div>
+</section>
+
+<div class="debug" id="debugEl">ラボ計測値 — 未開始</div>
+
+<script>
+/* ================= 合格帯（研究ノート§6-5・暫定） ================= */
+var TILT_MIN = 52, TILT_MAX = 72;   // 長軸の傾き（水平から・度）中心62=ライ角基準
+var SIDE_MAX = 15;                  // 横倒れ（度）
+var FILL_MS  = 2000;                // 輪が満ちる時間（静止検出と兼用）
+var DECAY_MS = 700;                 // 帯外/動きで輪が引いていく時間（即リセットしない）
+var STILL_DPS = 20;                 // 静止とみなす回転速度（度/秒）
+var RESCUE_MS = 6000;               // 案A: 無反応でこの時間経過→救済1行
+
+/* ================= クォータニオン（W3C DeviceOrientation 標準形・自己完結） ================= */
+function quatFromEuler(alpha, beta, gamma){
+  var d2r = Math.PI/180;
+  var _x = (beta||0)*d2r, _y = (gamma||0)*d2r, _z = (alpha||0)*d2r;
+  var cX=Math.cos(_x/2), cY=Math.cos(_y/2), cZ=Math.cos(_z/2);
+  var sX=Math.sin(_x/2), sY=Math.sin(_y/2), sZ=Math.sin(_z/2);
+  return {
+    w: cX*cY*cZ - sX*sY*sZ,
+    x: sX*cY*cZ - cX*sY*sZ,
+    y: cX*sY*cZ + sX*cY*sZ,
+    z: cX*cY*sZ + sX*sY*cZ
+  };
+}
+function rotVec(q, v){
+  var w=q.w,x=q.x,y=q.y,z=q.z;
+  var tx=2*(y*v.z-z*v.y), ty=2*(z*v.x-x*v.z), tz=2*(x*v.y-y*v.x);
+  return { x:v.x+w*tx+(y*tz-z*ty), y:v.y+w*ty+(z*tx-x*tz), z:v.z+w*tz+(x*ty-y*tx) };
+}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+
+/* ================= 状態 ================= */
+var MODE=null, running=false, done=false;
+var progress=0, lastT=0, startedAt=0;
+var tiltDeg=null, sideDeg=null, screenUp=false;
+var rotMag=999, hasMotion=false;
+var prevTilt=null, prevSide=null, prevAngT=0, angVelFallback=999;
+var CIRC=502.65;
+
+var el=function(id){return document.getElementById(id);};
+
+function enter(mode){
+  MODE=mode; done=false; running=false; progress=0;
+  el('home').classList.remove('on');
+  el('stage').classList.add('on');
+  el('ringWrap').classList.remove('ringDone');
+  el('ringFill').setAttribute('stroke-dashoffset', CIRC);
+  el('bubble').style.display = (mode==='B')?'block':'none';
+  el('bTarget').style.display = (mode==='B')?'block':'none';
+  el('rescueEl').classList.remove('show');
+  el('statusEl').textContent='';
+  el('startBtn').style.display='inline-block';
+  el('debugEl').textContent='案'+mode+' — 「はじめる」でセンサー開始';
+}
+function leave(){
+  running=false; MODE=null;
+  el('stage').classList.remove('on');
+  el('home').classList.add('on');
+  el('debugEl').textContent='ラボ計測値 — 未開始';
+}
+
+/* ================= センサー ================= */
+var listenersOn=false;
+function onOrient(e){
+  if(e.alpha===null&&e.beta===null&&e.gamma===null) return;
+  var q=quatFromEuler(e.alpha,e.beta,e.gamma);
+  var Yw=rotVec(q,{x:0,y:1,z:0});   // 長軸（カメラ端方向）
+  var Zw=rotVec(q,{x:0,y:0,z:1});   // 画面法線
+  // 長軸の傾き（水平から）。正しい持ち方＝カメラ端が地面側 → Yw.z<0 → 正の値
+  tiltDeg = Math.asin(clamp(-Yw.z,-1,1))*180/Math.PI;
+  // 横倒れ: 長軸の鉛直面から画面法線がどれだけ外れているか
+  var hn=Math.sqrt(Yw.x*Yw.x+Yw.y*Yw.y);
+  if(hn<0.12){ sideDeg=null; }      // 長軸がほぼ鉛直＝評価保留
+  else{
+    var sx=Yw.y/hn, sy=-Yw.x/hn;    // 水平の横方向軸
+    sideDeg = Math.asin(clamp(Zw.x*sx+Zw.y*sy,-1,1))*180/Math.PI;
+  }
+  screenUp = Zw.z>0.15;
+  // 静止フォールバック（rotationRateが無い端末用）
+  var now=performance.now();
+  if(prevTilt!==null && now>prevAngT){
+    var d=(Math.abs(tiltDeg-prevTilt)+Math.abs((sideDeg||0)-(prevSide||0)));
+    angVelFallback = d/((now-prevAngT)/1000);
+  }
+  prevTilt=tiltDeg; prevSide=sideDeg; prevAngT=now;
+}
+function onMotion(e){
+  var r=e.rotationRate;
+  if(r && (r.alpha!==null||r.beta!==null||r.gamma!==null)){
+    hasMotion=true;
+    rotMag=Math.sqrt((r.alpha||0)*(r.alpha||0)+(r.beta||0)*(r.beta||0)+(r.gamma||0)*(r.gamma||0));
+  }
+}
+async function startSensors(){
+  ensureAudio();
+  try{
+    if(typeof DeviceOrientationEvent!=='undefined' && DeviceOrientationEvent.requestPermission){
+      var r=await DeviceOrientationEvent.requestPermission();
+      if(r!=='granted'){ el('statusEl').textContent='センサーの許可が必要です'; return; }
+    }
+    if(typeof DeviceMotionEvent!=='undefined' && DeviceMotionEvent.requestPermission){
+      try{ await DeviceMotionEvent.requestPermission(); }catch(e2){}
+    }
+  }catch(e){ el('statusEl').textContent='センサーの許可が必要です'; return; }
+  if(!listenersOn){
+    window.addEventListener('deviceorientation', onOrient);
+    window.addEventListener('devicemotion', onMotion);
+    listenersOn=true;
+  }
+  running=true; done=false; progress=0; startedAt=performance.now(); lastT=startedAt;
+  el('startBtn').style.display='none';
+  el('statusEl').textContent='';
+  requestAnimationFrame(loop);
+}
+
+/* ================= 判定・描画ループ ================= */
+function inBandNow(){
+  if(tiltDeg===null||sideDeg===null) return false;
+  return screenUp && tiltDeg>=TILT_MIN && tiltDeg<=TILT_MAX && Math.abs(sideDeg)<=SIDE_MAX;
+}
+function stillNow(){
+  var v = hasMotion ? rotMag : angVelFallback;
+  return v < STILL_DPS;
+}
+function loop(t){
+  if(!running) return;
+  var dt=Math.min(100, t-lastT); lastT=t;
+  var band=inBandNow(), still=stillNow();
+  if(!done){
+    if(band && still) progress=clamp(progress+dt/FILL_MS,0,1);
+    else progress=clamp(progress-dt/DECAY_MS,0,1);
+    if(progress>=1){ done=true; beep(); el('ringWrap').classList.add('ringDone');
+      el('statusEl').textContent='ラボはここまで（本番はこの後に基準の1振り）';
+      el('rescueEl').classList.remove('show');
+    }
+  }
+  // 輪
+  el('ringFill').setAttribute('stroke-dashoffset', String(CIRC*(1-progress)));
+  // 案B: 泡
+  if(MODE==='B' && tiltDeg!==null){
+    var px=clamp((sideDeg||0)/25,-1,1)*60;
+    var py=clamp((tiltDeg-(TILT_MIN+TILT_MAX)/2)/25,-1,1)*-60; // 立てすぎ=泡が上
+    var b=el('bubble');
+    b.style.transform='translate('+px.toFixed(1)+'px,'+py.toFixed(1)+'px)';
+    b.className='bubble'+(band?' in':'');
+  }
+  // 案A: 救済1行
+  if(MODE==='A' && !done){
+    var lost = (t-startedAt>RESCUE_MS) && progress<0.05 && !band;
+    el('rescueEl').classList.toggle('show', !!lost);
+    if(band) el('rescueEl').classList.remove('show');
+  }
+  // ラボ用の実測表示（本番には載せない）
+  if(tiltDeg!==null){
+    el('debugEl').textContent='傾き '+tiltDeg.toFixed(1)+'°（帯 '+TILT_MIN+'–'+TILT_MAX+'）・横 '
+      +(sideDeg===null?'—':sideDeg.toFixed(1))+'°（±'+SIDE_MAX+'）・'
+      +(still?'静止':'動')+(band?'・帯内':'・帯外')+(screenUp?'':'・画面下向き');
+  }
+  requestAnimationFrame(loop);
+}
+
+/* ================= 音 ================= */
+var AC=null;
+function ensureAudio(){
+  if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+  if(AC && AC.state==='suspended'){ try{AC.resume();}catch(e){} }
+}
+function beep(){
+  if(!AC) return;
+  try{
+    var o=AC.createOscillator(), g=AC.createGain();
+    o.type='sine'; o.frequency.value=880; o.connect(g); g.connect(AC.destination);
+    var t=AC.currentTime;
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(0.25,t+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+0.28);
+    o.start(t); o.stop(t+0.3);
+  }catch(e){}
+}
+</script>
+</body>
+</html>
