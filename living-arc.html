@@ -38,11 +38,11 @@ p.lead b{ color:var(--brass-lo); font-weight:500 }
 .live{ text-align:center; font-family:var(--serif); font-style:italic; font-size:40px; color:var(--brass); margin-top:8px; font-variant-numeric:tabular-nums }
 .statetx{ text-align:center; font-family:var(--jp); font-size:16.5px; color:var(--ink-soft); margin-top:12px; letter-spacing:.04em; min-height:24px }
 canvas{ display:block; width:100%; height:280px; margin-top:8px; border-radius:16px; background:#0d130f; border:1px solid rgba(169,143,88,.25) }
-.verdict{ font-family:var(--serif); font-style:italic; font-weight:600; font-size:31px; line-height:1.3; color:var(--ink); text-align:center; margin-top:14px }
-.verdict.slice{ color:var(--slice) } .verdict.hook{ color:var(--hook) } .verdict.ok{ color:var(--ok) }
-.vtip{ font-family:var(--jp); font-size:16px; color:var(--ink-soft); text-align:center; margin-top:10px; line-height:1.8 }
-.vsub{ font-family:var(--jp); font-size:14px; color:var(--sub); text-align:center; margin-top:14px; padding-top:12px; border-top:1px solid var(--hair-gold); min-height:20px }
-.vsub b{ color:var(--ok); font-weight:600 }
+.verdict{ font-family:var(--serif); font-style:italic; font-weight:500; font-size:31px; line-height:1.3; letter-spacing:.03em; color:#E4D6BA; text-align:center; margin-bottom:14px }
+.verdict.slice{ color:var(--slice) } .verdict.hook{ color:var(--hook) } .verdict.ok{ color:#E4D6BA }
+.vtip{ font-family:var(--jp); font-weight:300; font-size:13.5px; letter-spacing:.03em; color:rgba(228,214,186,.66); text-align:center; line-height:1.7; margin-bottom:10px }
+.vsub{ font-family:var(--jp); font-size:12.5px; color:rgba(228,214,186,.45); text-align:center; min-height:18px; margin-bottom:20px }
+.vsub b{ color:#CBB079; font-weight:500 }
 .note{ font-family:var(--jp); font-size:11px; color:var(--sub); margin-top:16px; line-height:1.7; border-top:1px solid var(--hair-gold); padding-top:12px }
 .hide{ display:none }
 .err{ color:#C45B4A; font-size:11px; font-family:var(--jp); margin-top:8px }
@@ -69,6 +69,23 @@ body.photo .tag{ display:none }
 .gBubble{ position:absolute; left:50%; top:50%; width:14px; height:14px; border-radius:50%; background:var(--sub);
   margin:-7px 0 0 -7px; box-shadow:0 1px 3px rgba(0,0,0,.25); transition:background .2s }
 .gBubble.in{ background:var(--brass-hi) }
+/* 案A×Claude Design: 結果=全画面の暗緑舞台（2026-07-06・表示のみ・計測不変） */
+@keyframes gl-breathe{0%,100%{opacity:.28;transform:scaleX(.78)}50%{opacity:1;transform:scaleX(1)}}
+@keyframes gl-breatheGlow{0%,100%{opacity:.12}50%{opacity:.4}}
+#stageFS{ position:fixed; inset:0; z-index:30; opacity:0; pointer-events:none; transition:opacity .6s ease;
+  background:radial-gradient(115% 78% at 50% 40%, #2b3a2f 0%, #243229 30%, #18211B 62%, #0d130f 100%) }
+#stageFS.on{ opacity:1; pointer-events:auto }
+#stageFS canvas{ position:absolute; inset:0; width:100%; height:100%; margin:0; border:none; border-radius:0; background:transparent }
+#fsTx{ position:absolute; left:0; right:0; bottom:0; padding:0 44px calc(46px + env(safe-area-inset-bottom)); text-align:center }
+.btnGhost{ cursor:pointer; width:100%; padding:16px; border-radius:14px; background:transparent;
+  border:1px solid rgba(169,143,88,.8); color:#CBB079; font-family:var(--ui); font-size:14px; font-weight:500; letter-spacing:.14em }
+.btnGhost[disabled]{ opacity:.45 }
+.breathWrap{ position:relative; height:22px; display:none; align-items:center; justify-content:center; margin-top:26px }
+.breathWrap .glow{ position:absolute; width:200px; height:18px; border-radius:999px;
+  background:radial-gradient(ellipse at center, rgba(203,176,121,.9), rgba(203,176,121,0) 70%); animation:gl-breatheGlow 3.4s ease-in-out infinite }
+.breathWrap .line{ width:168px; height:1.5px; border-radius:999px;
+  background:linear-gradient(to right, rgba(169,143,88,0) 0%, #CBB079 50%, rgba(169,143,88,0) 100%); animation:gl-breathe 3.4s ease-in-out infinite }
+body.measuring .breathWrap{ display:flex }
 </style>
 </head>
 <body class="photo">
@@ -109,16 +126,26 @@ body.photo .tag{ display:none }
     <div class="statetx" id="baseState"></div>
   </div>
 
-  <!-- 4. 練習ループ -->
-  <div class="card hide" id="cardPractice">
-    <h2 id="pTitle">フェースの返り</h2>
-    <canvas id="cv" width="360" height="280"></canvas>
-    <div class="verdict" id="verdict">—</div>
-    <div class="vtip" id="vtip"></div>
-    <div class="vsub" id="vsub"></div>
+  <!-- 4. 練習ループ（案A: 準備=写真の世界） -->
+  <div class="card flat hide" id="cardPractice">
+    <div class="heroA"><img src="golflev-la-swing.jpg" alt=""></div>
+    <h2 class="fh2" id="pTitle">基準ができました</h2>
+    <p class="lead" id="pLead">「計測する」を押して、1球振ってください。</p>
+    <div class="breathWrap"><div class="glow"></div><div class="line"></div></div>
     <button class="btn solid" id="btnGo">計測する</button>
     <div class="statetx" id="pState"></div>
     <button class="btn small" id="btnRebase" style="display:block;margin:10px auto 0">基準を取り直す</button>
+  </div>
+
+  <!-- 結果=全画面の暗緑舞台（案A×Claude Design・表示のみ） -->
+  <div id="stageFS">
+    <canvas id="cv"></canvas>
+    <div id="fsTx">
+      <div class="verdict" id="verdict"></div>
+      <div class="vtip" id="vtip"></div>
+      <div class="vsub" id="vsub"></div>
+      <button class="btnGhost" id="btnAgain">もう一度</button>
+    </div>
   </div>
 
   <div class="err" id="globalErr"></div>
@@ -177,7 +204,7 @@ const START_TH=45, END_TH=22, STILL_MS=600, MAXCAP_MS=9000;
 const MARGIN=15;
 
 function show(id){ ['cardPerm','cardAim','cardBase','cardPractice'].forEach(c=>$(c).classList.add('hide')); $(id).classList.remove('hide');
-  document.body.classList.toggle('photo', id==='cardPerm'||id==='cardAim'||id==='cardBase'); }
+  document.body.classList.toggle('photo', id==='cardPerm'||id==='cardAim'||id==='cardBase'||id==='cardPractice'); }
 function onOrient(e){
   if(e.alpha==null&&e.beta==null&&e.gamma==null) return;
   SENSOR.alpha=e.alpha||0; SENSOR.beta=e.beta||0; SENSOR.gamma=e.gamma||0;
@@ -246,11 +273,16 @@ function gateBeep(){ if(!AC) return; try{
 function enterBaseline(){ mode='base'; capturing=false; show('cardBase'); $('baseState').textContent=''; $('btnBaseGo').textContent='基準を計測する（1球）'; }
 $('btnBaseGo').addEventListener('click', ()=>{ startCapture(); $('baseState').textContent='計測中… いつも通り、ゆっくり振ってください'; });
 
-function enterPractice(){ mode='practice'; capturing=false; show('cardPractice'); lastAbsDev=null; streak=0;
-  $('verdict').textContent='基準ができました'; $('verdict').className='verdict ok'; $('vtip').textContent='「計測する」を押して、1球振ってください。';
-  $('vsub').textContent=''; $('pState').textContent=''; $('btnGo').textContent='計測する';
-  drawStageStatic(); }
-$('btnGo').addEventListener('click', ()=>{ startCapture(); $('btnGo').textContent='計測中…'; $('pState').textContent='ゆっくり振り抜いてください'; });
+function enterPractice(){ mode='practice'; capturing=false; lastAbsDev=null; streak=0;
+  show('cardPractice'); readyPractice('基準ができました'); }
+function readyPractice(title){
+  $('stageFS').classList.remove('on'); document.body.classList.remove('measuring');
+  $('pTitle').textContent=title; $('pLead').textContent='「計測する」を押して、1球振ってください。';
+  $('btnGo').style.display='block'; $('btnGo').textContent='計測する'; $('pState').textContent=''; }
+$('btnGo').addEventListener('click', ()=>{ startCapture();
+  $('pTitle').textContent='計測中'; $('pLead').textContent='ゆっくり、振り抜いてください。';
+  document.body.classList.add('measuring'); $('btnGo').style.display='none'; $('pState').textContent=''; });
+$('btnAgain').addEventListener('click', ()=>{ if($('btnAgain').disabled) return; readyPractice('次の一球'); });
 $('btnRebase').addEventListener('click', ()=>{ baseline=0; enterBaseline(); });
 
 function startCapture(){ STATE='cap'; capturing=true; buf=[]; lastS=null; maxW=0; stillStart=0; capStart=performance.now(); }
@@ -293,15 +325,16 @@ function process(){
   const r=computeSwing();
   if(!r || r.roll==null){
     if(mode==='base'){ $('baseState').textContent='うまく取れませんでした。「基準を計測する」をもう一度押してください'; $('btnBaseGo').textContent='基準を計測する（1球）'; }
-    else { $('pState').textContent='うまく取れませんでした。'; $('btnGo').textContent='もう一度計測する'; }
+    else { document.body.classList.remove('measuring'); $('btnGo').style.display='block';
+      $('pTitle').textContent='もう一度'; $('pLead').textContent='うまく取れませんでした。もう1球お願いします。'; $('btnGo').textContent='もう一度計測する'; }
     return;
   }
   if(mode==='base'){ baseline=r.roll; enterPractice(); return; }
   const d=r.roll-baseline;
   let vk,verdict,tip;
-  if(d>=MARGIN){ vk='slice'; verdict='フェースが開いて戻りました'; tip='スライスの傾向。インパクトで、左手の甲を地面へ向けるイメージで閉じて。'; }
-  else if(d<=-MARGIN){ vk='hook'; verdict='フェースが閉じて戻りました'; tip='フックの傾向。手で返しすぎ。体の回転で振り抜いて。'; }
-  else { vk='ok'; verdict='ちょうどいい返りです'; tip='この返りを覚えておきましょう。'; }
+  if(d>=MARGIN){ vk='slice'; verdict='フェースが開いて戻りました'; tip='インパクトで、ほんの少し手を返すように。'; }
+  else if(d<=-MARGIN){ vk='hook'; verdict='フェースが閉じて戻りました'; tip='力を抜いて、ゆったりと振り抜きましょう。'; }
+  else { vk='ok'; verdict='まっすぐ、芯で戻りました'; tip='今の感覚を、そのまま覚えておきましょう。'; }
   $('verdict').textContent=verdict; $('verdict').className='verdict '+vk; $('vtip').textContent=tip;
   const absd=Math.abs(d);
   if(vk==='ok') streak++; else streak=0;
@@ -331,7 +364,7 @@ function buildDrawFrame(vecs){ const up={x:0,y:0,z:1};
   return {up, f}; }
 function stageBG(ctx,W,H){
   const bg=ctx.createRadialGradient(W/2,H*0.40,8, W/2,H*0.42, Math.max(W,H)*0.9);
-  bg.addColorStop(0,'#27362c'); bg.addColorStop(.55,'#172019'); bg.addColorStop(1,'#0b110d');
+  bg.addColorStop(0,'#2b3a2f'); bg.addColorStop(.30,'#243229'); bg.addColorStop(.62,'#18211B'); bg.addColorStop(1,'#0d130f');
   ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
   ctx.strokeStyle='rgba(201,176,122,.06)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(W*0.12,H*0.86); ctx.lineTo(W*0.88,H*0.86); ctx.stroke();
 }
@@ -375,6 +408,7 @@ function drawTrail(ctx,SP,tail,head,vcol,bottomIdx){
 let animReq=null;
 function animateSwing(sm, bottomIdx, vk){
   if(animReq) cancelAnimationFrame(animReq);
+  $('stageFS').classList.add('on'); $('btnAgain').disabled=true;   // 舞台へ暗転（0.6s・表示のみ）
   const {SP,W,H}=buildSP(sm); const N=SP.length;
   const vcol = vk==='slice'?'#C45B4A':vk==='hook'?'#D4A040':'#E4D6BA';
   const cv=$('cv'); const ctx=setupHiDPI(cv,W,H);
@@ -396,7 +430,7 @@ function animateSwing(sm, bottomIdx, vk){
       parts.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=0.10; p.life-=0.022; if(p.life>0){ ctx.globalAlpha=Math.max(0,p.life); ctx.fillStyle='#EBD9A8'; ctx.shadowColor='#EBD9A8'; ctx.shadowBlur=6; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill(); } });
       ctx.globalAlpha=1; ctx.shadowBlur=0; }
     if(el<DUR){ animReq=requestAnimationFrame(frame); }
-    else { drawFinal(ctx,SP,vcol,bottomIdx); }   // 最後は弧を静止表示
+    else { drawFinal(ctx,SP,vcol,bottomIdx); $('btnAgain').disabled=false; }   // 最後は弧を静止表示・操作解禁
   }
   animReq=requestAnimationFrame(frame);
 }
