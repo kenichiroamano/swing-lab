@@ -50,7 +50,7 @@ canvas{ display:block; width:100%; height:280px; margin-top:8px; border-radius:1
 /* 案A：全画面ヒーロー（写真が舞台・枠なし・下端が紙に溶ける）— 表示のみ・計測不変 */
 .card.flat{ background:transparent; border:none; box-shadow:none; padding:0 4px; margin-top:0 }
 .heroA{ position:absolute; top:-38px; left:-22px; right:-22px; height:400px; overflow:hidden; pointer-events:none }
-.heroA img{ width:100%; height:100%; object-fit:cover; object-position:center 18%; display:block;
+.heroA img, .heroA video{ width:100%; height:100%; object-fit:cover; object-position:center 18%; display:block;
   -webkit-mask-image:linear-gradient(to bottom,#000 60%,transparent 99%);
   mask-image:linear-gradient(to bottom,#000 60%,transparent 99%) }
 body.photo .brand{ position:relative; z-index:2; color:var(--ink); text-shadow:0 0 10px rgba(244,238,226,.9), 0 0 24px rgba(244,238,226,.7) }
@@ -60,6 +60,15 @@ body.photo .tag{ display:none }
 .flat p.lead{ text-align:center; margin-top:8px }
 .flat .btn{ margin-top:20px }
 .flat .err{ text-align:center }
+/* 案Bゲート：構え=水準器（2026-07-06・研究ノート§6-5。表示と記録開始条件のみ・計測不変） */
+.gate{ position:relative; width:150px; height:150px; margin:14px auto 0 }
+.gate svg{ width:100%; height:100%; transform:rotate(-90deg) }
+.gTrack{ fill:none; stroke:var(--hair-gold); stroke-width:4 }
+.gTarget{ fill:none; stroke:rgba(169,143,88,.45); stroke-width:1.5; stroke-dasharray:3 4 }
+.gFill{ fill:none; stroke:var(--brass); stroke-width:4; stroke-linecap:round }
+.gBubble{ position:absolute; left:50%; top:50%; width:14px; height:14px; border-radius:50%; background:var(--sub);
+  margin:-7px 0 0 -7px; box-shadow:0 1px 3px rgba(0,0,0,.25); transition:background .2s }
+.gBubble.in{ background:var(--brass-hi) }
 </style>
 </head>
 <body class="photo">
@@ -81,8 +90,14 @@ body.photo .tag{ display:none }
     <div class="heroA"><img src="golflev-la-address.jpg" alt=""></div>
     <h2 class="fh2">構える</h2>
     <p class="lead">いつものアドレスで、<b>2秒静止</b>。</p>
-    <div class="live" id="aimCount">—</div>
-    <button class="btn" id="btnAim">アドレスを記録する</button>
+    <div class="gate" id="gateWrap">
+      <svg viewBox="0 0 150 150">
+        <circle class="gTrack" cx="75" cy="75" r="62"></circle>
+        <circle class="gTarget" cx="75" cy="75" r="26"></circle>
+        <circle class="gFill" id="gFill" cx="75" cy="75" r="62" stroke-dasharray="389.6" stroke-dashoffset="389.6"></circle>
+      </svg>
+      <div class="gBubble" id="gBubble"></div>
+    </div>
   </div>
 
   <!-- 3. 基準づくり -->
@@ -174,16 +189,59 @@ $('btnPerm').addEventListener('click', async ()=>{
       const r=await DeviceOrientationEvent.requestPermission();
       if(r!=='granted'){ $('permErr').classList.remove('hide'); $('permErr').textContent='センサーが許可されませんでした。設定から許可してください。'; return; }
     }
+    ensureAudio();
     window.addEventListener('deviceorientation', onOrient, true);
     STATE='aim'; show('cardAim');
   }catch(err){ $('permErr').classList.remove('hide'); $('permErr').textContent='エラー: '+(err.message||err); }
 });
-let aimColl=null;
-$('btnAim').addEventListener('click', ()=>{ aimColl={list:[],remain:2.0}; aimColl.timer=setInterval(()=>{
-  aimColl.remain-=0.1; $('aimCount').textContent=Math.max(0,aimColl.remain).toFixed(1);
-  if(aimColl.remain<=0){ clearInterval(aimColl.timer); baseQ=avgQ(aimColl.list); aimColl=null; enterBaseline(); }
-},100); });
-function aimTick(){ if(aimColl) aimColl.list.push(qFromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma)); }
+/* ── 案Bゲート（構え=水準器）: 帯内＋静止2秒で自動記録（ボタン廃止）。計測(faceRoll/segment)不変 ──
+   帯=ken実測2026-07-06（傾き−12〜+6°・横±10°・画面上向き）。詳細=docs/2026-07-05研究ノート§6-5 */
+const TILT_MIN=-12, TILT_MAX=6, SIDE_MAX=10;
+const GATE_FILL_MS=2000, GATE_DECAY_MS=700, GATE_STILL=20, GATE_CIRC=389.6;
+let aimBuf=[], gateProg=0, gateLastT=0, gateLastS=null, gateDone=false;
+function tiltSide(q){
+  const Yw=rotVec(q,Yc), Zw=rotVec(q,{x:0,y:0,z:1});
+  const tilt=Math.asin(Math.max(-1,Math.min(1,-Yw.z)))*R2D;
+  const hn=Math.hypot(Yw.x,Yw.y);
+  let side=null;
+  if(hn>=0.12){ const sx=Yw.y/hn, sy=-Yw.x/hn; side=Math.asin(Math.max(-1,Math.min(1,Zw.x*sx+Zw.y*sy)))*R2D; }
+  return {tilt:tilt, side:side, up:Zw.z>0.15};
+}
+function aimTick(){
+  if(gateDone) return;
+  const t=performance.now();
+  const q=qFromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma);
+  const g=tiltSide(q);
+  const s=norm(rotVec(q,Yc));
+  let w=999; if(gateLastS&&gateLastT){ const sec=(t-gateLastT)/1000||0.016; w=angBetween(s,gateLastS)/sec; }
+  const dt=Math.min(100, gateLastT? t-gateLastT : 16);
+  gateLastS=s; gateLastT=t;
+  const band = g.up && g.side!==null && g.tilt>=TILT_MIN && g.tilt<=TILT_MAX && Math.abs(g.side)<=SIDE_MAX;
+  const still = w<GATE_STILL;
+  aimBuf.push({t:t,q:q}); while(aimBuf.length && aimBuf[0].t<t-1600) aimBuf.shift();
+  if(band&&still) gateProg=Math.min(1, gateProg+dt/GATE_FILL_MS);
+  else gateProg=Math.max(0, gateProg-dt/GATE_DECAY_MS);
+  const bx=Math.max(-1,Math.min(1,(g.side||0)/25))*46;
+  const by=Math.max(-1,Math.min(1,(g.tilt-(TILT_MIN+TILT_MAX)/2)/25))*-46;
+  $('gBubble').style.transform='translate('+bx.toFixed(1)+'px,'+by.toFixed(1)+'px)';
+  $('gBubble').className='gBubble'+(band?' in':'');
+  $('gFill').setAttribute('stroke-dashoffset', String(GATE_CIRC*(1-gateProg)));
+  if(gateProg>=1){
+    gateDone=true;
+    const recent=aimBuf.filter(o=>o.t>t-900).map(o=>o.q);
+    baseQ=avgQ(recent.length?recent:aimBuf.map(o=>o.q));
+    gateBeep(); enterBaseline();
+  }
+}
+let AC=null;
+function ensureAudio(){ if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+  if(AC&&AC.state==='suspended'){ try{AC.resume();}catch(e){} } }
+function gateBeep(){ if(!AC) return; try{
+  const o=AC.createOscillator(), gn=AC.createGain(); o.type='sine'; o.frequency.value=880;
+  o.connect(gn); gn.connect(AC.destination); const t0=AC.currentTime;
+  gn.gain.setValueAtTime(0.0001,t0); gn.gain.exponentialRampToValueAtTime(0.22,t0+0.02);
+  gn.gain.exponentialRampToValueAtTime(0.0001,t0+0.26); o.start(t0); o.stop(t0+0.3);
+}catch(e){} }
 
 function enterBaseline(){ mode='base'; capturing=false; show('cardBase'); $('baseState').textContent=''; $('btnBaseGo').textContent='基準を計測する（1球）'; }
 $('btnBaseGo').addEventListener('click', ()=>{ startCapture(); $('baseState').textContent='計測中… いつも通り、ゆっくり振ってください'; });
