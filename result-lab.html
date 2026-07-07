@@ -184,8 +184,9 @@ function drawArc(r, done){
     var t=i/N, th=A0+(A1-A0+dev)*t;
     pts.push({x:cx+R*Math.sin(th), y:cy+R*Math.cos(th), t:t});
   }
-  var start=null, DUR=1300;
+  var start=null, DUR=1300, ended=false;
   function frame(ts){
+    if(ended) return;
     if(!start) start=ts;
     var p=Math.min(1,(ts-start)/DUR);
     var head=Math.max(2, Math.floor(p*N));
@@ -207,9 +208,11 @@ function drawArc(r, done){
       ctx.shadowBlur=0; ctx.fillStyle='#fff';
       ctx.beginPath(); ctx.arc(q.x,q.y,1.8,0,7); ctx.fill();
     }
-    if(p<1) requestAnimationFrame(frame); else done&&done();
+    if(p<1) requestAnimationFrame(frame); else { ended=true; done&&done(); }
   }
   requestAnimationFrame(frame);
+  // 保険: rAFが止まる環境（非アクティブタブ等）でも最後は必ず全描画
+  setTimeout(function(){ if(!ended){ start=-1e9; frame(performance.now()); } }, DUR+450);
 }
 </script>
 </body>
