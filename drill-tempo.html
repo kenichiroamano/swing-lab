@@ -46,6 +46,13 @@ canvas{ display:block; width:100%; height:280px; margin-top:8px; border-radius:1
 .note{ font-family:var(--jp); font-size:11px; color:var(--sub); margin-top:16px; line-height:1.7; border-top:1px solid var(--hair-gold); padding-top:12px }
 .hide{ display:none }
 .err{ color:#C45B4A; font-size:11px; font-family:var(--jp); margin-top:8px }
+/* モード2: お手本テンポ（プリセット選択ピル・数字非表示） */
+.pills{ display:flex; gap:10px; justify-content:center; margin-top:18px }
+.pill{ cursor:pointer; padding:10px 18px; border-radius:999px; background:transparent; border:1px solid var(--hair-gold);
+  font-family:var(--jp); font-size:13.5px; letter-spacing:.08em; color:var(--sub); transition:all .2s }
+.pill.on{ border-color:var(--brass); color:var(--brass-lo); background:rgba(169,143,88,.10) }
+.btn[disabled]{ opacity:.45; pointer-events:none }
+.hint{ font-family:var(--jp); font-size:11.5px; color:var(--sub); text-align:center; margin-top:14px; letter-spacing:.04em }
 .hero{ display:block; width:100%; height:230px; object-fit:cover; object-position:center 20%; border-radius:14px; margin-top:14px; border:1px solid var(--hair-gold) }
 /* 案A：全画面ヒーロー（写真が舞台・枠なし・下端が紙に溶ける）— 表示のみ・計測不変 */
 .card.flat{ background:transparent; border:none; box-shadow:none; padding:0 4px; margin-top:0 }
@@ -121,7 +128,7 @@ body.measuring .breathWrap{ display:flex }
   <div class="card flat hide" id="cardBase">
     <div class="heroA"><img src="golflev-la-swing.jpg" alt=""></div>
     <h2 class="fh2">基準をつくる</h2>
-    <p class="lead"><b>いつも通りに3球</b>。あなたのリズムを覚えます。</p>
+    <p class="lead"><b>いつも通りに3球</b>。あなたの“いつものリズム”を覚えます。</p>
     <button class="btn solid" id="btnBaseGo">基準を計測する（3球）</button>
     <div class="statetx" id="baseState"></div>
   </div>
@@ -133,8 +140,26 @@ body.measuring .breathWrap{ display:flex }
     <p class="lead" id="pLead">「計測する」を押して、1球振ってください。</p>
     <div class="breathWrap"><div class="glow"></div><div class="line"></div></div>
     <button class="btn solid" id="btnGo">計測する</button>
+    <button class="btn" id="btnModel">お手本テンポで練習する</button>
     <div class="statetx" id="pState"></div>
-    <button class="btn small" id="btnRebase" style="display:block;margin:10px auto 0">基準を取り直す</button>
+    <button class="btn small" id="btnRebase" style="display:block;margin:8px auto 0">基準を取り直す</button>
+  </div>
+
+  <!-- 4.5 モード2: お手本テンポ（3音メトロノーム・§4.5・計測エンジン共通） -->
+  <div class="card flat hide" id="cardModel">
+    <div class="heroA"><img src="golflev-la-swing.jpg" alt=""></div>
+    <h2 class="fh2">お手本テンポ</h2>
+    <p class="lead">プロに多いと言われるリズムを、音で体験。</p>
+    <div class="pills">
+      <button class="pill" data-p="slow">ゆったり</button>
+      <button class="pill on" data-p="std">標準</button>
+      <button class="pill" data-p="quick">キビキビ</button>
+    </div>
+    <button class="btn" id="btnListen">お手本を聞く</button>
+    <button class="btn solid" id="btnModelGo">音に合わせて計測する</button>
+    <div class="statetx" id="mState"></div>
+    <div class="hint">低い音で上げ、高い音で下ろします。音が聞こえない時は、音量とマナーモードをご確認ください。</div>
+    <button class="btn small" id="btnSelf" style="display:block;margin:10px auto 0">自分のリズムに帰る</button>
   </div>
 
   <!-- 結果=全画面の暗緑舞台（案A×Claude Design・表示のみ） -->
@@ -207,9 +232,14 @@ let baseTempos=[];
 function tempoOf(r){ const sm=r.sm; if(!sm||r.topIdx<=0||r.bottomIdx<=r.topIdx) return null;
   const Tb=(sm[r.topIdx].t-sm[0].t)/1000, Td=(sm[r.bottomIdx].t-sm[r.topIdx].t)/1000;
   if(Tb<0.15||Td<0.05) return null; return {Tb:Tb,Td:Td,R:Tb/Td}; }
+/* モード2「お手本テンポ」（specs/drill-tempo-brief.md §4.5）
+   全プリセット3:1・ドリル速度（レッド指摘反映: Tdを0.6〜0.9sに＝250°/秒帯を守る）。数字はUIに出さない。 */
+const PRESETS={ slow:{Tb:2.70,Td:0.90}, std:{Tb:2.25,Td:0.75}, quick:{Tb:1.80,Td:0.60} };
+const R_TARGET=3.0, BAND_R=0.15, BAND_T=0.25, METRO_REST=1.6;   // 帯は暫定・実機で調整
+let tmode='self', preset='std', modelStreak=0, metroTimer=null, metroOn=false, metroLeft=0;
 
-function show(id){ ['cardPerm','cardAim','cardBase','cardPractice'].forEach(c=>$(c).classList.add('hide')); $(id).classList.remove('hide');
-  document.body.classList.toggle('photo', id==='cardPerm'||id==='cardAim'||id==='cardBase'||id==='cardPractice'); }
+function show(id){ ['cardPerm','cardAim','cardBase','cardPractice','cardModel'].forEach(c=>$(c).classList.add('hide')); $(id).classList.remove('hide');
+  document.body.classList.toggle('photo', true); }
 function onOrient(e){
   if(e.alpha==null&&e.beta==null&&e.gamma==null) return;
   SENSOR.alpha=e.alpha||0; SENSOR.beta=e.beta||0; SENSOR.gamma=e.gamma||0;
@@ -274,6 +304,23 @@ function gateBeep(){ if(!AC) return; try{
   gn.gain.setValueAtTime(0.0001,t0); gn.gain.exponentialRampToValueAtTime(0.22,t0+0.02);
   gn.gain.exponentialRampToValueAtTime(0.0001,t0+0.26); o.start(t0); o.stop(t0+0.3);
 }catch(e){} }
+/* ── 3音メトロノーム（モード2）: 休符→低い始動音→トップ→インパクト強め（レッド指摘反映: 始動音を聴き分け可能に）── */
+function playTone(t0,f,g,d){ if(!AC) return; try{
+  const o=AC.createOscillator(), gn=AC.createGain(); o.type='sine'; o.frequency.value=f;
+  o.connect(gn); gn.connect(AC.destination);
+  gn.gain.setValueAtTime(0.0001,t0); gn.gain.exponentialRampToValueAtTime(g,t0+0.02);
+  gn.gain.exponentialRampToValueAtTime(0.0001,t0+d); o.start(t0); o.stop(t0+d+0.05);
+}catch(e){} }
+function playPattern(){ const p=PRESETS[preset], t0=AC.currentTime+0.08;
+  playTone(t0,440,0.20,0.34);              // 始動（休符のあとの低い音）
+  playTone(t0+p.Tb,660,0.18,0.22);         // トップ
+  playTone(t0+p.Tb+p.Td,880,0.26,0.28);    // インパクト（強め）
+  return p.Tb+p.Td+0.08; }
+function metroStart(cycles){ ensureAudio(); if(!AC) return; metroEnd(); metroOn=true; metroLeft=cycles;
+  const cycle=()=>{ if(!metroOn||metroLeft<=0){ metroEnd(); return; } metroLeft--;
+    const len=playPattern(); metroTimer=setTimeout(cycle,(len+METRO_REST)*1000); };
+  cycle(); }
+function metroEnd(){ metroOn=false; if(metroTimer){ clearTimeout(metroTimer); metroTimer=null; } }
 
 function enterBaseline(){ mode='base'; capturing=false; baseTempos=[]; show('cardBase'); $('baseState').textContent=''; $('btnBaseGo').textContent='基準を計測する（3球）'; }
 $('btnBaseGo').addEventListener('click', ()=>{ startCapture(); $('baseState').textContent='計測中… いつも通り、ゆっくり振ってください'; });
@@ -283,14 +330,29 @@ function enterPractice(){ mode='practice'; capturing=false; lastAbsDev=null; str
 function readyPractice(title){
   $('stageFS').classList.remove('on'); document.body.classList.remove('measuring');
   $('pTitle').textContent=title; $('pLead').textContent='「計測する」を押して、1球振ってください。';
-  $('btnGo').style.display='block'; $('btnGo').textContent='計測する'; $('pState').textContent=''; }
+  $('btnGo').style.display='block'; $('btnGo').textContent='計測する'; $('btnModel').style.display='block'; $('pState').textContent=''; }
 $('btnGo').addEventListener('click', ()=>{ startCapture();
   $('pTitle').textContent='計測中'; $('pLead').textContent='ゆっくり、振り抜いてください。';
-  document.body.classList.add('measuring'); $('btnGo').style.display='none'; $('pState').textContent=''; });
-$('btnAgain').addEventListener('click', ()=>{ if($('btnAgain').disabled) return; readyPractice('次の一球'); });
+  document.body.classList.add('measuring'); $('btnGo').style.display='none'; $('btnModel').style.display='none'; $('pState').textContent=''; });
+$('btnAgain').addEventListener('click', ()=>{ if($('btnAgain').disabled) return;
+  if(tmode==='model'){ $('stageFS').classList.remove('on'); show('cardModel'); enableModelBtns(true);
+    $('mState').textContent = modelStreak>=3 ? 'そろそろ、自分のリズムで確かめましょう' : ''; }
+  else readyPractice('次の一球'); });
 $('btnRebase').addEventListener('click', ()=>{ baseline=0; enterBaseline(); });
 
-function startCapture(){ STATE='cap'; capturing=true; buf=[]; lastS=null; maxW=0; stillStart=0; capStart=performance.now(); }
+/* ── モード2 配線（1つの道: 自分を知る→お手本に合わせる→自分で定着）── */
+function enableModelBtns(on){ $('btnModelGo').disabled=!on; $('btnListen').disabled=!on; }
+$('btnModel').addEventListener('click', ()=>{ tmode='model'; modelStreak=0; show('cardModel'); $('mState').textContent=''; enableModelBtns(true); });
+$('btnSelf').addEventListener('click', ()=>{ metroEnd(); tmode='self'; show('cardPractice'); readyPractice('自分のリズムで'); });
+document.querySelectorAll('.pill').forEach(el=>el.addEventListener('click', ()=>{ if($('btnModelGo').disabled) return;
+  metroEnd(); preset=el.dataset.p; document.querySelectorAll('.pill').forEach(x=>x.classList.toggle('on',x===el)); }));
+$('btnListen').addEventListener('click', ()=>{ metroStart(2); });
+$('btnModelGo').addEventListener('click', ()=>{ enableModelBtns(false); $('mState').textContent='音に合わせて、ゆっくり振ってください';
+  startCapture(); metroStart(9999); });
+
+function startCapture(){ STATE='cap'; capturing=true; buf=[]; lastS=null; maxW=0; stillStart=0; capStart=performance.now();
+  capLimit=(tmode==='model'&&mode!=='base')?14000:MAXCAP_MS; }   // ゆったりプリセット+待ち1周に配慮（タイムアウトのみ・計測不変
+let capLimit=MAXCAP_MS;
 function capTick(){
   if(!capturing) return;
   const t=performance.now();
@@ -299,7 +361,7 @@ function capTick(){
   let w=0; if(lastS){ const dt=(buf.length?(t-buf[buf.length-1].t):16)/1000||0.016; w=angBetween(s,lastS)/dt; }
   buf.push({t,s,q}); lastS=s; if(w>maxW)maxW=w;
   if(maxW>START_TH){ if(w<END_TH){ if(!stillStart) stillStart=t; else if(t-stillStart>STILL_MS){ capturing=false; process(); return; } } else stillStart=0; }
-  if(t-capStart>MAXCAP_MS){ capturing=false; process(); }
+  if(t-capStart>capLimit){ capturing=false; process(); }
 }
 function segment(rawbuf){
   if(!rawbuf || rawbuf.length<8) return null;
@@ -327,20 +389,23 @@ function computeSwing(){
   return {roll, sm, topIdx, impIdx, bottomIdx};
 }
 function process(){
+  metroEnd();
   const r=computeSwing();
   const tp = r ? tempoOf(r) : null;
   if(!r || !tp){
     if(mode==='base'){ $('baseState').textContent='うまく取れませんでした。「基準を計測する」をもう一度押してください'; $('btnBaseGo').textContent='基準を計測する（3球）'; }
-    else { document.body.classList.remove('measuring'); $('btnGo').style.display='block';
+    else if(tmode==='model'){ enableModelBtns(true); $('mState').textContent='うまく取れませんでした。もう一度お願いします。'; }
+    else { document.body.classList.remove('measuring'); $('btnGo').style.display='block'; $('btnModel').style.display='block';
       $('pTitle').textContent='もう一度'; $('pLead').textContent='うまく取れませんでした。もう1球お願いします。'; $('btnGo').textContent='もう一度計測する'; }
     return;
   }
   if(mode==='base'){
     baseTempos.push(tp.R);
-    if(baseTempos.length<3){ $('baseState').textContent='あと'+(3-baseTempos.length)+'球。同じリズムで'; $('btnBaseGo').textContent='次を計測する'; return; }
+    if(baseTempos.length<3){ $('baseState').textContent='あと'+(3-baseTempos.length)+'球。同じリズムで。'; $('btnBaseGo').textContent='次を計測する'; return; }
     const s=baseTempos.slice().sort((a,b)=>a-b); baseline=s[1];   // 3球の中央値=あなたのテンポ
     enterPractice(); return;
   }
+  if(tmode==='model'){ judgeModel(tp,r); return; }
   const dev = tp.R/baseline - 1;
   let vk,verdict,tip;
   if(dev>=0.15){ vk='slice'; verdict='急いで下ろしました'; tip='切り返しで、ひと呼吸。'; }
@@ -348,11 +413,29 @@ function process(){
   else { vk='ok'; verdict='あなたのリズムで振れています'; tip='この間合いを、そのまま覚えておきましょう。'; }
   $('verdict').textContent=verdict; $('verdict').className='verdict '+vk; $('vtip').textContent=tip;
   if(vk==='ok') streak++; else streak=0;
-  let sub='上げ:下ろし '+tp.R.toFixed(1)+'：1 ・ プロ平均はおよそ3:1と言われます';
+  let sub='上げ:下ろし '+tp.R.toFixed(1)+'：1 ・ プロに多いのは3:1と言われます';
   if(streak>=2) sub='<b>あなたのリズム '+streak+'回連続</b> ・ '+sub;
   $('vsub').innerHTML=sub;
   $('pState').textContent=''; $('btnGo').textContent='次の球を計測する';
   animateSwing(r.sm, r.bottomIdx, vk);   // ★ 金の弧をアニメで再生
+}
+/* ── モード2判定: 比率±15%＋全体の速さ±25%（TbとTdの実測=誠実に判定できる範囲のみ・帯は暫定）──
+   レッド条件: 3:1を「正解」と言わない（お手本=プロに多いと言われる、まで）・最後は自分のリズムに帰る */
+function judgeModel(tp,r){
+  const p=PRESETS[preset];
+  const devR=tp.R/R_TARGET-1, devT=(tp.Tb+tp.Td)/(p.Tb+p.Td)-1;
+  let vk,verdict,tip;
+  if(devR>=BAND_R){ vk='slice'; verdict='お手本より、急いで下ろしました'; tip='トップの音まで、間を聞いてから。'; }
+  else if(devR<=-BAND_R){ vk='hook'; verdict='お手本より、間が伸びました'; tip='トップの音で、ためらわず下ろしましょう。'; }
+  else if(devT<=-BAND_T){ vk='slice'; verdict='お手本より、速く振っています'; tip='音に、身をゆだねるように。'; }
+  else if(devT>=BAND_T){ vk='hook'; verdict='お手本より、ゆっくり振っています'; tip='始動の音で、すっと上げてみましょう。'; }
+  else { vk='ok'; verdict='お手本の間で振れています'; tip='この間を、自分のリズムに持ち帰りましょう。'; }
+  if(vk==='ok') modelStreak++; else modelStreak=0;
+  $('verdict').textContent=verdict; $('verdict').className='verdict '+vk; $('vtip').textContent=tip;
+  let sub='上げ:下ろし '+tp.R.toFixed(1)+'：1 ・ お手本はプロに多いと言われる3:1';
+  if(modelStreak>=3) sub='<b>お手本の間 '+modelStreak+'回連続</b> ・ そろそろ、自分のリズムで';
+  $('vsub').innerHTML=sub;
+  animateSwing(r.sm, r.bottomIdx, vk);
 }
 
 /* ── 描画（金の弧アニメ）── */
