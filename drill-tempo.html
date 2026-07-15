@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Golflev · テンポ</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Playfair+Display:ital,wght@0,500;0,600&family=Noto+Serif+JP:wght@300;400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bone:#E8E2D4; --bone-2:#E0D8C6; --paper:#F4EEE2;
+  --ink:#1B2620; --ink-soft:#3A453C;
+  --green-1:#243229; --green-2:#18211B;
+  --brass:#A98F58; --brass-hi:#CBB079; --brass-lo:#876F40; --champagne:#E4D6BA;
+  --sub:#8C8676; --hair:rgba(27,38,32,.12); --hair-gold:rgba(169,143,88,.4);
+  --slice:#C45B4A; --hook:#D4A040; --ok:#4A6B4A;
+  --serif:'Cormorant Garamond','Playfair Display',Georgia,serif;
+  --jp:'Noto Serif JP',serif; --ui:'Inter',-apple-system,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+body{ background:radial-gradient(130% 80% at 50% 0%, #F0EADC 0%, var(--bone) 52%, var(--bone-2) 100%);
+  color:var(--ink); font-family:var(--ui); line-height:1.6; min-height:100vh; position:relative; overflow-x:hidden;
+  padding:38px 22px calc(56px + env(safe-area-inset-bottom)) }
+.wrap{ position:relative; z-index:1; max-width:430px; margin:0 auto }
+.brand{ text-align:center; font-family:var(--serif); font-weight:600; font-size:14px; letter-spacing:.46em; text-indent:.46em; color:var(--ink) }
+.brand b{ color:var(--brass); font-weight:600 }
+.tag{ text-align:center; font-family:var(--jp); font-size:13px; color:var(--sub); margin-top:8px; letter-spacing:.08em }
+.card{ background:var(--paper); border:1px solid var(--hair-gold); border-radius:18px; padding:26px 22px; margin-top:20px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5) }
+h2{ font-family:var(--serif); font-style:italic; font-weight:600; font-size:31px; color:var(--ink); line-height:1.1 }
+p.lead{ font-family:var(--jp); font-size:17px; color:var(--ink-soft); margin-top:12px; line-height:1.85 }
+p.lead b{ color:var(--brass-lo); font-weight:500 }
+.btn{ display:block; width:100%; margin-top:16px; padding:15px; cursor:pointer; background:transparent; border:1px solid var(--brass);
+  border-radius:10px; font-family:var(--ui); font-size:15px; font-weight:500; letter-spacing:.2em; color:var(--brass-lo); transition:background .2s }
+.btn.solid{ background:linear-gradient(155deg,var(--green-1),var(--green-2)); color:var(--champagne); border-color:transparent;
+  box-shadow:0 18px 36px -18px rgba(18,26,21,.5), inset 0 1px 0 rgba(228,214,186,.07) }
+.btn.small{ width:auto; display:inline-block; padding:9px 16px; font-size:12px; letter-spacing:.2em; margin-top:12px }
+.btn:active{ background:rgba(169,143,88,.14) }
+.live{ text-align:center; font-family:var(--serif); font-style:italic; font-size:40px; color:var(--brass); margin-top:8px; font-variant-numeric:tabular-nums }
+.statetx{ text-align:center; font-family:var(--jp); font-size:16.5px; color:var(--ink-soft); margin-top:12px; letter-spacing:.04em; min-height:24px }
+canvas{ display:block; width:100%; height:280px; margin-top:8px; border-radius:16px; background:#0d130f; border:1px solid rgba(169,143,88,.25) }
+.verdict{ font-family:var(--serif); font-style:italic; font-weight:500; font-size:31px; line-height:1.3; letter-spacing:.03em; color:#E4D6BA; text-align:center; margin-bottom:14px }
+.verdict.slice{ color:var(--slice) } .verdict.hook{ color:var(--hook) } .verdict.ok{ color:#E4D6BA }
+.vtip{ font-family:var(--jp); font-weight:300; font-size:13.5px; letter-spacing:.03em; color:rgba(228,214,186,.66); text-align:center; line-height:1.7; margin-bottom:10px }
+.vsub{ font-family:var(--jp); font-size:12.5px; color:rgba(228,214,186,.45); text-align:center; min-height:18px; margin-bottom:20px }
+.vsub b{ color:#CBB079; font-weight:500 }
+.note{ font-family:var(--jp); font-size:11px; color:var(--sub); margin-top:16px; line-height:1.7; border-top:1px solid var(--hair-gold); padding-top:12px }
+.hide{ display:none }
+.err{ color:#C45B4A; font-size:11px; font-family:var(--jp); margin-top:8px }
+.hero{ display:block; width:100%; height:230px; object-fit:cover; object-position:center 20%; border-radius:14px; margin-top:14px; border:1px solid var(--hair-gold) }
+/* 案A：全画面ヒーロー（写真が舞台・枠なし・下端が紙に溶ける）— 表示のみ・計測不変 */
+.card.flat{ background:transparent; border:none; box-shadow:none; padding:0 4px; margin-top:0 }
+.heroA{ position:absolute; top:-38px; left:-22px; right:-22px; height:400px; overflow:hidden; pointer-events:none }
+.heroA img, .heroA video{ width:100%; height:100%; object-fit:cover; object-position:center 18%; display:block;
+  -webkit-mask-image:linear-gradient(to bottom,#000 60%,transparent 99%);
+  mask-image:linear-gradient(to bottom,#000 60%,transparent 99%) }
+body.photo .brand{ position:relative; z-index:2; color:var(--ink); text-shadow:0 0 10px rgba(244,238,226,.9), 0 0 24px rgba(244,238,226,.7) }
+body.photo .brand b{ color:var(--brass-lo) }
+body.photo .tag{ display:none }
+.flat .fh2{ text-align:center; margin-top:272px }
+.flat p.lead{ text-align:center; margin-top:8px }
+.flat .btn{ margin-top:20px }
+.flat .err{ text-align:center }
+/* 案Bゲート：構え=水準器（2026-07-06・研究ノート§6-5。表示と記録開始条件のみ・計測不変） */
+.gate{ position:relative; width:150px; height:150px; margin:14px auto 0 }
+.gate svg{ width:100%; height:100%; transform:rotate(-90deg) }
+.gTrack{ fill:none; stroke:var(--hair-gold); stroke-width:4 }
+.gTarget{ fill:none; stroke:rgba(169,143,88,.45); stroke-width:1.5; stroke-dasharray:3 4 }
+.gFill{ fill:none; stroke:var(--brass); stroke-width:4; stroke-linecap:round }
+.gBubble{ position:absolute; left:50%; top:50%; width:14px; height:14px; border-radius:50%; background:var(--sub);
+  margin:-7px 0 0 -7px; box-shadow:0 1px 3px rgba(0,0,0,.25); transition:background .2s }
+.gBubble.in{ background:var(--brass-hi) }
+/* 案A×Claude Design: 結果=全画面の暗緑舞台（2026-07-06・表示のみ・計測不変） */
+@keyframes gl-breathe{0%,100%{opacity:.28;transform:scaleX(.78)}50%{opacity:1;transform:scaleX(1)}}
+@keyframes gl-breatheGlow{0%,100%{opacity:.12}50%{opacity:.4}}
+#stageFS{ position:fixed; inset:0; z-index:30; opacity:0; pointer-events:none; transition:opacity .6s ease;
+  background:radial-gradient(115% 78% at 50% 40%, #2b3a2f 0%, #243229 30%, #18211B 62%, #0d130f 100%) }
+#stageFS.on{ opacity:1; pointer-events:auto }
+#stageFS canvas{ position:absolute; inset:0; width:100%; height:100%; margin:0; border:none; border-radius:0; background:transparent }
+#fsTx{ position:absolute; left:0; right:0; bottom:0; padding:0 44px calc(46px + env(safe-area-inset-bottom)); text-align:center }
+.btnGhost{ cursor:pointer; width:100%; padding:16px; border-radius:14px; background:transparent;
+  border:1px solid rgba(169,143,88,.8); color:#CBB079; font-family:var(--ui); font-size:14px; font-weight:500; letter-spacing:.14em }
+.btnGhost[disabled]{ opacity:.45 }
+.breathWrap{ position:relative; height:22px; display:none; align-items:center; justify-content:center; margin-top:26px }
+.breathWrap .glow{ position:absolute; width:200px; height:18px; border-radius:999px;
+  background:radial-gradient(ellipse at center, rgba(203,176,121,.9), rgba(203,176,121,0) 70%); animation:gl-breatheGlow 3.4s ease-in-out infinite }
+.breathWrap .line{ width:168px; height:1.5px; border-radius:999px;
+  background:linear-gradient(to right, rgba(169,143,88,0) 0%, #CBB079 50%, rgba(169,143,88,0) 100%); animation:gl-breathe 3.4s ease-in-out infinite }
+body.measuring .breathWrap{ display:flex }
+</style>
+</head>
+<body class="photo">
+<div class="wrap">
+  <div class="brand">GOLF<b>LEV</b></div>
+  <div class="tag">テンポ — あなたのリズムを、毎回同じに</div>
+
+  <!-- 1. 許可 -->
+  <div class="card flat" id="cardPerm">
+    <div class="heroA"><img src="golflev-la-swing.jpg" alt=""></div>
+    <h2 class="fh2">はじめに</h2>
+    <p class="lead">スマホをクラブのように握り、ゆっくり素振り。</p>
+    <button class="btn solid" id="btnPerm">センサーを有効にする</button>
+    <div class="err hide" id="permErr"></div>
+  </div>
+
+  <!-- 2. アドレス -->
+  <div class="card flat hide" id="cardAim">
+    <div class="heroA"><img src="golflev-la-address.jpg" alt=""></div>
+    <h2 class="fh2">構える</h2>
+    <p class="lead">いつものアドレスで、<b>2秒静止</b>。</p>
+    <div class="gate" id="gateWrap">
+      <svg viewBox="0 0 150 150">
+        <circle class="gTrack" cx="75" cy="75" r="62"></circle>
+        <circle class="gTarget" cx="75" cy="75" r="26"></circle>
+        <circle class="gFill" id="gFill" cx="75" cy="75" r="62" stroke-dasharray="389.6" stroke-dashoffset="389.6"></circle>
+      </svg>
+      <div class="gBubble" id="gBubble"></div>
+    </div>
+  </div>
+
+  <!-- 3. 基準づくり -->
+  <div class="card flat hide" id="cardBase">
+    <div class="heroA"><img src="golflev-la-swing.jpg" alt=""></div>
+    <h2 class="fh2">基準をつくる</h2>
+    <p class="lead"><b>いつも通りに3球</b>。あなたのリズムを覚えます。</p>
+    <button class="btn solid" id="btnBaseGo">基準を計測する（3球）</button>
+    <div class="statetx" id="baseState"></div>
+  </div>
+
+  <!-- 4. 練習ループ（案A: 準備=写真の世界） -->
+  <div class="card flat hide" id="cardPractice">
+    <div class="heroA"><img src="golflev-la-swing.jpg" alt=""></div>
+    <h2 class="fh2" id="pTitle">基準ができました</h2>
+    <p class="lead" id="pLead">「計測する」を押して、1球振ってください。</p>
+    <div class="breathWrap"><div class="glow"></div><div class="line"></div></div>
+    <button class="btn solid" id="btnGo">計測する</button>
+    <div class="statetx" id="pState"></div>
+    <button class="btn small" id="btnRebase" style="display:block;margin:10px auto 0">基準を取り直す</button>
+  </div>
+
+  <!-- 結果=全画面の暗緑舞台（案A×Claude Design・表示のみ） -->
+  <div id="stageFS">
+    <canvas id="cv"></canvas>
+    <div id="fsTx">
+      <div class="verdict" id="verdict"></div>
+      <div class="vtip" id="vtip"></div>
+      <div class="vsub" id="vsub"></div>
+      <button class="btnGhost" id="btnAgain">もう一度</button>
+    </div>
+  </div>
+
+  <div class="err" id="globalErr"></div>
+</div>
+
+<script>
+window.__err=[]; window.onerror=m=>{ window.__err.push(String(m)); var e=document.getElementById('globalErr'); if(e) e.textContent=String(m); };
+const $=id=>document.getElementById(id);
+const D2R=Math.PI/180, R2D=180/Math.PI;
+
+/* ── クォータニオン／ベクトル（face-coachと同一・実証済み）── */
+function qFromEuler(a,b,g){a=(a||0)*D2R;b=(b||0)*D2R;g=(g||0)*D2R;
+  const cX=Math.cos(b/2),cY=Math.cos(g/2),cZ=Math.cos(a/2),sX=Math.sin(b/2),sY=Math.sin(g/2),sZ=Math.sin(a/2);
+  return {w:cX*cY*cZ-sX*sY*sZ, x:sX*cY*cZ-cX*sY*sZ, y:cX*sY*cZ+sX*cY*sZ, z:cX*cY*sZ+sX*sY*cZ};}
+function rotVec(q,v){const{w,x,y,z}=q,{x:vx,y:vy,z:vz}=v;
+  const tx=2*(y*vz-z*vy),ty=2*(z*vx-x*vz),tz=2*(x*vy-y*vx);
+  return {x:vx+w*tx+(y*tz-z*ty), y:vy+w*ty+(z*tx-x*tz), z:vz+w*tz+(x*ty-y*tx)};}
+const dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
+const cross=(a,b)=>({x:a.y*b.z-a.z*b.y,y:a.z*b.x-a.x*b.z,z:a.x*b.y-a.y*b.x});
+function norm(v){const l=Math.hypot(v.x,v.y,v.z)||1;return{x:v.x/l,y:v.y/l,z:v.z/l};}
+function angBetween(a,b){return Math.acos(Math.max(-1,Math.min(1,dot(norm(a),norm(b)))))*R2D;}
+const Yc={x:0,y:1,z:0}, Xc={x:1,y:0,z:0};
+
+function faceRoll(q0,qi){
+  if(!q0||!qi) return null;
+  const a0=norm(rotVec(q0,Yc));
+  const proj=(v,a)=>{ const d=dot(v,a); return norm({x:v.x-d*a.x,y:v.y-d*a.y,z:v.z-d*a.z}); };
+  const u0=proj(rotVec(q0,Xc),a0), u1=proj(rotVec(qi,Xc),a0);
+  return Math.atan2(dot(cross(u0,u1),a0), dot(u0,u1))*R2D;
+}
+function smallestEigVec(M){
+  let a=[[M.xx,M.xy,M.xz],[M.xy,M.yy,M.yz],[M.xz,M.yz,M.zz]],V=[[1,0,0],[0,1,0],[0,0,1]];
+  for(let it=0;it<60;it++){ let p=0,q=1,mx=Math.abs(a[0][1]);
+    for(const c of [[0,2],[1,2]]){ if(Math.abs(a[c[0]][c[1]])>mx){mx=Math.abs(a[c[0]][c[1]]);p=c[0];q=c[1];} }
+    if(mx<1e-12) break; const app=a[p][p],aqq=a[q][q],apq=a[p][q]; const ph=0.5*Math.atan2(2*apq,aqq-app),c=Math.cos(ph),s=Math.sin(ph);
+    for(let k=0;k<3;k++){const akp=a[k][p],akq=a[k][q];a[k][p]=c*akp-s*akq;a[k][q]=s*akp+c*akq;}
+    for(let k=0;k<3;k++){const apk=a[p][k],aqk=a[q][k];a[p][k]=c*apk-s*aqk;a[q][k]=s*apk+c*aqk;}
+    for(let k=0;k<3;k++){const vkp=V[k][p],vkq=V[k][q];V[k][p]=c*vkp-s*vkq;V[k][q]=s*vkp+c*vkq;} }
+  const ev=[a[0][0],a[1][1],a[2][2]]; let mi=0; if(ev[1]<ev[mi])mi=1; if(ev[2]<ev[mi])mi=2;
+  return norm({x:V[0][mi],y:V[1][mi],z:V[2][mi]});
+}
+function planeNormal(pts){ let mx=0,my=0,mz=0; pts.forEach(s=>{mx+=s.x;my+=s.y;mz+=s.z;}); const n=pts.length||1; mx/=n;my/=n;mz/=n;
+  let xx=0,xy=0,xz=0,yy=0,yz=0,zz=0; pts.forEach(s=>{const dx=s.x-mx,dy=s.y-my,dz=s.z-mz;xx+=dx*dx;xy+=dx*dy;xz+=dx*dz;yy+=dy*dy;yz+=dy*dz;zz+=dz*dz;});
+  return smallestEigVec({xx,xy,xz,yy,yz,zz}); }
+function smooth2D(p){ return p.map((_,i)=>{ let sx=0,sy=0,c=0; for(let k=-2;k<=2;k++){const j=i+k; if(j>=0&&j<p.length){sx+=p[j].x;sy+=p[j].y;c++;}} return {x:sx/c,y:sy/c}; }); }
+function avgQ(list){ if(!list.length) return {w:1,x:0,y:0,z:0}; const r=list[0]; let w=0,x=0,y=0,z=0;
+  list.forEach(q=>{const s=(q.w*r.w+q.x*r.x+q.y*r.y+q.z*r.z)<0?-1:1; w+=s*q.w;x+=s*q.x;y+=s*q.y;z+=s*q.z;});
+  const l=Math.hypot(w,x,y,z)||1; return {w:w/l,x:x/l,y:y/l,z:z/l}; }
+
+/* ── 状態（face-coachと同一）── */
+let SENSOR={alpha:0,beta:0,gamma:0}, baseQ=null;
+let STATE='perm', mode='base';
+let buf=[], capturing=false, lastS=null, maxW=0, stillStart=0, capStart=0;
+let baseline=0, lastAbsDev=null, streak=0, lastDev=0, introShown=false;
+const START_TH=45, END_TH=22, STILL_MS=600, MAXCAP_MS=9000;
+const MARGIN=15;
+/* テンポ計測（既存computeSwingの副産物。faceRoll/segment/computeSwingは無改変） */
+let baseTempos=[];
+function tempoOf(r){ const sm=r.sm; if(!sm||r.topIdx<=0||r.bottomIdx<=r.topIdx) return null;
+  const Tb=(sm[r.topIdx].t-sm[0].t)/1000, Td=(sm[r.bottomIdx].t-sm[r.topIdx].t)/1000;
+  if(Tb<0.15||Td<0.05) return null; return {Tb:Tb,Td:Td,R:Tb/Td}; }
+
+function show(id){ ['cardPerm','cardAim','cardBase','cardPractice'].forEach(c=>$(c).classList.add('hide')); $(id).classList.remove('hide');
+  document.body.classList.toggle('photo', id==='cardPerm'||id==='cardAim'||id==='cardBase'||id==='cardPractice'); }
+function onOrient(e){
+  if(e.alpha==null&&e.beta==null&&e.gamma==null) return;
+  SENSOR.alpha=e.alpha||0; SENSOR.beta=e.beta||0; SENSOR.gamma=e.gamma||0;
+  if(STATE==='aim') aimTick(); else if(STATE==='cap') capTick();
+}
+$('btnPerm').addEventListener('click', async ()=>{
+  try{
+    if(typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){
+      const r=await DeviceOrientationEvent.requestPermission();
+      if(r!=='granted'){ $('permErr').classList.remove('hide'); $('permErr').textContent='センサーが許可されませんでした。設定から許可してください。'; return; }
+    }
+    ensureAudio();
+    window.addEventListener('deviceorientation', onOrient, true);
+    STATE='aim'; show('cardAim');
+  }catch(err){ $('permErr').classList.remove('hide'); $('permErr').textContent='エラー: '+(err.message||err); }
+});
+/* ── 案Bゲート（構え=水準器）: 帯内＋静止2秒で自動記録（ボタン廃止）。計測(faceRoll/segment)不変 ──
+   帯=ken実測2026-07-06（傾き−12〜+6°・横±10°・画面上向き）。詳細=docs/2026-07-05研究ノート§6-5 */
+const TILT_MIN=-12, TILT_MAX=6, SIDE_MAX=10;
+const GATE_FILL_MS=2000, GATE_DECAY_MS=700, GATE_STILL=20, GATE_CIRC=389.6;
+let aimBuf=[], gateProg=0, gateLastT=0, gateLastS=null, gateDone=false;
+function tiltSide(q){
+  const Yw=rotVec(q,Yc), Zw=rotVec(q,{x:0,y:0,z:1});
+  const tilt=Math.asin(Math.max(-1,Math.min(1,-Yw.z)))*R2D;
+  const hn=Math.hypot(Yw.x,Yw.y);
+  let side=null;
+  if(hn>=0.12){ const sx=Yw.y/hn, sy=-Yw.x/hn; side=Math.asin(Math.max(-1,Math.min(1,Zw.x*sx+Zw.y*sy)))*R2D; }
+  return {tilt:tilt, side:side, up:Zw.z>0.15};
+}
+function aimTick(){
+  if(gateDone) return;
+  const t=performance.now();
+  const q=qFromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma);
+  const g=tiltSide(q);
+  const s=norm(rotVec(q,Yc));
+  let w=999; if(gateLastS&&gateLastT){ const sec=(t-gateLastT)/1000||0.016; w=angBetween(s,gateLastS)/sec; }
+  const dt=Math.min(100, gateLastT? t-gateLastT : 16);
+  gateLastS=s; gateLastT=t;
+  const band = g.up && g.side!==null && g.tilt>=TILT_MIN && g.tilt<=TILT_MAX && Math.abs(g.side)<=SIDE_MAX;
+  const still = w<GATE_STILL;
+  aimBuf.push({t:t,q:q}); while(aimBuf.length && aimBuf[0].t<t-1600) aimBuf.shift();
+  if(band&&still) gateProg=Math.min(1, gateProg+dt/GATE_FILL_MS);
+  else gateProg=Math.max(0, gateProg-dt/GATE_DECAY_MS);
+  const bx=Math.max(-1,Math.min(1,(g.side||0)/25))*46;
+  const by=Math.max(-1,Math.min(1,(g.tilt-(TILT_MIN+TILT_MAX)/2)/25))*-46;
+  $('gBubble').style.transform='translate('+bx.toFixed(1)+'px,'+by.toFixed(1)+'px)';
+  $('gBubble').className='gBubble'+(band?' in':'');
+  $('gFill').setAttribute('stroke-dashoffset', String(GATE_CIRC*(1-gateProg)));
+  if(gateProg>=1){
+    gateDone=true;
+    const recent=aimBuf.filter(o=>o.t>t-900).map(o=>o.q);
+    baseQ=avgQ(recent.length?recent:aimBuf.map(o=>o.q));
+    gateBeep(); enterBaseline();
+  }
+}
+let AC=null;
+function ensureAudio(){ if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+  if(AC&&AC.state==='suspended'){ try{AC.resume();}catch(e){} } }
+function gateBeep(){ if(!AC) return; try{
+  const o=AC.createOscillator(), gn=AC.createGain(); o.type='sine'; o.frequency.value=880;
+  o.connect(gn); gn.connect(AC.destination); const t0=AC.currentTime;
+  gn.gain.setValueAtTime(0.0001,t0); gn.gain.exponentialRampToValueAtTime(0.22,t0+0.02);
+  gn.gain.exponentialRampToValueAtTime(0.0001,t0+0.26); o.start(t0); o.stop(t0+0.3);
+}catch(e){} }
+
+function enterBaseline(){ mode='base'; capturing=false; baseTempos=[]; show('cardBase'); $('baseState').textContent=''; $('btnBaseGo').textContent='基準を計測する（3球）'; }
+$('btnBaseGo').addEventListener('click', ()=>{ startCapture(); $('baseState').textContent='計測中… いつも通り、ゆっくり振ってください'; });
+
+function enterPractice(){ mode='practice'; capturing=false; lastAbsDev=null; streak=0;
+  show('cardPractice'); readyPractice('基準ができました'); }
+function readyPractice(title){
+  $('stageFS').classList.remove('on'); document.body.classList.remove('measuring');
+  $('pTitle').textContent=title; $('pLead').textContent='「計測する」を押して、1球振ってください。';
+  $('btnGo').style.display='block'; $('btnGo').textContent='計測する'; $('pState').textContent=''; }
+$('btnGo').addEventListener('click', ()=>{ startCapture();
+  $('pTitle').textContent='計測中'; $('pLead').textContent='ゆっくり、振り抜いてください。';
+  document.body.classList.add('measuring'); $('btnGo').style.display='none'; $('pState').textContent=''; });
+$('btnAgain').addEventListener('click', ()=>{ if($('btnAgain').disabled) return; readyPractice('次の一球'); });
+$('btnRebase').addEventListener('click', ()=>{ baseline=0; enterBaseline(); });
+
+function startCapture(){ STATE='cap'; capturing=true; buf=[]; lastS=null; maxW=0; stillStart=0; capStart=performance.now(); }
+function capTick(){
+  if(!capturing) return;
+  const t=performance.now();
+  const q=qFromEuler(SENSOR.alpha,SENSOR.beta,SENSOR.gamma);
+  const s=norm(rotVec(q,Yc));
+  let w=0; if(lastS){ const dt=(buf.length?(t-buf[buf.length-1].t):16)/1000||0.016; w=angBetween(s,lastS)/dt; }
+  buf.push({t,s,q}); lastS=s; if(w>maxW)maxW=w;
+  if(maxW>START_TH){ if(w<END_TH){ if(!stillStart) stillStart=t; else if(t-stillStart>STILL_MS){ capturing=false; process(); return; } } else stillStart=0; }
+  if(t-capStart>MAXCAP_MS){ capturing=false; process(); }
+}
+function segment(rawbuf){
+  if(!rawbuf || rawbuf.length<8) return null;
+  const wv=[0]; for(let i=1;i<rawbuf.length;i++){ const dt=(rawbuf[i].t-rawbuf[i-1].t)/1000||0.016; wv.push(angBetween(rawbuf[i].s,rawbuf[i-1].s)/dt); }
+  const ws=wv.map((_,i)=>{ let s=0,c=0; for(let k=-1;k<=1;k++){const j=i+k; if(j>=0&&j<wv.length){s+=wv[j];c++;}} return s/c; });
+  let peak=0,pk=0; ws.forEach((v,i)=>{ if(v>peak){peak=v;pk=i;} });
+  if(peak<START_TH) return null;
+  const offTh=Math.max(END_TH, peak*0.10);
+  const dtAvg=(rawbuf[rawbuf.length-1].t-rawbuf[0].t)/1000/Math.max(1,rawbuf.length-1);
+  const need=Math.max(4, Math.round(0.30/Math.max(0.008,dtAvg)));
+  let on=0, run=0; for(let i=pk;i>=0;i--){ if(ws[i]<offTh){ run++; if(run>=need){ on=i+run; break; } } else run=0; }
+  let off=ws.length-1; run=0; for(let i=pk;i<ws.length;i++){ if(ws[i]<offTh){ run++; if(run>=need){ off=i-run+1; break; } } else run=0; }
+  const i0=Math.max(0,on-2), i1=Math.min(rawbuf.length-1, off+2);
+  if(i1-i0<6) return null;
+  return rawbuf.slice(i0,i1+1).map((o,idx,arr)=>({t:o.t,s:o.s,q:o.q,om: idx? angBetween(o.s,arr[idx-1].s):0 }));
+}
+function computeSwing(){
+  const sm=segment(buf); if(!sm) return null;
+  let impIdx=1,maxSp=-1; for(let i=1;i<sm.length;i++){ const dt=(sm[i].t-sm[i-1].t)/1000||0.016; const sp=sm[i].om/dt; if(sp>maxSp){maxSp=sp;impIdx=i;} }
+  const a0=sm[0].s; let topIdx=0,maxAng=-1; for(let i=0;i<=impIdx;i++){ const ang=angBetween(sm[i].s,a0); if(ang>maxAng){maxAng=ang;topIdx=i;} }
+  const aAddr=norm(rotVec(baseQ,Yc)); let bottomIdx=impIdx,minA=1e9;
+  for(let i=topIdx;i<sm.length;i++){ const ang=angBetween(sm[i].s,aAddr); if(ang<minA){minA=ang;bottomIdx=i;} }
+  if(!sm[bottomIdx] || !sm[bottomIdx].q) return null;
+  const roll=faceRoll(baseQ, sm[bottomIdx].q);
+  return {roll, sm, topIdx, impIdx, bottomIdx};
+}
+function process(){
+  const r=computeSwing();
+  const tp = r ? tempoOf(r) : null;
+  if(!r || !tp){
+    if(mode==='base'){ $('baseState').textContent='うまく取れませんでした。「基準を計測する」をもう一度押してください'; $('btnBaseGo').textContent='基準を計測する（3球）'; }
+    else { document.body.classList.remove('measuring'); $('btnGo').style.display='block';
+      $('pTitle').textContent='もう一度'; $('pLead').textContent='うまく取れませんでした。もう1球お願いします。'; $('btnGo').textContent='もう一度計測する'; }
+    return;
+  }
+  if(mode==='base'){
+    baseTempos.push(tp.R);
+    if(baseTempos.length<3){ $('baseState').textContent='あと'+(3-baseTempos.length)+'球。同じリズムで'; $('btnBaseGo').textContent='次を計測する'; return; }
+    const s=baseTempos.slice().sort((a,b)=>a-b); baseline=s[1];   // 3球の中央値=あなたのテンポ
+    enterPractice(); return;
+  }
+  const dev = tp.R/baseline - 1;
+  let vk,verdict,tip;
+  if(dev>=0.15){ vk='slice'; verdict='急いで下ろしました'; tip='切り返しで、ひと呼吸。'; }
+  else if(dev<=-0.15){ vk='hook'; verdict='間が伸びました'; tip='上げたら、ためらわずに下ろしましょう。'; }
+  else { vk='ok'; verdict='あなたのリズムで振れています'; tip='この間合いを、そのまま覚えておきましょう。'; }
+  $('verdict').textContent=verdict; $('verdict').className='verdict '+vk; $('vtip').textContent=tip;
+  if(vk==='ok') streak++; else streak=0;
+  let sub='上げ:下ろし '+tp.R.toFixed(1)+'：1 ・ プロ平均はおよそ3:1と言われます';
+  if(streak>=2) sub='<b>あなたのリズム '+streak+'回連続</b> ・ '+sub;
+  $('vsub').innerHTML=sub;
+  $('pState').textContent=''; $('btnGo').textContent='次の球を計測する';
+  animateSwing(r.sm, r.bottomIdx, vk);   // ★ 金の弧をアニメで再生
+}
+
+/* ── 描画（金の弧アニメ）── */
+function setupHiDPI(cv,W,H){ const dpr=Math.max(1,Math.min(3,window.devicePixelRatio||1));
+  cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); return ctx; }
+function buildDrawFrame(vecs){ const up={x:0,y:0,z:1};
+  let d=planeNormal(vecs); if(dot(d,up)<0) d={x:-d.x,y:-d.y,z:-d.z};
+  let f=norm(cross(up,d));
+  // 左右をアドレス基準に固定：PCA法線の符号は不定（スイング面がほぼ垂直＝上向き成分がゼロ近傍）なので、
+  // baseQ（構え）の端末X軸を水平面に投影した向きへ f を揃える。描画のみの補正・計測(faceRoll)には無関係。
+  if(typeof baseQ!=='undefined' && baseQ){
+    const xw=rotVec(baseQ,Xc), l=Math.hypot(xw.x,xw.y);
+    if(l>0.15){ const ref={x:xw.x/l, y:xw.y/l, z:0}; if(dot(f,ref)<0) f={x:-f.x,y:-f.y,z:-f.z}; }
+  }
+  return {up, f}; }
+function stageBG(ctx,W,H){
+  const bg=ctx.createRadialGradient(W/2,H*0.40,8, W/2,H*0.42, Math.max(W,H)*0.9);
+  bg.addColorStop(0,'#2b3a2f'); bg.addColorStop(.30,'#243229'); bg.addColorStop(.62,'#18211B'); bg.addColorStop(1,'#0d130f');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(201,176,122,.06)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(W*0.12,H*0.86); ctx.lineTo(W*0.88,H*0.86); ctx.stroke();
+}
+function drawStageStatic(){
+  const cv=$('cv'), W=cv.clientWidth||340, H=cv.clientHeight||280; const ctx=setupHiDPI(cv,W,H);
+  stageBG(ctx,W,H);
+  ctx.fillStyle='rgba(228,214,186,.34)'; ctx.textAlign='center';
+  ctx.font='italic 500 19px "Cormorant Garamond",serif'; ctx.fillText('Ready', W/2, H/2+5);
+}
+function buildSP(sm){
+  const cv=$('cv'), W=cv.clientWidth||340, H=cv.clientHeight||280;
+  const F=buildDrawFrame(sm.map(o=>o.s));
+  // 上下も構えに固定：構え（baseQ）のシャフト方向が必ず画面の「下」に来るようにする
+  // ＝振り子型（構え・インパクトが下、振り幅の端が上）。持ち方（カメラ端の上下）に依存しない。描画のみ・計測不変。
+  let ys=1;
+  if(typeof baseQ!=='undefined' && baseQ){ const a=rotVec(baseQ,Yc); if(a.z>0) ys=-1; }
+  const fo=smooth2D(sm.map(o=>({x:dot(o.s,F.f), y:ys*dot(o.s,F.up)})));
+  let xMin=1e9,xMax=-1e9,yMin=1e9,yMax=-1e9; fo.forEach(p=>{if(p.x<xMin)xMin=p.x;if(p.x>xMax)xMax=p.x;if(p.y<yMin)yMin=p.y;if(p.y>yMax)yMax=p.y;});
+  const pad=46, sc=Math.min((W-pad*2)/Math.max(0.4,xMax-xMin),(H-pad*2)/Math.max(0.4,yMax-yMin));
+  const cx=(xMin+xMax)/2, cy=(yMin+yMax)/2;
+  const SP=fo.map(p=>({x:W/2+(p.x-cx)*sc, y:H/2-(p.y-cy)*sc}));
+  return {SP,W,H};
+}
+function drawTrail(ctx,SP,tail,head,vcol,bottomIdx){
+  const N=SP.length; ctx.lineCap='round'; ctx.lineJoin='round';
+  // 発光ベッド
+  ctx.shadowColor='rgba(201,176,122,.5)'; ctx.shadowBlur=14;
+  for(let i=Math.max(1,Math.ceil(tail));i<=head;i++){ const a=Math.max(0,(i-tail)/((head-tail)||1));
+    const near = bottomIdx!=null?Math.max(0,1-Math.abs(i-bottomIdx)/(N*0.25)):0;
+    ctx.globalAlpha=0.12*a; ctx.lineWidth=6+near*4; ctx.strokeStyle='#A98F58';
+    const A=SP[i-1],B=SP[i]; ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke(); }
+  // 芯
+  ctx.shadowBlur=5;
+  for(let i=Math.max(1,Math.ceil(tail));i<=head;i++){ const a=Math.max(0,(i-tail)/((head-tail)||1));
+    const near = bottomIdx!=null?Math.max(0,1-Math.abs(i-bottomIdx)/(N*0.22)):0;
+    ctx.globalAlpha=Math.min(1,0.15+0.85*a); ctx.lineWidth=1.5+a*1.1+near*1.2;
+    ctx.strokeStyle = near>0.55 ? vcol : (a>0.85?'#F2E8CC':'#D8C49A');
+    const A=SP[i-1],B=SP[i]; ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke(); }
+  ctx.globalAlpha=1; ctx.shadowBlur=0;
+}
+let animReq=null;
+function animateSwing(sm, bottomIdx, vk){
+  if(animReq) cancelAnimationFrame(animReq);
+  $('stageFS').classList.add('on'); $('btnAgain').disabled=true;   // 舞台へ暗転（0.6s・表示のみ）
+  const {SP,W,H}=buildSP(sm); const N=SP.length;
+  const vcol = vk==='slice'?'#C45B4A':vk==='hook'?'#D4A040':'#E4D6BA';
+  const cv=$('cv'); const ctx=setupHiDPI(cv,W,H);
+  const DUR=1500; let start=null, parts=[], burst=false;
+  function spawn(c){ const out=[]; for(let i=0;i<24;i++){ const a=-Math.PI*0.5+(Math.random()-0.5)*1.5; const sp=1.2+Math.random()*3;
+    out.push({x:c.x,y:c.y,vx:Math.cos(a)*sp*1.2+0.8,vy:Math.sin(a)*sp,life:1,r:0.7+Math.random()*1.6}); } return out; }
+  function frame(now){
+    if(!start)start=now; const el=now-start; const prog=Math.min(1,el/DUR);
+    const e=prog<0.5?4*prog*prog*prog:1-Math.pow(-2*prog+2,3)/2;
+    const head=e*(N-1); const tail=Math.max(0,head-N*0.45);
+    stageBG(ctx,W,H);
+    drawTrail(ctx,SP,tail,head,vcol,bottomIdx);
+    if(head>1){ const h=SP[Math.min(N-1,Math.round(head))]; ctx.shadowColor='#F2E8CC'; ctx.shadowBlur=16; ctx.fillStyle='#FBF4DF';
+      ctx.beginPath(); ctx.arc(h.x,h.y,3.2,0,7); ctx.fill(); ctx.shadowBlur=0; }
+    if(!burst && bottomIdx!=null && head>=bottomIdx){ burst=true; parts=spawn(SP[bottomIdx]); }
+    if(burst && SP[bottomIdx]){ const c=SP[bottomIdx];
+      const fl=Math.max(0,1-(el-DUR*(bottomIdx/(N-1)))/420);
+      if(fl>0){ const g=ctx.createRadialGradient(c.x,c.y,0,c.x,c.y,46*fl+8); g.addColorStop(0,'rgba(251,244,223,'+(0.5*fl)+')'); g.addColorStop(1,'rgba(251,244,223,0)'); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(c.x,c.y,46*fl+8,0,7); ctx.fill(); }
+      parts.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=0.10; p.life-=0.022; if(p.life>0){ ctx.globalAlpha=Math.max(0,p.life); ctx.fillStyle='#EBD9A8'; ctx.shadowColor='#EBD9A8'; ctx.shadowBlur=6; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill(); } });
+      ctx.globalAlpha=1; ctx.shadowBlur=0; }
+    if(el<DUR){ animReq=requestAnimationFrame(frame); }
+    else { drawFinal(ctx,SP,vcol,bottomIdx); $('btnAgain').disabled=false; }   // 最後は弧を静止表示・操作解禁
+  }
+  animReq=requestAnimationFrame(frame);
+}
+function drawFinal(ctx,SP,vcol,bottomIdx){
+  const N=SP.length; stageBG(ctx,$('cv').clientWidth,$('cv').clientHeight);
+  drawTrail(ctx,SP,0,N-1,vcol,bottomIdx);
+  if(bottomIdx!=null && SP[bottomIdx]){ const q=SP[bottomIdx];
+    ctx.fillStyle=vcol; ctx.shadowColor=vcol; ctx.shadowBlur=14; ctx.beginPath(); ctx.arc(q.x,q.y,5,0,7); ctx.fill(); ctx.shadowBlur=0;
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(q.x,q.y,1.7,0,7); ctx.fill(); }
+}
+
+window.__coach={faceRoll, computeSwing:()=>computeSwing(), getBaseline:()=>baseline};
+</script>
+</body>
+</html>
