@@ -251,7 +251,7 @@ $('btnPerm').addEventListener('click', async ()=>{
       const r=await DeviceOrientationEvent.requestPermission();
       if(r!=='granted'){ $('permErr').classList.remove('hide'); $('permErr').textContent='センサーが許可されませんでした。設定から許可してください。'; return; }
     }
-    ensureAudio();
+    ensureAudio(); keepAwake();
     window.addEventListener('deviceorientation', onOrient, true);
     STATE='aim'; show('cardAim');
   }catch(err){ $('permErr').classList.remove('hide'); $('permErr').textContent='エラー: '+(err.message||err); }
@@ -297,7 +297,12 @@ function aimTick(){
 }
 let AC=null;
 function ensureAudio(){ if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+  try{ if('audioSession' in navigator) navigator.audioSession.type='playback'; }catch(e){}   // マナーモードでも鳴らす（iOS17+・WebKit公式・ストック No.9）
   if(AC&&AC.state==='suspended'){ try{AC.resume();}catch(e){} } }
+/* 画面スリープ防止（Wake Lock・iOS Safari 16.4+・表示のみ・ストック No.10） */
+let wakeLock=null;
+async function keepAwake(){ try{ if('wakeLock' in navigator) wakeLock=await navigator.wakeLock.request('screen'); }catch(e){} }
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') keepAwake(); });
 function gateBeep(){ if(!AC) return; try{
   const o=AC.createOscillator(), gn=AC.createGain(); o.type='sine'; o.frequency.value=880;
   o.connect(gn); gn.connect(AC.destination); const t0=AC.currentTime;
