@@ -51,6 +51,17 @@ canvas{ display:block; width:100%; height:280px; margin-top:8px; border-radius:1
 .pill{ cursor:pointer; padding:10px 18px; border-radius:999px; background:transparent; border:1px solid var(--hair-gold);
   font-family:var(--jp); font-size:13.5px; letter-spacing:.08em; color:var(--sub); transition:all .2s }
 .pill.on{ border-color:var(--brass); color:var(--brass-lo); background:rgba(169,143,88,.10) }
+.pill .bpm{ display:block; font-family:var(--ui); font-size:10px; letter-spacing:.06em; color:var(--sub); margin-top:2px }
+.pill.on .bpm{ color:var(--brass-lo) }
+/* 拍の可視化（メトロノーム式・デモ相で見て学ぶ用） */
+.beats{ display:flex; justify-content:center; gap:18px; margin-top:22px }
+.beat{ text-align:center }
+.beat i{ display:block; width:12px; height:12px; margin:0 auto; border-radius:50%; background:transparent;
+  border:1.5px solid var(--hair-gold); transition:background .1s, box-shadow .1s }
+.beat.on i{ background:var(--brass); border-color:var(--brass); box-shadow:0 0 10px rgba(203,176,121,.7) }
+.beat.imp i{ width:15px; height:15px }
+.beat.imp.on i{ background:var(--brass-hi); box-shadow:0 0 16px rgba(203,176,121,.95) }
+.beat b{ display:block; font-family:var(--jp); font-weight:400; font-size:10.5px; color:var(--sub); margin-top:7px; letter-spacing:.04em }
 .btn[disabled]{ opacity:.45; pointer-events:none }
 .hint{ font-family:var(--jp); font-size:11.5px; color:var(--sub); text-align:center; margin-top:14px; letter-spacing:.04em }
 .hero{ display:block; width:100%; height:230px; object-fit:cover; object-position:center 20%; border-radius:14px; margin-top:14px; border:1px solid var(--hair-gold) }
@@ -149,16 +160,23 @@ body.measuring .breathWrap{ display:flex }
   <div class="card flat hide" id="cardModel">
     <div class="heroA"><img src="golflev-la-swing.jpg" alt=""></div>
     <h2 class="fh2">お手本テンポ</h2>
-    <p class="lead">プロに多いと言われるリズムを、音で体験。</p>
+    <p class="lead">1・2・3で上げて、<b>最後の音でインパクト</b>。</p>
     <div class="pills">
-      <button class="pill" data-p="slow">ゆったり</button>
-      <button class="pill on" data-p="std">標準</button>
-      <button class="pill" data-p="quick">キビキビ</button>
+      <button class="pill" data-p="slow">ゆったり<span class="bpm">67 BPM</span></button>
+      <button class="pill on" data-p="mid">ミドル<span class="bpm">80 BPM</span></button>
+      <button class="pill" data-p="quick">キビキビ<span class="bpm">100 BPM</span></button>
     </div>
-    <button class="btn" id="btnListen">お手本を聞く</button>
+    <div class="beats" id="beats">
+      <div class="beat"><i></i><b>1</b></div>
+      <div class="beat"><i></i><b>2</b></div>
+      <div class="beat"><i></i><b>3</b></div>
+      <div class="beat"><i></i><b>トップ</b></div>
+      <div class="beat imp"><i></i><b>インパクト</b></div>
+    </div>
+    <button class="btn" id="btnListen">お手本を見る</button>
     <button class="btn solid" id="btnModelGo">音に合わせて計測する</button>
     <div class="statetx" id="mState"></div>
-    <div class="hint">低い音で上げ、高い音で下ろします。音が聞こえない時は、音量とマナーモードをご確認ください。</div>
+    <div class="hint">音が聞こえない時は、音量をご確認ください。</div>
     <button class="btn small" id="btnSelf" style="display:block;margin:10px auto 0">自分のリズムに帰る</button>
   </div>
 
@@ -232,11 +250,13 @@ let baseTempos=[];
 function tempoOf(r){ const sm=r.sm; if(!sm||r.topIdx<=0||r.bottomIdx<=r.topIdx) return null;
   const Tb=(sm[r.topIdx].t-sm[0].t)/1000, Td=(sm[r.bottomIdx].t-sm[r.topIdx].t)/1000;
   if(Tb<0.15||Td<0.05) return null; return {Tb:Tb,Td:Td,R:Tb/Td}; }
-/* モード2「お手本テンポ」（specs/drill-tempo-brief.md §4.5）
-   全プリセット3:1・ドリル速度（レッド指摘反映: Tdを0.6〜0.9sに＝250°/秒帯を守る）。数字はUIに出さない。 */
-const PRESETS={ slow:{Tb:2.70,Td:0.90}, std:{Tb:2.25,Td:0.75}, quick:{Tb:1.80,Td:0.60} };
-const R_TARGET=3.0, BAND_R=0.15, BAND_T=0.25, METRO_REST=1.6;   // 帯は暫定・実機で調整
-let tmode='self', preset='std', modelStreak=0, metroTimer=null, metroOn=false, metroLeft=0;
+/* モード2「お手本テンポ」＝メトロノーム式（2026-07-19 ken実機FBで全面改修）
+   等間隔クリック5回=1・2・3・トップ・インパクト（t=0,T,2T,3T,4T）→ 上げ3拍:下ろし1拍=3:1。
+   休符=3拍分（拍グリッド連続・レッド指摘反映）。1拍目は低い音=カウントの頭を明示。
+   BPM表示=クリック間隔の実数（測れる事実のみ）。ドリル速度維持（T=0.6〜0.9s）。 */
+const PRESETS={ slow:{T:0.90,bpm:67}, mid:{T:0.75,bpm:80}, quick:{T:0.60,bpm:100} };
+const R_TARGET=3.0, BAND_R=0.15, BAND_T=0.25, METRO_REST_BEATS=3;   // 帯は暫定・実機で調整
+let tmode='self', preset='mid', modelStreak=0, metroTimer=null, metroOn=false, metroLeft=0, metroBeats=[], beatReq=null;
 
 function show(id){ ['cardPerm','cardAim','cardBase','cardPractice','cardModel'].forEach(c=>$(c).classList.add('hide')); $(id).classList.remove('hide');
   document.body.classList.toggle('photo', true); }
@@ -251,7 +271,7 @@ $('btnPerm').addEventListener('click', async ()=>{
       const r=await DeviceOrientationEvent.requestPermission();
       if(r!=='granted'){ $('permErr').classList.remove('hide'); $('permErr').textContent='センサーが許可されませんでした。設定から許可してください。'; return; }
     }
-    ensureAudio(); keepAwake();
+    ensureAudio(); unlockMedia(); keepAwake();
     window.addEventListener('deviceorientation', onOrient, true);
     STATE='aim'; show('cardAim');
   }catch(err){ $('permErr').classList.remove('hide'); $('permErr').textContent='エラー: '+(err.message||err); }
@@ -296,8 +316,15 @@ function aimTick(){
   }
 }
 let AC=null;
+try{ if('audioSession' in navigator) navigator.audioSession.type='playback'; }catch(e){}   // AudioContext生成前に宣言（iOS17+）
+/* マナーモード貫通の本命＝無音<audio>ループでメディア扱いに切替（unmute-ios-audio方式・ken実機で①audioSession単独は効かず） */
+const SILENT_WAV='data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==';
+let silentEl=null;
+function unlockMedia(){ try{ if(silentEl) return; silentEl=new Audio(SILENT_WAV);
+  silentEl.loop=true; silentEl.setAttribute('playsinline',''); silentEl.volume=0.01;
+  const p=silentEl.play(); if(p&&p.catch) p.catch(()=>{}); }catch(e){} }
 function ensureAudio(){ if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
-  try{ if('audioSession' in navigator) navigator.audioSession.type='playback'; }catch(e){}   // マナーモードでも鳴らす（iOS17+・WebKit公式・ストック No.9）
+  try{ if('audioSession' in navigator) navigator.audioSession.type='playback'; }catch(e){}
   if(AC&&AC.state==='suspended'){ try{AC.resume();}catch(e){} } }
 /* 画面スリープ防止（Wake Lock・iOS Safari 16.4+・表示のみ・ストック No.10） */
 let wakeLock=null;
@@ -309,23 +336,41 @@ function gateBeep(){ if(!AC) return; try{
   gn.gain.setValueAtTime(0.0001,t0); gn.gain.exponentialRampToValueAtTime(0.22,t0+0.02);
   gn.gain.exponentialRampToValueAtTime(0.0001,t0+0.26); o.start(t0); o.stop(t0+0.3);
 }catch(e){} }
-/* ── 3音メトロノーム（モード2）: 休符→低い始動音→トップ→インパクト強め（レッド指摘反映: 始動音を聴き分け可能に）── */
+/* ── メトロノーム（モード2）: 等間隔5クリック＋休符3拍。1拍目=低い音（頭の明示）・5拍目=強め（インパクト）。
+   クリックはAudioContextクロックで予約・拍の光はrAFで同一クロック参照（見て学ぶデモ相の主役）。── */
 function playTone(t0,f,g,d){ if(!AC) return; try{
   const o=AC.createOscillator(), gn=AC.createGain(); o.type='sine'; o.frequency.value=f;
   o.connect(gn); gn.connect(AC.destination);
   gn.gain.setValueAtTime(0.0001,t0); gn.gain.exponentialRampToValueAtTime(g,t0+0.02);
   gn.gain.exponentialRampToValueAtTime(0.0001,t0+d); o.start(t0); o.stop(t0+d+0.05);
 }catch(e){} }
-function playPattern(){ const p=PRESETS[preset], t0=AC.currentTime+0.08;
-  playTone(t0,440,0.20,0.34);              // 始動（休符のあとの低い音）
-  playTone(t0+p.Tb,660,0.18,0.22);         // トップ
-  playTone(t0+p.Tb+p.Td,880,0.26,0.28);    // インパクト（強め）
-  return p.Tb+p.Td+0.08; }
-function metroStart(cycles){ ensureAudio(); if(!AC) return; metroEnd(); metroOn=true; metroLeft=cycles;
+function playPattern(){ const p=PRESETS[preset], t0=AC.currentTime+0.12;
+  for(let k=0;k<5;k++){
+    const tk=t0+k*p.T;
+    if(k===0)      playTone(tk,523,0.24,0.16);   // 1拍目=低め（カウントの頭）
+    else if(k===4) playTone(tk,880,0.30,0.12);   // インパクト=強め
+    else           playTone(tk,880,0.16,0.07);   // 2〜4拍目=同じティック
+    metroBeats.push({t:tk,i:k});
+  }
+  while(metroBeats.length>10) metroBeats.shift();
+  return 4*p.T+0.12; }
+function beatLoop(){
+  const els=document.querySelectorAll('#beats .beat'); if(!els.length||!AC){ beatReq=null; return; }
+  const now=AC.currentTime, T=PRESETS[preset].T;
+  let onIdx=-1;
+  for(const b of metroBeats){ if(now>=b.t && now<b.t+T*0.8) onIdx=b.i; }
+  els.forEach((el,i)=>el.classList.toggle('on', i===onIdx));
+  if(metroOn) beatReq=requestAnimationFrame(beatLoop);
+  else { els.forEach(el=>el.classList.remove('on')); beatReq=null; }
+}
+function metroStart(cycles){ ensureAudio(); if(!AC) return; metroEnd(); metroOn=true; metroLeft=cycles; metroBeats=[];
   const cycle=()=>{ if(!metroOn||metroLeft<=0){ metroEnd(); return; } metroLeft--;
-    const len=playPattern(); metroTimer=setTimeout(cycle,(len+METRO_REST)*1000); };
-  cycle(); }
-function metroEnd(){ metroOn=false; if(metroTimer){ clearTimeout(metroTimer); metroTimer=null; } }
+    const len=playPattern();
+    metroTimer=setTimeout(cycle,(len+METRO_REST_BEATS*PRESETS[preset].T)*1000); };
+  cycle();
+  if(!beatReq) beatReq=requestAnimationFrame(beatLoop); }
+function metroEnd(){ metroOn=false; if(metroTimer){ clearTimeout(metroTimer); metroTimer=null; }
+  document.querySelectorAll('#beats .beat').forEach(el=>el.classList.remove('on')); }
 
 function enterBaseline(){ mode='base'; capturing=false; baseTempos=[]; show('cardBase'); $('baseState').textContent=''; $('btnBaseGo').textContent='基準を計測する（3球）'; }
 $('btnBaseGo').addEventListener('click', ()=>{ startCapture(); $('baseState').textContent='計測中… いつも通り、ゆっくり振ってください'; });
@@ -352,7 +397,7 @@ $('btnSelf').addEventListener('click', ()=>{ metroEnd(); tmode='self'; show('car
 document.querySelectorAll('.pill').forEach(el=>el.addEventListener('click', ()=>{ if($('btnModelGo').disabled) return;
   metroEnd(); preset=el.dataset.p; document.querySelectorAll('.pill').forEach(x=>x.classList.toggle('on',x===el)); }));
 $('btnListen').addEventListener('click', ()=>{ metroStart(2); });
-$('btnModelGo').addEventListener('click', ()=>{ enableModelBtns(false); $('mState').textContent='音に合わせて、ゆっくり振ってください';
+$('btnModelGo').addEventListener('click', ()=>{ enableModelBtns(false); $('mState').textContent='1・2・3で上げて、最後の音でインパクト';
   startCapture(); metroStart(9999); });
 
 function startCapture(){ STATE='cap'; capturing=true; buf=[]; lastS=null; maxW=0; stillStart=0; capStart=performance.now();
@@ -424,20 +469,23 @@ function process(){
   $('pState').textContent=''; $('btnGo').textContent='次の球を計測する';
   animateSwing(r.sm, r.bottomIdx, vk);   // ★ 金の弧をアニメで再生
 }
-/* ── モード2判定: 比率±15%＋全体の速さ±25%（TbとTdの実測=誠実に判定できる範囲のみ・帯は暫定）──
-   レッド条件: 3:1を「正解」と言わない（お手本=プロに多いと言われる、まで）・最後は自分のリズムに帰る */
+/* ── モード2判定（メトロノーム式・レッド指摘反映版）──
+   測った量だけを語る: 比率R（Tb/Td・始動タイミングに依存しない）と全体時間Tb+Td（同じく位相非依存）。
+   音との「位相」（どの拍で始動したか）は計測していないので一切語らない。
+   優先規則（明文化）: ①比率のズレ（本質）→②全体の速さ→③帯内=ぴったり。帯は暫定・実機調整。
+   3:1を「正解」と言わない・最後は自分のリズムに帰る。 */
 function judgeModel(tp,r){
   const p=PRESETS[preset];
-  const devR=tp.R/R_TARGET-1, devT=(tp.Tb+tp.Td)/(p.Tb+p.Td)-1;
+  const devR=tp.R/R_TARGET-1, devT=(tp.Tb+tp.Td)/(4*p.T)-1;
   let vk,verdict,tip;
-  if(devR>=BAND_R){ vk='slice'; verdict='お手本より、急いで下ろしました'; tip='トップの音まで、間を聞いてから。'; }
-  else if(devR<=-BAND_R){ vk='hook'; verdict='お手本より、間が伸びました'; tip='トップの音で、ためらわず下ろしましょう。'; }
-  else if(devT<=-BAND_T){ vk='slice'; verdict='お手本より、速く振っています'; tip='音に、身をゆだねるように。'; }
-  else if(devT>=BAND_T){ vk='hook'; verdict='お手本より、ゆっくり振っています'; tip='始動の音で、すっと上げてみましょう。'; }
+  if(devR>=BAND_R){ vk='slice'; verdict='お手本より、下ろしが速めでした'; tip='トップで、ひと呼吸おいてから。'; }
+  else if(devR<=-BAND_R){ vk='hook'; verdict='お手本より、下ろしがゆったりでした'; tip='トップから、ためらわず下ろしましょう。'; }
+  else if(devT<=-BAND_T){ vk='slice'; verdict='音の間隔より、全体に速めでした'; tip='クリックの間に、身をゆだねて。'; }
+  else if(devT>=BAND_T){ vk='hook'; verdict='音の間隔より、全体にゆったりでした'; tip='1つ目の音で、すっと上げ始めて。'; }
   else { vk='ok'; verdict='お手本の間で振れています'; tip='この間を、自分のリズムに持ち帰りましょう。'; }
   if(vk==='ok') modelStreak++; else modelStreak=0;
   $('verdict').textContent=verdict; $('verdict').className='verdict '+vk; $('vtip').textContent=tip;
-  let sub='上げ:下ろし '+tp.R.toFixed(1)+'：1 ・ お手本はプロに多いと言われる3:1';
+  let sub='上げ:下ろし '+tp.R.toFixed(1)+'：1 ・ お手本は3拍:1拍（プロに多いと言われる3:1）';
   if(modelStreak>=3) sub='<b>お手本の間 '+modelStreak+'回連続</b> ・ そろそろ、自分のリズムで';
   $('vsub').innerHTML=sub;
   animateSwing(r.sm, r.bottomIdx, vk);
